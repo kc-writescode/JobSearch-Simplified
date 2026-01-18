@@ -85,6 +85,7 @@ export function UnifiedDashboard({ profile, resumes, jobs }: UnifiedDashboardPro
             job_role: r.job_role,
             title: r.title,
             file_name: r.file_name,
+            file_path: r.file_path,
           }))}
           onUpdate={handleRefresh}
         />
