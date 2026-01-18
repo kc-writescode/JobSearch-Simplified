@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 interface Experience {
   title: string;
   company: string;
@@ -26,6 +21,10 @@ interface TailoredData {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get('job_id');
 

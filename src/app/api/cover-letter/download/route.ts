@@ -3,13 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function GET(request: NextRequest) {
     try {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
         const { searchParams } = new URL(request.url);
         const jobId = searchParams.get('job_id');
         const format = searchParams.get('format') || 'pdf'; // pdf or docx
