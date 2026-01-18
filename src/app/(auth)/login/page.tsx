@@ -38,13 +38,13 @@ function LoginForm() {
     // Check user role to determine redirect
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: profile } = await supabase
+      const profileResult = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
 
-      const role = profile?.role;
+      const role = (profileResult.data as { role?: 'user' | 'admin' } | null)?.role;
 
       if (redirectTo && redirectTo !== '/dashboard') {
         router.push(redirectTo);
