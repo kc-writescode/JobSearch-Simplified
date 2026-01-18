@@ -21,12 +21,9 @@ export default async function DashboardLayout({
     .single();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar user={user} profile={profile} />
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-7xl">
-          {children}
-        </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col" suppressHydrationWarning>
+      <main className="flex-1 overflow-y-auto">
+        {children}
       </main>
     </div>
   );

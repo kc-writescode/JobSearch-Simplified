@@ -5,16 +5,11 @@ import { z } from 'zod';
 const createJobSchema = z.object({
   title: z.string().min(1).max(200),
   company: z.string().min(1).max(200),
-  description: z.string().optional(),
-  requirements: z.string().optional(),
-  job_type: z.enum(['full_time', 'part_time', 'contract', 'freelance', 'internship']).optional(),
-  work_mode: z.enum(['remote', 'onsite', 'hybrid']).optional(),
-  location: z.string().optional(),
-  salary_min: z.number().optional(),
-  salary_max: z.number().optional(),
-  job_url: z.string().url().optional().or(z.literal('')),
-  skills: z.array(z.string()).optional(),
-  deadline: z.string().datetime().optional(),
+  description: z.string().optional().nullable(),
+  status: z.enum(['pending', 'tailored', 'applied']).optional(),
+  job_url: z.string().url().optional().nullable().or(z.literal('')),
+  location: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
 });
 
 // GET /api/jobs - List all jobs for user
@@ -39,10 +34,8 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (status === 'active') {
-      query = query.eq('is_active', true);
-    } else if (status === 'inactive') {
-      query = query.eq('is_active', false);
+    if (status && ['pending', 'tailored', 'applied'].includes(status)) {
+      query = query.eq('status', status);
     }
 
     if (search) {
@@ -98,8 +91,7 @@ export async function POST(request: NextRequest) {
       delete jobData.job_url;
     }
 
-    const { data: job, error } = await supabase
-      .from('jobs')
+    const { data: job, error } = await (supabase.from('jobs') as any)
       .insert({
         user_id: user.id,
         ...jobData,
@@ -112,6 +104,55 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ data: job }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// PATCH /api/jobs - Update a job
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Job ID is required' }, { status: 400 });
+    }
+
+    // Verify ownership
+    const { data: existing, error: fetchError } = await (supabase
+      .from('jobs') as any)
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (fetchError || !existing) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
+    // Update the job
+    const { data: job, error } = await (supabase.from('jobs') as any)
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ data: job });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

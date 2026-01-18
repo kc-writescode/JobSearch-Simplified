@@ -5,8 +5,8 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
       <div className="max-w-2xl text-center">
         <h1 className="mb-4 text-5xl font-bold tracking-tight text-gray-900">
-          Job Application
-          <span className="text-primary"> Automation</span>
+          JobSearch
+          <span className="text-primary"> Simplified</span>
         </h1>
         <p className="mb-8 text-lg text-gray-600">
           Upload your resume, track job applications, and streamline your job search process.
@@ -26,6 +26,9 @@ export default function Home() {
           </Link>
         </div>
       </div>
+      <footer className="mt-auto pt-16 text-xs font-bold text-gray-400 uppercase tracking-widest">
+        Developed by KC-codes
+      </footer>
     </main>
   );
 }

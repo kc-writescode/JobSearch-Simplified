@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 
-type UploadStatus = 'idle' | 'uploading' | 'parsing' | 'success' | 'error';
+type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
 export function ResumeUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>('idle');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const router = useRouter();
@@ -64,44 +65,95 @@ export function ResumeUpload() {
 
     setStatus('uploading');
     setError(null);
+    setUploadProgress(10);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
 
-      const uploadResponse = await fetch('/api/resume/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const data = await uploadResponse.json();
-        throw new Error(data.error || 'Upload failed');
+      if (!user) {
+        throw new Error('You must be logged in to upload a resume');
       }
 
-      const uploadData = await uploadResponse.json();
-      setStatus('parsing');
+      // Generate unique file path
+      const fileId = crypto.randomUUID();
+      const fileName = `${fileId}.pdf`;
+      const filePath = `${user.id}/${fileName}`;
 
-      const parseResponse = await fetch('/api/resume/parse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeId: uploadData.data.id }),
-      });
+      setUploadProgress(30);
 
-      if (!parseResponse.ok) {
-        const data = await parseResponse.json();
-        throw new Error(data.error || 'Parsing failed');
+      // Start both in parallel for maximum speed
+      // The DB entry only needs the path, which we already generated
+      const uploadPromise = supabase.storage
+        .from('resumes')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      const dbPromise = (supabase.from('resumes') as any)
+        .insert({
+          user_id: user.id,
+          file_name: file.name,
+          file_path: filePath,
+          file_size: file.size,
+          file_type: file.type,
+          title: file.name.replace('.pdf', ''),
+          status: 'ready',
+        })
+        .select()
+        .single();
+
+      // Update progress periodically while waiting
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+
+      const [uploadResult, dbResult] = await Promise.all([uploadPromise, dbPromise]);
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (uploadResult.error) throw uploadResult.error;
+      if (dbResult.error) {
+        // Cleanup storage on DB error
+        await supabase.storage.from('resumes').remove([filePath]);
+        throw dbResult.error;
       }
 
+      const resume = dbResult.data;
+
+      // Upload successful
       setStatus('success');
+
+      // Trigger parsing
+      try {
+        await fetch('/api/resume/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resumeId: resume.id }),
+        });
+      } catch (parseErr) {
+        console.error('Auto-parsing failed:', parseErr);
+        // We don't throw here as the upload was successful
+      }
+
       router.refresh();
+
+      // Open the uploaded PDF in a new tab for preview if needed
+      if (resume?.file_path) {
+        window.open(`/api/resume/view?path=${encodeURIComponent(resume.file_path)}`, '_blank');
+      }
 
       // Reset after success
       setTimeout(() => {
         setFile(null);
         setStatus('idle');
-      }, 2000);
+        setUploadProgress(0);
+      }, 1500);
     } catch (err) {
+      console.error('Upload error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Upload failed';
       setError(errorMessage);
       setStatus('error');
@@ -126,7 +178,7 @@ export function ResumeUpload() {
           isDragActive
             ? 'border-blue-500 bg-blue-50'
             : 'border-gray-300 bg-gray-50 hover:border-gray-400',
-          (status === 'uploading' || status === 'parsing') && 'pointer-events-none opacity-50'
+          status === 'uploading' && 'pointer-events-none opacity-50'
         )}
       >
         <input
@@ -134,7 +186,7 @@ export function ResumeUpload() {
           accept=".pdf"
           onChange={handleFileSelect}
           className="absolute inset-0 cursor-pointer opacity-0"
-          disabled={status === 'uploading' || status === 'parsing'}
+          disabled={status === 'uploading'}
         />
 
         <div className="flex flex-col items-center gap-4">
@@ -191,16 +243,16 @@ export function ResumeUpload() {
           </div>
 
           {/* Progress */}
-          {(status === 'uploading' || status === 'parsing') && (
+          {status === 'uploading' && (
             <div className="mt-4">
               <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
                 <div
                   className="h-full bg-blue-600 transition-all duration-300"
-                  style={{ width: status === 'uploading' ? '50%' : '90%' }}
+                  style={{ width: `${uploadProgress}%` }}
                 />
               </div>
               <p className="mt-2 text-center text-xs text-gray-500">
-                {status === 'uploading' ? 'Uploading...' : 'Parsing resume...'}
+                {uploadProgress < 100 ? `Uploading... ${uploadProgress}%` : 'Finalizing...'}
               </p>
             </div>
           )}
@@ -221,17 +273,17 @@ export function ResumeUpload() {
         </Button>
       )}
 
-      {/* Loading states */}
-      {(status === 'uploading' || status === 'parsing') && (
+      {/* Loading state */}
+      {status === 'uploading' && (
         <Button disabled className="w-full">
-          {status === 'uploading' ? 'Uploading...' : 'Parsing...'}
+          Uploading...
         </Button>
       )}
 
       {/* Success message */}
       {status === 'success' && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-          <p className="text-sm text-green-600">Resume uploaded and parsed successfully!</p>
+          <p className="text-sm text-green-600">Resume uploaded successfully!</p>
         </div>
       )}
     </div>

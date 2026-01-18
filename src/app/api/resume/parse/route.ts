@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import pdfParse from 'pdf-parse';
+import { openai } from '@/lib/ai/openai';
 
 export const runtime = 'nodejs';
 
@@ -40,12 +41,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ParseResp
     }
 
     // Fetch resume record
-    const { data: resume, error: fetchError } = await supabase
-      .from('resumes')
+    const { data: resume, error: fetchError } = await (supabase.from('resumes') as any)
       .select('*')
       .eq('id', resumeId)
       .eq('user_id', user.id)
-      .single();
+      .single() as { data: { file_path: string } | null; error: any };
 
     if (fetchError || !resume) {
       return NextResponse.json(
@@ -55,8 +55,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ParseResp
     }
 
     // Update status to parsing
-    await supabase
-      .from('resumes')
+    await (supabase.from('resumes') as any)
       .update({ status: 'parsing' })
       .eq('id', resumeId);
 
@@ -66,8 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ParseResp
       .download(resume.file_path);
 
     if (downloadError || !fileData) {
-      await supabase
-        .from('resumes')
+      await (supabase.from('resumes') as any)
         .update({ status: 'error', error_message: 'Failed to download file' })
         .eq('id', resumeId);
 
@@ -85,8 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ParseResp
     try {
       pdfData = await pdfParse(buffer);
     } catch (parseError) {
-      await supabase
-        .from('resumes')
+      await (supabase.from('resumes') as any)
         .update({ status: 'error', error_message: 'Failed to parse PDF' })
         .eq('id', resumeId);
 
@@ -97,12 +94,25 @@ export async function POST(request: NextRequest): Promise<NextResponse<ParseResp
       );
     }
 
-    // Extract structured data
-    const parsedData = extractResumeData(pdfData.text);
+    // Extract structured data using AI
+    let parsedData;
+    try {
+      parsedData = await extractResumeDataWithAI(pdfData.text);
+    } catch (aiError) {
+      console.error('AI Parse error:', aiError);
+      // Fallback or keep it as error
+      await (supabase.from('resumes') as any)
+        .update({ status: 'error', error_message: 'AI Parsing failed' })
+        .eq('id', resumeId);
+
+      return NextResponse.json(
+        { success: false, error: 'AI Parsing failed' },
+        { status: 500 }
+      );
+    }
 
     // Update resume record with parsed content
-    const { error: updateError } = await supabase
-      .from('resumes')
+    const { error: updateError } = await (supabase.from('resumes') as any)
       .update({
         parsed_text: pdfData.text,
         parsed_data: parsedData,
@@ -137,44 +147,70 @@ export async function POST(request: NextRequest): Promise<NextResponse<ParseResp
   }
 }
 
-// Helper function to extract structured data from resume text
-function extractResumeData(text: string): Record<string, unknown> {
-  const lines = text.split('\n').filter(line => line.trim());
+async function extractResumeDataWithAI(text: string): Promise<Record<string, unknown>> {
+  const systemPrompt = `You are an expert resume parser. Extract the information from the provided resume text into a structured JSON format.
+  
+  Format the response as JSON with this structure:
+  {
+    "full_name": "string",
+    "email": "string",
+    "phone": "string",
+    "location": "string",
+    "linkedin_url": "string",
+    "portfolio_url": "string",
+    "summary": "string",
+    "skills": [
+      { "category": "Technical", "items": ["Skill 1", "Skill 2"] }
+    ],
+    "experience": [
+      {
+        "company": "string",
+        "role": "string",
+        "location": "string",
+        "start_date": "string",
+        "end_date": "string",
+        "description": ["Bullet point 1", "Bullet point 2"]
+      }
+    ],
+    "education": [
+      {
+        "institution": "string",
+        "degree": "string",
+        "field": "string",
+        "location": "string",
+        "start_date": "string",
+        "end_date": "string",
+        "gpa": "string"
+      }
+    ],
+    "projects": [
+      {
+        "name": "string",
+        "description": "string",
+        "technologies": ["tech1", "tech2"],
+        "link": "string"
+      }
+    ]
+  }
+  
+  Guidelines:
+  - Normalize dates to a readable format (e.g., "Month Year" or "Year").
+  - For experience descriptions, break the content into a list of meaningful bullet points.
+  - Categorize skills logically.
+  - If a piece of information is missing, use an empty string or null.`;
 
-  // Basic extraction patterns
-  const emailRegex = /[\w.-]+@[\w.-]+\.\w+/gi;
-  const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
-  const linkedinRegex = /linkedin\.com\/in\/[\w-]+/gi;
-  const githubRegex = /github\.com\/[\w-]+/gi;
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: text.slice(0, 8000) }, // Limit text to avoid token limits
+    ],
+    temperature: 0,
+    response_format: { type: 'json_object' },
+  });
 
-  const emails = text.match(emailRegex) || [];
-  const phones = text.match(phoneRegex) || [];
-  const linkedin = text.match(linkedinRegex) || [];
-  const github = text.match(githubRegex) || [];
+  const content = completion.choices[0]?.message?.content;
+  if (!content) throw new Error('AI failed to parse resume');
 
-  // Common skill keywords
-  const skillKeywords = [
-    'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Ruby', 'Go', 'Rust',
-    'React', 'Vue', 'Angular', 'Next.js', 'Node.js', 'Express', 'Django', 'Flask',
-    'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'PostgreSQL', 'MongoDB', 'Redis',
-    'GraphQL', 'REST', 'SQL', 'NoSQL', 'Git', 'CI/CD', 'Agile', 'Scrum',
-    'HTML', 'CSS', 'Tailwind', 'SASS', 'Machine Learning', 'AI', 'Data Science',
-  ];
-
-  const detectedSkills = skillKeywords.filter(skill =>
-    text.toLowerCase().includes(skill.toLowerCase())
-  );
-
-  return {
-    contact: {
-      emails: [...new Set(emails)],
-      phones: [...new Set(phones)],
-      linkedin: linkedin[0] ? `https://${linkedin[0]}` : null,
-      github: github[0] ? `https://${github[0]}` : null,
-    },
-    skills: detectedSkills,
-    wordCount: text.split(/\s+/).length,
-    lineCount: lines.length,
-    extractedAt: new Date().toISOString(),
-  };
+  return JSON.parse(content);
 }

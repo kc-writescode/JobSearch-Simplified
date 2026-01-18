@@ -6,6 +6,15 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+// Simplified job status
+export type JobStatus = 'saved' | 'tailoring' | 'tailored' | 'applied' | 'interviewing' | 'offer' | 'closed';
+
+// Resume status
+export type ResumeStatus = 'uploading' | 'parsing' | 'ready' | 'error';
+
+// Tailored resume status
+export type TailoredResumeStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
 export type Database = {
   public: {
     Tables: {
@@ -16,8 +25,13 @@ export type Database = {
           full_name: string | null;
           avatar_url: string | null;
           plan: string;
+          phone: string | null;
+          linkedin_url: string | null;
+          github_url: string | null;
+          resume_data: Json | null;
           created_at: string;
           updated_at: string;
+          role: 'user' | 'admin';
         };
         Insert: {
           id: string;
@@ -25,8 +39,13 @@ export type Database = {
           full_name?: string | null;
           avatar_url?: string | null;
           plan?: string;
+          phone?: string | null;
+          linkedin_url?: string | null;
+          github_url?: string | null;
+          resume_data?: Json | null;
           created_at?: string;
           updated_at?: string;
+          role?: 'user' | 'admin';
         };
         Update: {
           id?: string;
@@ -34,8 +53,13 @@ export type Database = {
           full_name?: string | null;
           avatar_url?: string | null;
           plan?: string;
+          phone?: string | null;
+          linkedin_url?: string | null;
+          github_url?: string | null;
+          resume_data?: Json | null;
           created_at?: string;
           updated_at?: string;
+          role?: 'user' | 'admin';
         };
       };
       resumes: {
@@ -48,7 +72,7 @@ export type Database = {
           file_type: string;
           parsed_text: string | null;
           parsed_data: Json | null;
-          status: 'uploading' | 'parsing' | 'ready' | 'error';
+          status: ResumeStatus;
           error_message: string | null;
           is_primary: boolean;
           title: string | null;
@@ -65,7 +89,7 @@ export type Database = {
           file_type?: string;
           parsed_text?: string | null;
           parsed_data?: Json | null;
-          status?: 'uploading' | 'parsing' | 'ready' | 'error';
+          status?: ResumeStatus;
           error_message?: string | null;
           is_primary?: boolean;
           title?: string | null;
@@ -82,7 +106,7 @@ export type Database = {
           file_type?: string;
           parsed_text?: string | null;
           parsed_data?: Json | null;
-          status?: 'uploading' | 'parsing' | 'ready' | 'error';
+          status?: ResumeStatus;
           error_message?: string | null;
           is_primary?: boolean;
           title?: string | null;
@@ -98,20 +122,11 @@ export type Database = {
           title: string;
           company: string;
           description: string | null;
-          requirements: string | null;
-          job_type: 'full_time' | 'part_time' | 'contract' | 'freelance' | 'internship';
-          work_mode: 'remote' | 'onsite' | 'hybrid';
-          location: string | null;
-          salary_min: number | null;
-          salary_max: number | null;
-          salary_currency: string;
+          status: JobStatus;
           job_url: string | null;
-          skills: string[] | null;
-          is_active: boolean;
-          is_favorite: boolean;
-          priority: number;
+          location: string | null;
           notes: string | null;
-          deadline: string | null;
+          applied_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -121,20 +136,11 @@ export type Database = {
           title: string;
           company: string;
           description?: string | null;
-          requirements?: string | null;
-          job_type?: 'full_time' | 'part_time' | 'contract' | 'freelance' | 'internship';
-          work_mode?: 'remote' | 'onsite' | 'hybrid';
-          location?: string | null;
-          salary_min?: number | null;
-          salary_max?: number | null;
-          salary_currency?: string;
+          status?: JobStatus;
           job_url?: string | null;
-          skills?: string[] | null;
-          is_active?: boolean;
-          is_favorite?: boolean;
-          priority?: number;
+          location?: string | null;
           notes?: string | null;
-          deadline?: string | null;
+          applied_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -144,35 +150,27 @@ export type Database = {
           title?: string;
           company?: string;
           description?: string | null;
-          requirements?: string | null;
-          job_type?: 'full_time' | 'part_time' | 'contract' | 'freelance' | 'internship';
-          work_mode?: 'remote' | 'onsite' | 'hybrid';
-          location?: string | null;
-          salary_min?: number | null;
-          salary_max?: number | null;
-          salary_currency?: string;
+          status?: JobStatus;
           job_url?: string | null;
-          skills?: string[] | null;
-          is_active?: boolean;
-          is_favorite?: boolean;
-          priority?: number;
+          location?: string | null;
           notes?: string | null;
-          deadline?: string | null;
+          applied_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
       };
-      applications: {
+      tailored_resumes: {
         Row: {
           id: string;
           user_id: string;
           job_id: string;
-          resume_id: string | null;
-          status: 'draft' | 'submitted' | 'under_review' | 'interview_scheduled' | 'interviewed' | 'offer_received' | 'accepted' | 'rejected' | 'withdrawn';
-          cover_letter: string | null;
-          applied_at: string | null;
-          notes: string | null;
-          confidence_score: number | null;
+          original_resume_data: Json | null;
+          tailored_summary: string | null;
+          tailored_experience: Json | null;
+          tailored_skills: string[] | null;
+          full_tailored_data: Json | null;
+          status: TailoredResumeStatus;
+          error_message: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -180,12 +178,13 @@ export type Database = {
           id?: string;
           user_id: string;
           job_id: string;
-          resume_id?: string | null;
-          status?: 'draft' | 'submitted' | 'under_review' | 'interview_scheduled' | 'interviewed' | 'offer_received' | 'accepted' | 'rejected' | 'withdrawn';
-          cover_letter?: string | null;
-          applied_at?: string | null;
-          notes?: string | null;
-          confidence_score?: number | null;
+          original_resume_data?: Json | null;
+          tailored_summary?: string | null;
+          tailored_experience?: Json | null;
+          tailored_skills?: string[] | null;
+          full_tailored_data?: Json | null;
+          status?: TailoredResumeStatus;
+          error_message?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -193,12 +192,13 @@ export type Database = {
           id?: string;
           user_id?: string;
           job_id?: string;
-          resume_id?: string | null;
-          status?: 'draft' | 'submitted' | 'under_review' | 'interview_scheduled' | 'interviewed' | 'offer_received' | 'accepted' | 'rejected' | 'withdrawn';
-          cover_letter?: string | null;
-          applied_at?: string | null;
-          notes?: string | null;
-          confidence_score?: number | null;
+          original_resume_data?: Json | null;
+          tailored_summary?: string | null;
+          tailored_experience?: Json | null;
+          tailored_skills?: string[] | null;
+          full_tailored_data?: Json | null;
+          status?: TailoredResumeStatus;
+          error_message?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -207,10 +207,9 @@ export type Database = {
     Views: {};
     Functions: {};
     Enums: {
-      application_status: 'draft' | 'submitted' | 'under_review' | 'interview_scheduled' | 'interviewed' | 'offer_received' | 'accepted' | 'rejected' | 'withdrawn';
-      job_type: 'full_time' | 'part_time' | 'contract' | 'freelance' | 'internship';
-      work_mode: 'remote' | 'onsite' | 'hybrid';
-      resume_status: 'uploading' | 'parsing' | 'ready' | 'error';
+      job_status: JobStatus;
+      resume_status: ResumeStatus;
+      tailored_resume_status: TailoredResumeStatus;
     };
   };
 };

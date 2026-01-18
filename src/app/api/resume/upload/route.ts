@@ -77,14 +77,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
       return NextResponse.json(
-        { success: false, error: 'Failed to upload file' },
+        { success: false, error: `Storage error: ${uploadError.message}` },
         { status: 500 }
       );
     }
 
-    // Create database record
-    const { data: resume, error: dbError } = await supabase
-      .from('resumes')
+    // Create database record - status is 'ready' immediately (no parsing needed)
+    const { data: resume, error: dbError } = await (supabase.from('resumes') as any)
       .insert({
         user_id: user.id,
         file_name: file.name,
@@ -92,7 +91,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
         file_size: file.size,
         file_type: file.type,
         title: title || file.name.replace('.pdf', ''),
-        status: 'uploading',
+        status: 'ready',
       })
       .select()
       .single();
@@ -102,7 +101,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       await supabase.storage.from('resumes').remove([filePath]);
       console.error('Database insert error:', dbError);
       return NextResponse.json(
-        { success: false, error: 'Failed to save resume record' },
+        { success: false, error: `Database error: ${dbError.message}` },
         { status: 500 }
       );
     }

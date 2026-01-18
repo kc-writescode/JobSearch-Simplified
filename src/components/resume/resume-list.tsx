@@ -5,6 +5,15 @@ import type { Database } from '@/types/database.types';
 
 type Resume = Database['public']['Tables']['resumes']['Row'];
 
+// Use consistent date format to avoid hydration mismatch
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 interface ResumeListProps {
   resumes: Resume[];
 }
@@ -43,7 +52,7 @@ export function ResumeList({ resumes }: ResumeListProps) {
               <p className="text-xs text-gray-500">
                 {(resume.file_size / 1024 / 1024).toFixed(2)} MB
                 {' • '}
-                {new Date(resume.created_at).toLocaleDateString()}
+                {formatDate(resume.created_at)}
               </p>
             </div>
             <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[resume.status]}`}>

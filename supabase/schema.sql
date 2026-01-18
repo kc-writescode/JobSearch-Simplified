@@ -52,6 +52,7 @@ CREATE TABLE public.profiles (
   full_name TEXT,
   avatar_url TEXT,
   plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'enterprise')),
+  resume_data JSONB,  -- Parsed resume: skills, experience, education
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );

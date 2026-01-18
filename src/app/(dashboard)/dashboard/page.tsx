@@ -1,66 +1,83 @@
 import { createClient } from '@/lib/supabase/server';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { redirect } from 'next/navigation';
+import { ClientDashboard } from './client-dashboard';
+
+interface Profile {
+  full_name: string | null;
+  phone: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
+  personal_details?: any;
+}
+
+interface TailoredResume {
+  job_id: string;
+  status: string;
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Fetch stats
-  const [resumesResult, jobsResult, applicationsResult] = await Promise.all([
-    supabase.from('resumes').select('id', { count: 'exact' }).eq('user_id', user!.id),
-    supabase.from('jobs').select('id', { count: 'exact' }).eq('user_id', user!.id),
-    supabase.from('applications').select('id', { count: 'exact' }).eq('user_id', user!.id),
-  ]);
+  if (!user) {
+    redirect('/login');
+  }
 
-  const stats = [
-    { name: 'Resumes', value: resumesResult.count || 0 },
-    { name: 'Jobs Saved', value: jobsResult.count || 0 },
-    { name: 'Applications', value: applicationsResult.count || 0 },
-  ];
+  // Fetch profile
+  const { data: profileData } = await (supabase
+    .from('profiles') as any)
+    .select('full_name, phone, linkedin_url, github_url, personal_details')
+    .eq('id', user.id)
+    .single();
+
+  const profile = profileData as Profile | null;
+
+  // Fetch all user's resumes
+  const { data: resumes } = await (supabase
+    .from('resumes') as any)
+    .select('id, file_name, file_path, job_role, title, created_at, status, is_default')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  // Fetch jobs
+  const { data: jobs } = await (supabase
+    .from('jobs') as any)
+    .select('id, title, company, status, job_url, location, description, resume_id, cover_letter, submission_proof, applied_at, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  // Fetch tailored resume statuses for all user's jobs
+  const { data: tailoredResumes } = await (supabase
+    .from('tailored_resumes') as any)
+    .select('job_id, status')
+    .eq('user_id', user.id);
+
+  // Create a map of job_id -> tailored resume status
+  const tailoredStatusMap: Record<string, string> = {};
+  if (tailoredResumes) {
+    (tailoredResumes as TailoredResume[]).forEach((tr) => {
+      tailoredStatusMap[tr.job_id] = tr.status;
+    });
+  }
+
+  // Add tailored status to each job
+  const jobsWithTailoredStatus = (jobs || []).map((job: { id: string }) => ({
+    ...job,
+    tailored_status: tailoredStatusMap[job.id] || null,
+  }));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500">Welcome back! Here&apos;s your job search overview.</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat) => (
-          <Card key={stat.name}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">
-                {stat.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{stat.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Quick actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="flex gap-4">
-          <a
-            href="/resume"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Upload Resume
-          </a>
-          <a
-            href="/jobs"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Add Job
-          </a>
-        </CardContent>
-      </Card>
-    </div>
+    <ClientDashboard
+      profile={{
+        full_name: profile?.full_name || null,
+        email: user.email || '',
+        phone: profile?.phone || null,
+        linkedin_url: profile?.linkedin_url || null,
+        github_url: profile?.github_url || null,
+        personal_details: profile?.personal_details || null,
+      }}
+      resumes={resumes || []}
+      jobs={jobsWithTailoredStatus}
+    />
   );
 }
