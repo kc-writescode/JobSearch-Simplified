@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import OpenAI from 'openai';
+import { openai } from '@/lib/ai/openai';
 
 // POST /api/cover-letter - Generate cover letter for a job
 export async function POST(request: NextRequest) {
@@ -77,10 +77,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate cover letter using OpenAI
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     const prompt = `Generate a professional cover letter for the following job application.
 
 Job Title: ${job.title}
