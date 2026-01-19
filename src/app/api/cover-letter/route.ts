@@ -20,13 +20,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'job_id is required' }, { status: 400 });
     }
 
-    // Fetch job details
-    const { data: job, error: jobError } = await (supabase
-      .from('jobs') as any)
-      .select('id, title, company, description, resume_id')
-      .eq('id', job_id)
-      .eq('user_id', user.id)
+    // Check if user is admin
+    const { data: currentProfile } = await (supabase
+      .from('profiles') as any)
+      .select('role')
+      .eq('id', user.id)
       .single();
+
+    const isAdmin = currentProfile?.role === 'admin';
+
+    // Fetch job details - admins can access any job, users only their own
+    let jobQuery = (supabase
+      .from('jobs') as any)
+      .select('id, title, company, description, resume_id, user_id')
+      .eq('id', job_id);
+
+    // Only filter by user_id if not admin
+    if (!isAdmin) {
+      jobQuery = jobQuery.eq('user_id', user.id);
+    }
+
+    const { data: job, error: jobError } = await jobQuery.single();
 
     if (jobError || !job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
@@ -39,11 +53,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch user profile
+    // Fetch the job owner's profile (for their personal details in the cover letter)
+    // If admin is generating, use the job owner's profile, not the admin's
+    const profileUserId = isAdmin ? job.user_id : user.id;
     const { data: profile } = await (supabase
       .from('profiles') as any)
       .select('full_name, email, phone, linkedin_url, resume_data')
-      .eq('id', user.id)
+      .eq('id', profileUserId)
       .single();
 
     // Fetch resume if attached

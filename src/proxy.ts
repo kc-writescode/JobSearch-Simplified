@@ -38,6 +38,23 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
 
+  // Helper function to get user role
+  async function getUserRole(userId: string): Promise<string | null> {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('[Proxy] Error fetching profile:', error.message);
+      return null;
+    }
+
+    console.log('[Proxy] User role:', profile?.role, 'for path:', path);
+    return profile?.role ?? null;
+  }
+
   // 1. Admin Routes Protection
   if (path.startsWith('/admin')) {
     if (!user) {
@@ -47,19 +64,14 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin') {
+    const role = await getUserRole(user.id);
+    if (role !== 'admin') {
+      console.log('[Proxy] Non-admin trying to access admin route, redirecting to dashboard');
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
 
   // 2. User Dashboard Protection (and other protected paths)
-  // Protected paths that standard users access
   const userProtectedPaths = ['/dashboard', '/resume', '/jobs', '/applications', '/settings'];
   const isUserProtectedItem = userProtectedPaths.some(p => path.startsWith(p));
 
@@ -71,30 +83,23 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role === 'admin') {
+    const role = await getUserRole(user.id);
+    if (role === 'admin') {
+      console.log('[Proxy] Admin accessing user route, redirecting to admin/tasks');
       return NextResponse.redirect(new URL('/admin/tasks', request.url));
     }
   }
 
-  // 3. Auth Page Redirection
+  // 3. Auth Page Redirection (redirect logged-in users away from login/signup)
   const authPaths = ['/login', '/signup', '/forgot-password'];
   if (authPaths.includes(path)) {
     if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.role === 'admin') {
+      const role = await getUserRole(user.id);
+      if (role === 'admin') {
+        console.log('[Proxy] Admin on auth page, redirecting to admin/tasks');
         return NextResponse.redirect(new URL('/admin/tasks', request.url));
       } else {
+        console.log('[Proxy] User on auth page, redirecting to dashboard');
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     }

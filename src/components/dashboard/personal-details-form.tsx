@@ -299,14 +299,34 @@ export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFo
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { error } = await (supabase.from('profiles') as any).update({ personal_details: formData, updated_at: new Date().toISOString() }).eq('id', user.id);
-      if (error) throw error;
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('Auth error:', authError.message);
+        alert('Authentication error. Please log in again.');
+        return;
+      }
+      if (!user) {
+        alert('You must be logged in to save.');
+        return;
+      }
+      const { error } = await (supabase
+        .from('profiles') as any)
+        .update({
+          personal_details: formData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Supabase error:', error.message, error.details, error.hint);
+        alert(`Error saving profile: ${error.message}`);
+        return;
+      }
       onUpdate?.();
     } catch (error) {
-      console.error('Error saving profile:', error);
-      alert('Error saving profile. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error saving profile:', errorMessage);
+      alert(`Error saving profile: ${errorMessage}`);
     } finally {
       setSaving(false);
     }

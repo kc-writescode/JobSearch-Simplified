@@ -109,12 +109,16 @@ export function ResumesSection({ resumes, onUpdate }: ResumesSectionProps) {
       }
 
       // Open the uploaded resume in a new tab
-      const { data: urlData } = await supabase.storage
+      const { data: urlData, error: urlError } = await supabase.storage
         .from('resumes')
         .createSignedUrl(fileName, 3600);
 
-      if (urlData?.signedUrl) {
+      if (urlError) {
+        console.error('Error creating signed URL:', urlError);
+      } else if (urlData?.signedUrl) {
         window.open(urlData.signedUrl, '_blank');
+      } else {
+        console.error('No signed URL returned');
       }
     } catch (error) {
       console.error('Error uploading resume:', error);

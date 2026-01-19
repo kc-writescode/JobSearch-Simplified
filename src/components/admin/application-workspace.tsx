@@ -2,8 +2,18 @@
 
 import React, { useState } from 'react';
 import { VACoreTask } from '@/types/admin.types';
-import { Upload, FileText, X, Check, Eye, Loader2 } from 'lucide-react';
+import { Upload, FileText, X, Check, Eye, Loader2, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 interface ApplicationWorkspaceProps {
   task: VACoreTask | null;
@@ -37,6 +47,12 @@ export function ApplicationWorkspace({
   } | null>(null);
   const [isSavingTweaks, setIsSavingTweaks] = useState(false);
 
+  // Job description dialog state (for when description is missing)
+  const [showDescriptionDialog, setShowDescriptionDialog] = useState(false);
+  const [pendingJobDescription, setPendingJobDescription] = useState('');
+  const [descriptionAction, setDescriptionAction] = useState<'tailor' | 'cover_letter' | null>(null);
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
+
   // Sync state with task when it changes
   React.useEffect(() => {
     if (task) {
@@ -52,6 +68,10 @@ export function ApplicationWorkspace({
       } else {
         setEditableTailoredData(null);
       }
+      // Reset proof-related states when task changes
+      setProofFile(null);
+      setProofPath(task.proofOfWork?.screenshotUrl || '');
+      setProofUploadStatus(task.proofOfWork?.screenshotUrl ? 'success' : 'idle');
     }
   }, [task]);
 
@@ -181,6 +201,47 @@ export function ApplicationWorkspace({
     }
   };
 
+  // Save job description and proceed with action
+  const handleSaveDescriptionAndProceed = async () => {
+    if (!task || !pendingJobDescription.trim()) {
+      alert('Please enter a job description');
+      return;
+    }
+
+    setIsSavingDescription(true);
+    try {
+      // Save the description to the job
+      const supabase = createClient();
+      const { error } = await (supabase
+        .from('jobs') as any)
+        .update({
+          description: pendingJobDescription.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', task.jobId);
+
+      if (error) throw error;
+
+      // Close dialog and proceed with the pending action
+      setShowDescriptionDialog(false);
+      setPendingJobDescription('');
+
+      if (descriptionAction === 'tailor') {
+        // Give a moment for the update to propagate, then tailor
+        setTimeout(() => handleTailorResume(), 500);
+      } else if (descriptionAction === 'cover_letter') {
+        setTimeout(() => handleGenerateCoverLetter(), 500);
+      }
+
+      setDescriptionAction(null);
+    } catch (error) {
+      console.error('Error saving job description:', error);
+      alert('Failed to save job description. Please try again.');
+    } finally {
+      setIsSavingDescription(false);
+    }
+  };
+
   const handleTailorResume = async () => {
     if (!task.selectedResume?.id) {
       alert('No resume selected for this job');
@@ -199,6 +260,14 @@ export function ApplicationWorkspace({
       const data = await response.json();
 
       if (!response.ok) {
+        // Check if we need a job description
+        if (data.needs_description) {
+          setIsTailoring(false);
+          setCurrentAiStatus('Pending');
+          setDescriptionAction('tailor');
+          setShowDescriptionDialog(true);
+          return;
+        }
         throw new Error(data.error || 'Failed to tailor resume');
       }
 
@@ -240,15 +309,23 @@ export function ApplicationWorkspace({
         body: JSON.stringify({ job_id: task.jobId }),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to generate cover letter');
+        // Check if we need a job description
+        if (result.error?.includes('description is required')) {
+          setIsGeneratingCL(false);
+          setDescriptionAction('cover_letter');
+          setShowDescriptionDialog(true);
+          return;
+        }
+        throw new Error(result.error || 'Failed to generate cover letter');
       }
 
-      const result = await response.json();
       setCurrentCoverLetter(result.cover_letter);
     } catch (error) {
       console.error('Error generating cover letter:', error);
-      alert('Failed to generate cover letter');
+      alert(`Failed to generate cover letter: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGeneratingCL(false);
     }
@@ -957,6 +1034,82 @@ export function ApplicationWorkspace({
           </div>
         </div>
       </div>
+
+      {/* Job Description Dialog - shown when description is missing */}
+      <Dialog open={showDescriptionDialog} onOpenChange={setShowDescriptionDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Job Description Required
+            </DialogTitle>
+            <DialogDescription>
+              This job was imported without a description. Please paste the job description to continue with {descriptionAction === 'tailor' ? 'resume tailoring' : 'cover letter generation'}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="job-description">Job Description</Label>
+              <Textarea
+                id="job-description"
+                placeholder="Paste the full job description here..."
+                value={pendingJobDescription}
+                onChange={(e) => setPendingJobDescription(e.target.value)}
+                rows={10}
+                className="resize-none"
+                disabled={isSavingDescription}
+              />
+              <p className="text-xs text-gray-500">
+                Tip: Copy the job description from the job posting URL and paste it here.
+              </p>
+            </div>
+
+            {task?.jobUrl && (
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                <p className="text-xs text-blue-700 font-medium mb-1">Job URL:</p>
+                <a
+                  href={task.jobUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline break-all"
+                >
+                  {task.jobUrl}
+                </a>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDescriptionDialog(false);
+                setPendingJobDescription('');
+                setDescriptionAction(null);
+              }}
+              disabled={isSavingDescription}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveDescriptionAndProceed}
+              disabled={isSavingDescription || pendingJobDescription.trim().length < 50}
+              className="flex-1"
+            >
+              {isSavingDescription ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                `Save & ${descriptionAction === 'tailor' ? 'Tailor Resume' : 'Generate Cover Letter'}`
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

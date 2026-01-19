@@ -32,13 +32,26 @@ export async function POST(request: NextRequest) {
 
     const { job_id, mode } = validationResult.data;
 
-    // Verify job belongs to user
-    const { data: job, error: jobError } = await (supabase
-      .from('jobs') as any)
-      .select('id, title, company, description, resume_id')
-      .eq('id', job_id)
-      .eq('user_id', user.id)
+    // Check if user is admin
+    const { data: currentProfile } = await (supabase
+      .from('profiles') as any)
+      .select('role')
+      .eq('id', user.id)
       .single();
+
+    const isAdmin = currentProfile?.role === 'admin';
+
+    // Fetch job - admins can access any job, users only their own
+    let jobQuery = (supabase
+      .from('jobs') as any)
+      .select('id, title, company, description, resume_id, user_id')
+      .eq('id', job_id);
+
+    if (!isAdmin) {
+      jobQuery = jobQuery.eq('user_id', user.id);
+    }
+
+    const { data: job, error: jobError } = await jobQuery.single();
 
     if (jobError || !job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
@@ -46,10 +59,13 @@ export async function POST(request: NextRequest) {
 
     if (!job.description) {
       return NextResponse.json(
-        { error: 'Job description is required for tailoring' },
+        { error: 'Job description is required for tailoring', needs_description: true },
         { status: 400 }
       );
     }
+
+    // Determine the user ID for resume lookup (job owner, not current user if admin)
+    const resumeOwnerId = isAdmin ? job.user_id : user.id;
 
     // Get the resume data to use
     let resumeData = null;
@@ -58,7 +74,6 @@ export async function POST(request: NextRequest) {
         .from('resumes') as any)
         .select('parsed_data')
         .eq('id', job.resume_id)
-        .eq('user_id', user.id)
         .single();
       resumeData = resume?.parsed_data;
     }
@@ -68,7 +83,7 @@ export async function POST(request: NextRequest) {
       const { data: resumes } = await (supabase
         .from('resumes') as any)
         .select('parsed_data')
-        .eq('user_id', user.id)
+        .eq('user_id', resumeOwnerId)
         .order('is_primary', { ascending: false })
         .limit(1);
 
@@ -86,7 +101,7 @@ export async function POST(request: NextRequest) {
     const { data: existingTailored } = await (supabase
       .from('tailored_resumes') as any)
       .select('id, status')
-      .eq('user_id', user.id)
+      .eq('user_id', resumeOwnerId)
       .eq('job_id', job_id)
       .single();
 
@@ -128,7 +143,7 @@ export async function POST(request: NextRequest) {
       const { data: newTailored, error: insertError } = await (supabase
         .from('tailored_resumes') as any)
         .insert({
-          user_id: user.id,
+          user_id: resumeOwnerId,
           job_id: job_id,
           status: 'pending',
         })

@@ -6,14 +6,32 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-// Simplified job status
+// Job status enum
 export type JobStatus = 'saved' | 'tailoring' | 'tailored' | 'applied' | 'interviewing' | 'offer' | 'closed';
 
-// Resume status
+// Resume status enum
 export type ResumeStatus = 'uploading' | 'parsing' | 'ready' | 'error';
 
-// Tailored resume status
+// Tailored resume status enum
 export type TailoredResumeStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+// Application status enum
+export type ApplicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'interview_scheduled'
+  | 'interviewed'
+  | 'offer_received'
+  | 'accepted'
+  | 'rejected'
+  | 'withdrawn';
+
+// Job type enum
+export type JobType = 'full_time' | 'part_time' | 'contract' | 'freelance' | 'internship';
+
+// Work mode enum
+export type WorkMode = 'remote' | 'onsite' | 'hybrid';
 
 export type Database = {
   public: {
@@ -24,42 +42,48 @@ export type Database = {
           email: string;
           full_name: string | null;
           avatar_url: string | null;
-          plan: string;
+          plan: 'free' | 'pro' | 'enterprise';
+          role: 'user' | 'admin';
           phone: string | null;
           linkedin_url: string | null;
           github_url: string | null;
+          portfolio_url: string | null;
           resume_data: Json | null;
+          personal_details: Json;
           created_at: string;
           updated_at: string;
-          role: 'user' | 'admin';
         };
         Insert: {
           id: string;
           email: string;
           full_name?: string | null;
           avatar_url?: string | null;
-          plan?: string;
+          plan?: 'free' | 'pro' | 'enterprise';
+          role?: 'user' | 'admin';
           phone?: string | null;
           linkedin_url?: string | null;
           github_url?: string | null;
+          portfolio_url?: string | null;
           resume_data?: Json | null;
+          personal_details?: Json;
           created_at?: string;
           updated_at?: string;
-          role?: 'user' | 'admin';
         };
         Update: {
           id?: string;
           email?: string;
           full_name?: string | null;
           avatar_url?: string | null;
-          plan?: string;
+          plan?: 'free' | 'pro' | 'enterprise';
+          role?: 'user' | 'admin';
           phone?: string | null;
           linkedin_url?: string | null;
           github_url?: string | null;
+          portfolio_url?: string | null;
           resume_data?: Json | null;
+          personal_details?: Json;
           created_at?: string;
           updated_at?: string;
-          role?: 'user' | 'admin';
         };
       };
       resumes: {
@@ -76,6 +100,7 @@ export type Database = {
           error_message: string | null;
           is_primary: boolean;
           title: string | null;
+          job_role: string | null;
           parsed_at: string | null;
           created_at: string;
           updated_at: string;
@@ -93,6 +118,7 @@ export type Database = {
           error_message?: string | null;
           is_primary?: boolean;
           title?: string | null;
+          job_role?: string | null;
           parsed_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -110,6 +136,7 @@ export type Database = {
           error_message?: string | null;
           is_primary?: boolean;
           title?: string | null;
+          job_role?: string | null;
           parsed_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -122,10 +149,22 @@ export type Database = {
           title: string;
           company: string;
           description: string | null;
+          requirements: string | null;
           status: JobStatus;
-          job_url: string | null;
+          resume_id: string | null;
+          job_type: JobType;
+          work_mode: WorkMode;
           location: string | null;
+          salary_min: number | null;
+          salary_max: number | null;
+          salary_currency: string;
+          job_url: string | null;
+          skills: string[] | null;
+          is_active: boolean;
+          is_favorite: boolean;
+          priority: number;
           notes: string | null;
+          deadline: string | null;
           applied_at: string | null;
           created_at: string;
           updated_at: string;
@@ -136,10 +175,22 @@ export type Database = {
           title: string;
           company: string;
           description?: string | null;
+          requirements?: string | null;
           status?: JobStatus;
-          job_url?: string | null;
+          resume_id?: string | null;
+          job_type?: JobType;
+          work_mode?: WorkMode;
           location?: string | null;
+          salary_min?: number | null;
+          salary_max?: number | null;
+          salary_currency?: string;
+          job_url?: string | null;
+          skills?: string[] | null;
+          is_active?: boolean;
+          is_favorite?: boolean;
+          priority?: number;
           notes?: string | null;
+          deadline?: string | null;
           applied_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -150,11 +201,64 @@ export type Database = {
           title?: string;
           company?: string;
           description?: string | null;
+          requirements?: string | null;
           status?: JobStatus;
-          job_url?: string | null;
+          resume_id?: string | null;
+          job_type?: JobType;
+          work_mode?: WorkMode;
           location?: string | null;
+          salary_min?: number | null;
+          salary_max?: number | null;
+          salary_currency?: string;
+          job_url?: string | null;
+          skills?: string[] | null;
+          is_active?: boolean;
+          is_favorite?: boolean;
+          priority?: number;
           notes?: string | null;
+          deadline?: string | null;
           applied_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          job_id: string;
+          resume_id: string | null;
+          status: ApplicationStatus;
+          cover_letter: string | null;
+          applied_at: string | null;
+          notes: string | null;
+          confidence_score: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          job_id: string;
+          resume_id?: string | null;
+          status?: ApplicationStatus;
+          cover_letter?: string | null;
+          applied_at?: string | null;
+          notes?: string | null;
+          confidence_score?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          job_id?: string;
+          resume_id?: string | null;
+          status?: ApplicationStatus;
+          cover_letter?: string | null;
+          applied_at?: string | null;
+          notes?: string | null;
+          confidence_score?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -210,6 +314,9 @@ export type Database = {
       job_status: JobStatus;
       resume_status: ResumeStatus;
       tailored_resume_status: TailoredResumeStatus;
+      application_status: ApplicationStatus;
+      job_type: JobType;
+      work_mode: WorkMode;
     };
   };
 };

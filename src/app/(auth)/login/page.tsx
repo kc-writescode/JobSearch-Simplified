@@ -38,29 +38,36 @@ function LoginForm() {
     // Check user role to determine redirect
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const profileResult = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .single<{ role: 'user' | 'admin' }>();
 
-      const role = (profileResult.data as { role?: 'user' | 'admin' } | null)?.role;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError.message);
+      }
 
-      if (redirectTo && redirectTo !== '/dashboard') {
+      const role = profile?.role;
+      console.log('User role:', role);
+
+      // Refresh to ensure cookies are set before redirect
+      router.refresh();
+
+      // Small delay to ensure session is properly set
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (redirectTo && redirectTo !== '/dashboard' && !redirectTo.startsWith('/admin')) {
         router.push(redirectTo);
+      } else if (role === 'admin') {
+        console.log('Redirecting admin to /admin/tasks');
+        router.push('/admin/tasks');
       } else {
-        // Dynamic redirect based on role
-        if (role === 'admin') {
-          router.push('/admin/tasks');
-        } else {
-          router.push('/dashboard');
-        }
+        router.push('/dashboard');
       }
     } else {
       router.push(redirectTo);
     }
-
-    router.refresh();
   };
 
   return (
