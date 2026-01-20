@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { VACoreTask } from '@/types/admin.types';
-import { Upload, FileText, X, Check, Eye, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Check, Eye, Loader2, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   Dialog,
@@ -184,11 +184,6 @@ export function ApplicationWorkspace({
     }
   };
 
-  const handleRemoveProof = () => {
-    setProofFile(null);
-    setProofPath('');
-    setProofUploadStatus('idle');
-  };
 
   const handleSubmit = async () => {
     try {
@@ -985,24 +980,43 @@ export function ApplicationWorkspace({
                         </label>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between p-4 bg-green-50/50 border border-green-100 rounded-2xl">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-green-100 rounded-lg">
-                            <FileText className="h-5 w-5 text-green-700" />
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-4 bg-green-50/50 border border-green-100 rounded-2xl">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                              <FileText className="h-5 w-5 text-green-700" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-green-900">Proof Uploaded</p>
+                              <a href={`/api/resume/view?path=${encodeURIComponent(proofPath)}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-green-600 hover:underline flex items-center gap-1">
+                                View file <Eye className="h-3 w-3" />
+                              </a>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-bold text-green-900">Proof Uploaded</p>
-                            <a href={`/api/resume/view?path=${encodeURIComponent(proofPath)}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-green-600 hover:underline flex items-center gap-1">
-                              View file <Eye className="h-3 w-3" />
-                            </a>
+                          <div className="flex items-center gap-2">
+                            <Check className="h-5 w-5 text-green-600" />
                           </div>
                         </div>
-                        <button
-                          onClick={handleRemoveProof}
-                          className="p-2 text-green-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                        {/* Replace option for admins - no delete option */}
+                        <label className="block border border-dashed border-gray-200 rounded-xl p-3 cursor-pointer transition-colors hover:border-blue-400 hover:bg-blue-50">
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={handleProofUpload}
+                            className="hidden"
+                            disabled={proofUploadStatus === 'uploading'}
+                          />
+                          <div className="flex items-center justify-center gap-2">
+                            {proofUploadStatus === 'uploading' ? (
+                              <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                            ) : (
+                              <Upload className="h-4 w-4 text-gray-400" />
+                            )}
+                            <p className="text-xs font-semibold text-gray-600">
+                              {proofUploadStatus === 'uploading' ? 'Uploading...' : 'Replace with different file'}
+                            </p>
+                          </div>
+                        </label>
                       </div>
                     )}
                   </div>

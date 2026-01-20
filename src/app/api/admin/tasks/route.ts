@@ -102,6 +102,10 @@ export async function GET(request: NextRequest) {
         } : undefined,
         coverLetter: job.cover_letter,
         cannotApplyReason: job.cannot_apply_reason,
+        proofOfWork: job.submission_proof ? {
+          screenshotUrl: job.submission_proof,
+          submittedAt: job.applied_at,
+        } : undefined,
         profileDetails: profile?.personal_details,
         createdAt: job.created_at,
         updatedAt: job.updated_at,

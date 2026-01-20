@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { VACoreTask, TaskStatus } from '@/types/admin.types';
-import { Ban } from 'lucide-react';
+import { Ban, FileText, ExternalLink } from 'lucide-react';
 
 interface TasksDataTableProps {
   tasks: VACoreTask[];
@@ -11,6 +11,7 @@ interface TasksDataTableProps {
   selectedTaskId?: string;
   onCannotApply?: (task: VACoreTask) => void;
   showCannotApplyReason?: boolean;
+  showProofColumn?: boolean;
 }
 
 const getStatusColor = (status: TaskStatus) => {
@@ -48,6 +49,7 @@ export function TasksDataTable({
   selectedTaskId,
   onCannotApply,
   showCannotApplyReason,
+  showProofColumn,
 }: TasksDataTableProps) {
   if (loading) {
     return (
@@ -100,6 +102,11 @@ export function TasksDataTable({
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
                 AI Process
               </th>
+              {showProofColumn && (
+                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                  Proof
+                </th>
+              )}
               {showCannotApplyReason && (
                 <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
                   Reason
@@ -164,6 +171,25 @@ export function TasksDataTable({
                   <td className="px-8 py-6 whitespace-nowrap">
                     {getAIStatusBadge(task.aiStatus)}
                   </td>
+                  {showProofColumn && (
+                    <td className="px-8 py-6">
+                      {task.proofOfWork?.screenshotUrl ? (
+                        <a
+                          href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/resumes/${task.proofOfWork.screenshotUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          View
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-400">-</span>
+                      )}
+                    </td>
+                  )}
                   {showCannotApplyReason && (
                     <td className="px-8 py-6">
                       <span className="text-xs text-slate-600 max-w-[200px] truncate block" title={task.cannotApplyReason}>

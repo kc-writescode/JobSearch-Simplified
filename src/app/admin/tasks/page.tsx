@@ -278,6 +278,7 @@ export default function VATasksPage() {
             selectedTaskId={selectedTask?.id}
             onCannotApply={dashboardTab === 'Applying' ? setCannotApplyTask : undefined}
             showCannotApplyReason={dashboardTab === 'Trashed'}
+            showProofColumn={dashboardTab === 'Applied'}
           />
         </div>
       </main>
