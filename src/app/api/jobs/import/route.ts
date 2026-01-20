@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { fetchJobPage, FetchError } from '@/lib/job-import/fetcher';
+import { fetchJobPage } from '@/lib/job-import/fetcher';
 import { extractJobText, detectSite, extractMetadata } from '@/lib/job-import/extractor';
 import { parseJobWithAI } from '@/lib/job-import/ai-parser';
 import { urlImportRequestSchema, textImportRequestSchema } from '@/lib/job-import/schemas';
 
 // Rate limiting (in-memory, resets on cold start - acceptable for serverless)
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10; // Max imports per hour
+const RATE_LIMIT = 100; // Max imports per hour
 const RATE_WINDOW = 3600000; // 1 hour in ms
 
 export async function POST(request: NextRequest) {
@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
     let sourceUrl: string | undefined;
     let metadataHints: { title?: string; company?: string; location?: string } = {};
     let extracted: any = {};
-    let fetchFailed = false;
 
     // Determine import mode: URL or Text
     if (body.url) {
@@ -76,7 +75,6 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         // Fetch failed - that's OK, we'll save with minimal data
-        fetchFailed = true;
         console.log('URL fetch failed (non-fatal):', error instanceof Error ? error.message : error);
       }
     } else if (body.text) {
