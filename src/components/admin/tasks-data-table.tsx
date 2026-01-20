@@ -175,7 +175,7 @@ export function TasksDataTable({
                     <td className="px-8 py-6">
                       {task.proofOfWork?.screenshotUrl ? (
                         <a
-                          href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/resumes/${task.proofOfWork.screenshotUrl}`}
+                          href={`/api/resume/view?path=${encodeURIComponent(task.proofOfWork.screenshotUrl)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
