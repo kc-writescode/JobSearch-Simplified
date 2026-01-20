@@ -7,6 +7,7 @@ import { CannotApplyDialog } from '@/components/admin/cannot-apply-dialog';
 import { VACoreTask, TaskFilters, TaskStatus } from '@/types/admin.types';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import { LogOut, Trash2 } from 'lucide-react';
 
 const statuses: TaskStatus[] = ['Applying', 'Applied'];
@@ -120,10 +121,10 @@ export default function VATasksPage() {
       setTasks(updated);
       setFilteredTasks(updated);
       setSelectedTask(null);
-      alert('Application submitted successfully!');
+      toast.success('Application submitted successfully!');
     } catch (error) {
       console.error('Error submitting task:', error);
-      alert('Failed to submit application');
+      toast.error('Failed to submit application');
     } finally {
       setIsSubmitting(false);
     }

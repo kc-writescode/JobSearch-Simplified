@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { VACoreTask } from '@/types/admin.types';
 import { Upload, FileText, Check, Eye, Loader2, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -129,7 +130,7 @@ export function ApplicationWorkspace({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading tailored resume:', error);
-      alert('Failed to download tailored resume');
+      toast.error('Failed to download tailored resume');
     }
   };
 
@@ -141,13 +142,13 @@ export function ApplicationWorkspace({
 
     // Validate file type (PDF only as requested)
     if (file.type !== 'application/pdf') {
-      alert('Please upload a PDF file.');
+      toast.warning('Please upload a PDF file.');
       return;
     }
 
     // Validate file size (e.g., 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size exceeds 10MB limit.');
+      toast.warning('File size exceeds 10MB limit.');
       return;
     }
 
@@ -179,7 +180,7 @@ export function ApplicationWorkspace({
     } catch (error) {
       console.error('Error uploading proof:', error);
       setProofUploadStatus('error');
-      alert('Failed to upload proof file: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Failed to upload proof file: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setProofFile(null);
     }
   };
@@ -199,7 +200,7 @@ export function ApplicationWorkspace({
   // Save job description and proceed with action
   const handleSaveDescriptionAndProceed = async () => {
     if (!task || !pendingJobDescription.trim()) {
-      alert('Please enter a job description');
+      toast.warning('Please enter a job description');
       return;
     }
 
@@ -231,7 +232,7 @@ export function ApplicationWorkspace({
       setDescriptionAction(null);
     } catch (error) {
       console.error('Error saving job description:', error);
-      alert('Failed to save job description. Please try again.');
+      toast.error('Failed to save job description. Please try again.');
     } finally {
       setIsSavingDescription(false);
     }
@@ -239,7 +240,7 @@ export function ApplicationWorkspace({
 
   const handleTailorResume = async () => {
     if (!task.selectedResume?.id) {
-      alert('No resume selected for this job');
+      toast.warning('No resume selected for this job');
       return;
     }
 
@@ -288,7 +289,7 @@ export function ApplicationWorkspace({
     } catch (error) {
       console.error('Error tailoring resume:', error);
       setCurrentAiStatus('Error');
-      alert(`Failed to tailor resume: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to tailor resume: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsTailoring(false);
     }
@@ -320,7 +321,7 @@ export function ApplicationWorkspace({
       setCurrentCoverLetter(result.cover_letter);
     } catch (error) {
       console.error('Error generating cover letter:', error);
-      alert(`Failed to generate cover letter: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to generate cover letter: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGeneratingCL(false);
     }
@@ -342,10 +343,10 @@ export function ApplicationWorkspace({
       });
 
       if (!response.ok) throw new Error('Failed to save tweaks');
-      alert('Changes saved successfully!');
+      toast.success('Changes saved successfully!');
     } catch (error) {
       console.error('Error saving tweaks:', error);
-      alert('Failed to save changes');
+      toast.error('Failed to save changes');
     } finally {
       setIsSavingTweaks(false);
     }
@@ -393,7 +394,7 @@ export function ApplicationWorkspace({
       }
     } catch (error) {
       console.error('Error downloading:', error);
-      alert('Failed to download resume');
+      toast.error('Failed to download resume');
     }
   };
 
@@ -410,13 +411,13 @@ export function ApplicationWorkspace({
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert('Operation Failed');
+      toast.error('Operation failed');
     }
   };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    alert(`${label} copied to clipboard!`);
+    toast.success(`${label} copied to clipboard!`);
   };
 
   return (

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils/cn';
 
 interface Resume {
@@ -33,11 +34,11 @@ export function ResumesSection({ resumes, onUpdate }: ResumesSectionProps) {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.includes('pdf')) {
-        alert('Please upload a PDF file');
+        toast.warning('Please upload a PDF file');
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
-        alert('File must be less than 10MB');
+        toast.warning('File must be less than 10MB');
         return;
       }
       setSelectedFile(file);
@@ -47,7 +48,7 @@ export function ResumesSection({ resumes, onUpdate }: ResumesSectionProps) {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile || !jobRole.trim()) {
-      alert('Please enter a job role and select a file');
+      toast.warning('Please enter a job role and select a file');
       return;
     }
 
@@ -122,7 +123,7 @@ export function ResumesSection({ resumes, onUpdate }: ResumesSectionProps) {
       }
     } catch (error) {
       console.error('Error uploading resume:', error);
-      alert('Failed to upload resume');
+      toast.error('Failed to upload resume');
     } finally {
       setUploading(false);
     }
@@ -171,11 +172,11 @@ export function ResumesSection({ resumes, onUpdate }: ResumesSectionProps) {
       if (urlData?.signedUrl) {
         window.open(urlData.signedUrl, '_blank');
       } else {
-        alert('Could not generate preview URL');
+        toast.error('Could not generate preview URL');
       }
     } catch (error) {
       console.error('Error generating preview:', error);
-      alert('Failed to open preview');
+      toast.error('Failed to open preview');
     }
   };
 
@@ -191,7 +192,7 @@ export function ResumesSection({ resumes, onUpdate }: ResumesSectionProps) {
       onUpdate?.();
     } catch (error) {
       console.error('Error setting default resume:', error);
-      alert('Failed to set default resume');
+      toast.error('Failed to set default resume');
     }
   };
 

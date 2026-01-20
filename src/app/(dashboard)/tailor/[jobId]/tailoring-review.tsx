@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -224,7 +225,7 @@ export function TailoringReview({
       }
     } catch (error) {
       console.error('Error confirming:', error);
-      alert('Failed to send to VA. Please try again.');
+      toast.error('Failed to send to VA. Please try again.');
     } finally {
       setSaving(false);
     }

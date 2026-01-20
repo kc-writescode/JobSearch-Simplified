@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 interface ResumeData {
   id: string;
@@ -32,12 +33,12 @@ export function ResumeCard({ resume, onUpdate }: ResumeCardProps) {
 
   const handleUpload = async (file: File) => {
     if (!file.type.includes('pdf')) {
-      alert('Please upload a PDF file');
+      toast.warning('Please upload a PDF file');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('File must be less than 10MB');
+      toast.warning('File must be less than 10MB');
       return;
     }
 
@@ -103,7 +104,7 @@ export function ResumeCard({ resume, onUpdate }: ResumeCardProps) {
       onUpdate?.();
     } catch (error) {
       console.error('Error uploading resume:', error);
-      alert('Failed to upload resume');
+      toast.error('Failed to upload resume');
     } finally {
       setUploading(false);
       setParsing(false);

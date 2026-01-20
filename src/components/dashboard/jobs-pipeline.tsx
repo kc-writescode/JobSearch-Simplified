@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import { JobImportForm } from '@/components/jobs/job-import-form';
 import { BulkJobImport } from '@/components/jobs/bulk-job-import';
 import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus } from 'lucide-react';
@@ -126,7 +127,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
       onUpdate?.();
     } catch (error) {
       console.error('Error adding job:', error);
-      alert('Failed to add job');
+      toast.error('Failed to add job');
     } finally {
       setSaving(false);
     }
@@ -205,7 +206,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
       onUpdate?.();
     } catch (error) {
       console.error('Bulk trash error', error);
-      alert('Failed to trash items');
+      toast.error('Failed to trash items');
     }
   };
 
@@ -219,10 +220,10 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
       if (error) throw error;
       setSelectedJobIds([]);
       onUpdate?.();
-      alert('Resumes updated!');
+      toast.success('Resumes updated!');
     } catch (error) {
       console.error('Bulk resume error', error);
-      alert('Failed to update resumes');
+      toast.error('Failed to update resumes');
     }
   };
 
@@ -846,7 +847,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
 
   const handleTailorResume = async () => {
     if (!job.resume_id) {
-      alert('Select a resume to enable tailoring.');
+      toast.warning('Select a resume to enable tailoring.');
       return;
     }
     setIsTailoring(true);
@@ -876,7 +877,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
     } catch (error) {
       console.error('Error tailoring:', error);
       setTailoredStatus(null);
-      alert(error instanceof Error ? error.message : 'System Failure');
+      toast.error(error instanceof Error ? error.message : 'System Failure');
     } finally {
       setIsTailoring(false);
     }
@@ -884,7 +885,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
 
   const handleGenerateCoverLetter = async () => {
     if (!job.description) {
-      alert('Job description is required.');
+      toast.warning('Job description is required.');
       return;
     }
     setIsGeneratingCL(true);
@@ -900,7 +901,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
       onUpdate?.();
     } catch (error) {
       console.error('Error generating cover letter:', error);
-      alert('CL Synthesis Failed');
+      toast.error('Cover letter generation failed');
     } finally {
       setIsGeneratingCL(false);
     }
@@ -920,7 +921,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert('Operation Failed');
+      toast.error('Operation failed');
     }
   };
 
@@ -928,7 +929,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
     if (!job.resume_id) return;
     const resume = resumes.find(r => r.id === job.resume_id);
     if (!resume?.file_path) {
-      alert('Original resume file not found');
+      toast.error('Original resume file not found');
       return;
     }
 
@@ -943,7 +944,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert('Failed to download original resume');
+      toast.error('Failed to download original resume');
     }
   };
   const handleSaveTweaks = async () => {
@@ -963,10 +964,10 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
 
       if (!response.ok) throw new Error('Failed to save tweaks');
       onUpdate?.();
-      alert('Changes saved successfully!');
+      toast.success('Changes saved successfully!');
     } catch (error) {
       console.error('Error saving tweaks:', error);
-      alert('Failed to save changes');
+      toast.error('Failed to save changes');
     } finally {
       setIsSavingTweaks(false);
     }
@@ -991,7 +992,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert('Operation Failed');
+      toast.error('Operation failed');
     }
   };
 

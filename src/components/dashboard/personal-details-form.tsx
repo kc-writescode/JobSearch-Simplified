@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 import {
   User,
   Briefcase,
@@ -302,11 +303,11 @@ export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFo
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError) {
         console.error('Auth error:', authError.message);
-        alert('Authentication error. Please log in again.');
+        toast.error('Authentication error. Please log in again.');
         return;
       }
       if (!user) {
-        alert('You must be logged in to save.');
+        toast.error('You must be logged in to save.');
         return;
       }
       const { error } = await (supabase
@@ -319,14 +320,15 @@ export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFo
 
       if (error) {
         console.error('Supabase error:', error.message, error.details, error.hint);
-        alert(`Error saving profile: ${error.message}`);
+        toast.error(`Error saving profile: ${error.message}`);
         return;
       }
+      toast.success('Profile saved successfully!');
       onUpdate?.();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error saving profile:', errorMessage);
-      alert(`Error saving profile: ${errorMessage}`);
+      toast.error(`Error saving profile: ${errorMessage}`);
     } finally {
       setSaving(false);
     }

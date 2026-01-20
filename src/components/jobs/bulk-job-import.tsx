@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 import { Upload, CheckCircle, XCircle, Loader2, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -78,7 +79,7 @@ export function BulkJobImport({ open, onClose, onSuccess }: BulkJobImportProps) 
             setUrls(extractedUrls);
             setResults(extractedUrls.map(url => ({ url, status: 'pending' })));
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Failed to process file');
+            toast.error(error instanceof Error ? error.message : 'Failed to process file');
         }
     };
 
@@ -90,7 +91,7 @@ export function BulkJobImport({ open, onClose, onSuccess }: BulkJobImportProps) 
         if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv'))) {
             handleFile(file);
         } else {
-            alert('Please upload an Excel file (.xlsx, .xls) or CSV file');
+            toast.warning('Please upload an Excel file (.xlsx, .xls) or CSV file');
         }
     }, []);
 
