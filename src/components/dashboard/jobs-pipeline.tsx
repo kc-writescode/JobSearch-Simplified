@@ -734,6 +734,22 @@ function JobRow({ job, tab, resumeName, onClick, onUntrash, selected, onSelect, 
           <div className="flex flex-col items-end shrink-0 gap-2">
             {getStatusBadge()}
             {getTailoredBadge()}
+            {/* View Proof button for applied jobs */}
+            {tab === 'applied' && job.submission_proof && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const proof = job.submission_proof!;
+                  const isUrl = proof.startsWith('http');
+                  const url = isUrl ? proof : `/api/resume/view?path=${encodeURIComponent(proof)}`;
+                  window.open(url, '_blank');
+                }}
+                className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition-colors"
+              >
+                <EyeIcon className="h-3 w-3" />
+                View Proof
+              </button>
+            )}
             <div className="flex items-center gap-2">
               {resumeName && <span className="text-[10px] font-black uppercase text-blue-500/70 bg-blue-50/50 px-2 py-0.5 rounded-md border border-blue-100/50">{resumeName}</span>}
               <span className="text-xs font-black text-slate-900/40 tracking-tighter">
@@ -1037,6 +1053,56 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
             </div>
           </div>
 
+          {/* Submission Evidence (Applied Only) - Moved to top */}
+          {tab === 'applied' && job.submission_proof && (
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
+                <div className="h-1 w-4 bg-emerald-500 rounded-full"></div>
+                Submission Evidence
+              </h3>
+              <div className="p-6 bg-white border border-slate-200 rounded-[2rem] hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><PdfIcon className="h-4 w-4" /></div>
+                    <span className="text-sm font-black text-slate-900 tracking-tight italic">Deployment Screenshot PDF</span>
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-600 uppercase">Verified</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const proof = job.submission_proof!;
+                      const isUrl = proof.startsWith('http');
+                      const url = isUrl ? proof : `/api/resume/view?path=${encodeURIComponent(proof)}`;
+                      window.open(url, '_blank');
+                    }}
+                    className="flex-1 py-3 bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all"
+                  >
+                    Preview Evidence
+                  </button>
+                  <a
+                    href={job.submission_proof!.startsWith('http') ? job.submission_proof! : `/api/resume/view?path=${encodeURIComponent(job.submission_proof!)}`}
+                    onClick={(e) => {
+                      if (!job.submission_proof!.startsWith('http')) {
+                        e.preventDefault();
+                        const url = `/api/resume/download?path=${encodeURIComponent(job.submission_proof!)}`;
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Submission_${job.company}.pdf`;
+                        a.click();
+                      }
+                    }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 py-3 bg-emerald-600 text-white text-xs font-black text-center uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center"
+                  >
+                    Download PDF
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Deployment Kit */}
           <div className="space-y-4">
             <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
@@ -1253,58 +1319,6 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
             </div>
           </div>
 
-          {/* Submission Evidence (Applied Only) */}
-          {tab === 'applied' && job.submission_proof && (
-            <div className="space-y-4">
-              <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                <div className="h-1 w-4 bg-emerald-500 rounded-full"></div>
-                Submission Evidence
-              </h3>
-              <div className="p-6 bg-white border border-slate-200 rounded-[2rem] hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><PdfIcon className="h-4 w-4" /></div>
-                    <span className="text-sm font-black text-slate-900 tracking-tight italic">Deployment Screenshot PDF</span>
-                  </div>
-                  <span className="text-[10px] font-black text-emerald-600 uppercase">Verified</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      const proof = job.submission_proof!;
-                      const isUrl = proof.startsWith('http');
-                      const url = isUrl ? proof : `/api/resume/view?path=${encodeURIComponent(proof)}`;
-                      window.open(url, '_blank');
-                    }}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-all"
-                  >
-                    Preview Evidence
-                  </button>
-                  <a
-                    href={job.submission_proof!.startsWith('http') ? job.submission_proof! : `/api/resume/view?path=${encodeURIComponent(job.submission_proof!)}`} // Use view for "download" button too as browser handles generic files, or use actual download api
-                    onClick={(e) => {
-                      // If it's a path, let's try to use the download API specifically to force download if we can
-                      if (!job.submission_proof!.startsWith('http')) {
-                        e.preventDefault();
-                        const url = `/api/resume/download?path=${encodeURIComponent(job.submission_proof!)}`;
-                        // Trigger download
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `Submission_${job.company}.pdf`;
-                        a.click();
-                      }
-                    }}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-3 bg-emerald-600 text-white text-xs font-black text-center uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center"
-                  >
-                    Download PDF
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Mission Coordinates */}
           <div className="space-y-4">
             <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
@@ -1379,4 +1393,7 @@ function FileWordIcon({ className }: { className?: string }) {
 }
 function LinkImportIcon({ className }: { className?: string }) {
   return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>;
+}
+function EyeIcon({ className }: { className?: string }) {
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>;
 }
