@@ -51,13 +51,13 @@ export default function VATasksPage() {
     }
   }, [filters, hasInitialized]);
 
-  // Auto-refresh every 30 seconds to catch new tasks
+  // Auto-refresh every 30 minutes to catch new tasks
   useEffect(() => {
     if (!hasInitialized) return;
 
     const interval = setInterval(() => {
       fetchTasks();
-    }, 30000);
+    }, 1800000);
 
     return () => clearInterval(interval);
   }, [hasInitialized, filters]);
