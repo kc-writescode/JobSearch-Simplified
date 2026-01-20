@@ -14,12 +14,17 @@ export async function GET(request: NextRequest) {
     const priorityFilters = searchParams.getAll('priority');
     const search = searchParams.get('search') || '';
 
-    // Fetch all jobs with resume relationship (exclude trashed)
+    // Fetch all jobs with resume relationship
     let query = supabase
       .from('jobs')
       .select('*, resume:resumes(id, file_name, file_path, job_role, title, status)', { count: 'exact' })
-      .neq('status', 'trashed')
       .order('created_at', { ascending: false });
+
+    // If no status filter includes Trashed, exclude trashed jobs
+    const includesTrashed = statusFilters.includes('Trashed');
+    if (!includesTrashed && statusFilters.length === 0) {
+      query = query.neq('status', 'trashed');
+    }
 
     // Apply status filter
     if (statusFilters.length > 0) {
@@ -58,6 +63,7 @@ export async function GET(request: NextRequest) {
       return {
         id: job.id,
         jobId: job.id,
+        delegatedJobId: job.delegated_job_id,
         clientId: job.user_id,
         clientName: profile?.full_name || 'Unknown',
         clientEmail: profile?.email || '',
@@ -95,6 +101,7 @@ export async function GET(request: NextRequest) {
           skills: fullTailoredData.highlighted_skills || (tailored as any)?.tailored_skills || [],
         } : undefined,
         coverLetter: job.cover_letter,
+        cannotApplyReason: job.cannot_apply_reason,
         profileDetails: profile?.personal_details,
         createdAt: job.created_at,
         updatedAt: job.updated_at,
@@ -113,7 +120,8 @@ export async function GET(request: NextRequest) {
         task =>
           task.jobTitle.toLowerCase().includes(searchLower) ||
           task.clientName.toLowerCase().includes(searchLower) ||
-          task.company.toLowerCase().includes(searchLower)
+          task.company.toLowerCase().includes(searchLower) ||
+          task.delegatedJobId?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -162,6 +170,7 @@ function mapTaskStatusToJobStatuses(taskStatus: string): string[] {
   switch (taskStatus) {
     case 'Applying': return ['saved', 'tailored', 'delegate_to_va'];
     case 'Applied': return ['applied'];
+    case 'Trashed': return ['trashed'];
     default: return ['saved', 'tailored', 'delegate_to_va'];
   }
 }
@@ -174,6 +183,8 @@ function mapJobStatusToTaskStatus(jobStatus: string): TaskStatus {
       return 'Applying';
     case 'applied':
       return 'Applied';
+    case 'trashed':
+      return 'Trashed';
     default:
       return 'Applying';
   }

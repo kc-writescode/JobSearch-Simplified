@@ -1,4 +1,4 @@
-export type TaskStatus = 'Applying' | 'Applied';
+export type TaskStatus = 'Applying' | 'Applied' | 'Trashed';
 export type ClientPriority = 'Standard' | 'Premium';
 export type AIStatus = 'Pending' | 'In Progress' | 'Completed' | 'Error';
 
@@ -26,6 +26,7 @@ export interface ResumeInfo {
 export interface VACoreTask {
   id: string;
   jobId: string;
+  delegatedJobId?: string;
   clientId: string;
   clientName: string;
   clientEmail: string;
@@ -58,6 +59,9 @@ export interface VACoreTask {
     experience: any[];
     skills?: string[];
   };
+
+  // Cannot apply reason (for trashed tasks)
+  cannotApplyReason?: string;
 
   // Legacy fields
   resume?: {

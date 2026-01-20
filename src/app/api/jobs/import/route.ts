@@ -10,6 +10,16 @@ const rateLimits = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 100; // Max imports per hour
 const RATE_WINDOW = 3600000; // 1 hour in ms
 
+// Generate a unique delegated job ID (format: JOB-XXXXXX)
+function generateDelegatedJobId(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = 'JOB-';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -218,6 +228,9 @@ export async function POST(request: NextRequest) {
     // Determine status: delegate_to_va if resume assigned, otherwise saved
     const jobStatus = defaultResumeId ? 'delegate_to_va' : 'saved';
 
+    // Generate delegated job ID if being delegated
+    const delegatedJobId = defaultResumeId ? generateDelegatedJobId() : null;
+
     // Save to database
     const { data: job, error: insertError } = await (supabase
       .from('jobs') as any)
@@ -236,6 +249,7 @@ export async function POST(request: NextRequest) {
         import_confidence: extracted.confidence || 0,
         resume_id: defaultResumeId,
         status: jobStatus,
+        delegated_job_id: delegatedJobId,
       })
       .select()
       .single();

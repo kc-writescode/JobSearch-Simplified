@@ -1,13 +1,16 @@
 'use client';
 
 import React from 'react';
-import { VACoreTask, TaskStatus, ClientPriority } from '@/types/admin.types';
+import { VACoreTask, TaskStatus } from '@/types/admin.types';
+import { Ban } from 'lucide-react';
 
 interface TasksDataTableProps {
   tasks: VACoreTask[];
   loading: boolean;
   onSelectTask: (task: VACoreTask) => void;
   selectedTaskId?: string;
+  onCannotApply?: (task: VACoreTask) => void;
+  showCannotApplyReason?: boolean;
 }
 
 const getStatusColor = (status: TaskStatus) => {
@@ -16,6 +19,8 @@ const getStatusColor = (status: TaskStatus) => {
       return 'bg-amber-50 text-amber-700 border-amber-100 shadow-sm shadow-amber-50';
     case 'Applied':
       return 'bg-emerald-50 text-emerald-700 border-emerald-100 shadow-sm shadow-emerald-50';
+    case 'Trashed':
+      return 'bg-red-50 text-red-700 border-red-100 shadow-sm shadow-red-50';
     default:
       return 'bg-slate-50 text-slate-600 border-slate-100';
   }
@@ -41,6 +46,8 @@ export function TasksDataTable({
   loading,
   onSelectTask,
   selectedTaskId,
+  onCannotApply,
+  showCannotApplyReason,
 }: TasksDataTableProps) {
   if (loading) {
     return (
@@ -76,6 +83,9 @@ export function TasksDataTable({
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-100">
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                Job ID
+              </th>
+              <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
                 Job Specification
               </th>
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
@@ -90,9 +100,16 @@ export function TasksDataTable({
               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
                 AI Process
               </th>
-              <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                Priority
-              </th>
+              {showCannotApplyReason && (
+                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                  Reason
+                </th>
+              )}
+              {onCannotApply && (
+                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -107,6 +124,15 @@ export function TasksDataTable({
                       : 'hover:bg-slate-50'
                     }`}
                 >
+                  <td className="px-8 py-6">
+                    {task.delegatedJobId ? (
+                      <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-[11px] font-bold font-mono border border-blue-100">
+                        {task.delegatedJobId}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400">-</span>
+                    )}
+                  </td>
                   <td className="px-8 py-6">
                     <div className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
                       {task.jobTitle}
@@ -138,15 +164,30 @@ export function TasksDataTable({
                   <td className="px-8 py-6 whitespace-nowrap">
                     {getAIStatusBadge(task.aiStatus)}
                   </td>
-                  <td className="px-8 py-6">
-                    {task.priority === 'Premium' ? (
-                      <span className="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-600 rounded-lg text-[10px] font-black uppercase tracking-wider border border-purple-100 shadow-sm shadow-purple-50">
-                        ⭐ Premium
+                  {showCannotApplyReason && (
+                    <td className="px-8 py-6">
+                      <span className="text-xs text-slate-600 max-w-[200px] truncate block" title={task.cannotApplyReason}>
+                        {task.cannotApplyReason || '-'}
                       </span>
-                    ) : (
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Standard</span>
-                    )}
-                  </td>
+                    </td>
+                  )}
+                  {onCannotApply && (
+                    <td className="px-8 py-6">
+                      {task.status === 'Applying' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onCannotApply(task);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors"
+                          title="Mark as Cannot Apply"
+                        >
+                          <Ban className="h-3.5 w-3.5" />
+                          Can't Apply
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}

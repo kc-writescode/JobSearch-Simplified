@@ -16,7 +16,7 @@ export async function PATCH(
     );
     const { id: taskId } = await context.params;
     const body = await request.json();
-    const { status, proofOfWork } = body;
+    const { status, proofOfWork, cannotApplyReason } = body;
 
     // Build update data
     const updateData: Record<string, unknown> = {
@@ -39,6 +39,11 @@ export async function PATCH(
         // Fallback to link
         updateData.submission_proof = proofOfWork.submissionLink;
       }
+    }
+
+    // Add cannot_apply_reason when marking as trashed
+    if (status === 'Trashed' && cannotApplyReason) {
+      updateData.cannot_apply_reason = cannotApplyReason;
     }
 
     // Update job status
@@ -66,6 +71,8 @@ function mapTaskStatusToJobStatus(status: string): string {
       return 'saved';
     case 'Applied':
       return 'applied';
+    case 'Trashed':
+      return 'trashed';
     default:
       return status.toLowerCase();
   }

@@ -3,19 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { TasksDataTable } from '@/components/admin/tasks-data-table';
 import { ApplicationWorkspace } from '@/components/admin/application-workspace';
-import { VACoreTask, TaskFilters, TaskStatus, ClientPriority } from '@/types/admin.types';
+import { CannotApplyDialog } from '@/components/admin/cannot-apply-dialog';
+import { VACoreTask, TaskFilters, TaskStatus } from '@/types/admin.types';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LogOut } from 'lucide-react';
+import { LogOut, Trash2 } from 'lucide-react';
 
 const statuses: TaskStatus[] = ['Applying', 'Applied'];
-const priorities: ClientPriority[] = ['Standard', 'Premium'];
 
 
 export default function VATasksPage() {
   const [tasks, setTasks] = useState<VACoreTask[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<VACoreTask[]>([]);
-  const [dashboardTab, setDashboardTab] = useState<'Applying' | 'Applied'>('Applying');
+  const [dashboardTab, setDashboardTab] = useState<'Applying' | 'Applied' | 'Trashed'>('Applying');
   const [selectedTask, setSelectedTask] = useState<VACoreTask | null>(null);
   const [filters, setFilters] = useState<TaskFilters>({
     status: ['Applying'],
@@ -26,6 +26,7 @@ export default function VATasksPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [cannotApplyTask, setCannotApplyTask] = useState<VACoreTask | null>(null);
 
   const router = useRouter();
   const supabase = createClient();
@@ -130,9 +131,26 @@ export default function VATasksPage() {
 
   const activeFilterCount = (filters.status?.length || 0) + (filters.priority?.length || 0);
 
-  const handleTabChange = (tab: 'Applying' | 'Applied') => {
+  const handleTabChange = (tab: 'Applying' | 'Applied' | 'Trashed') => {
     setDashboardTab(tab);
     setFilters({ ...filters, status: [tab] });
+  };
+
+  const handleCannotApply = async (reason: string) => {
+    if (!cannotApplyTask) return;
+
+    const response = await fetch(`/api/admin/tasks/${cannotApplyTask.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Trashed', cannotApplyReason: reason }),
+    });
+
+    if (!response.ok) throw new Error('Failed to mark as cannot apply');
+
+    // Remove from current list
+    const updated = tasks.filter(task => task.id !== cannotApplyTask.id);
+    setTasks(updated);
+    setFilteredTasks(updated);
   };
 
   return (
@@ -172,6 +190,16 @@ export default function VATasksPage() {
                     }`}
                 >
                   Submitted
+                </button>
+                <button
+                  onClick={() => handleTabChange('Trashed')}
+                  className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${dashboardTab === 'Trashed'
+                    ? 'bg-white text-red-600 shadow-md shadow-slate-200 border border-slate-100'
+                    : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Trash
                 </button>
               </div>
             </div>
@@ -227,28 +255,19 @@ export default function VATasksPage() {
       <main className="px-8 py-8 animate-in fade-in duration-700">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className={`h-8 w-1 rounded-full ${dashboardTab === 'Applying' ? 'bg-blue-600' : 'bg-emerald-600'}`}></div>
+            <div className={`h-8 w-1 rounded-full ${
+              dashboardTab === 'Applying' ? 'bg-blue-600' :
+              dashboardTab === 'Applied' ? 'bg-emerald-600' : 'bg-red-600'
+            }`}></div>
             <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
-              {dashboardTab === 'Applying' ? 'Active Tasks' : 'Submitted Tasks'}
+              {dashboardTab === 'Applying' ? 'Active Tasks' :
+               dashboardTab === 'Applied' ? 'Submitted Tasks' : 'Trashed Tasks'}
             </h2>
             <span className="px-2.5 py-1 bg-slate-200/50 text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200">
               {filteredTasks.length} Items
             </span>
           </div>
 
-          <div className="flex gap-4">
-            <StatsCard
-              label="Standard"
-              value={filteredTasks.filter(t => t.priority !== 'Premium').length}
-              color="slate"
-            />
-            <StatsCard
-              label="Priority"
-              value={filteredTasks.filter(t => t.priority === 'Premium').length}
-              color="purple"
-              icon="⭐"
-            />
-          </div>
         </div>
 
         <div className="flex flex-col gap-6">
@@ -257,6 +276,8 @@ export default function VATasksPage() {
             loading={loading}
             onSelectTask={setSelectedTask}
             selectedTaskId={selectedTask?.id}
+            onCannotApply={dashboardTab === 'Applying' ? setCannotApplyTask : undefined}
+            showCannotApplyReason={dashboardTab === 'Trashed'}
           />
         </div>
       </main>
@@ -268,26 +289,14 @@ export default function VATasksPage() {
         onSubmit={handleSubmitTask}
         isSubmitting={isSubmitting}
       />
-    </div>
-  );
-}
 
-function StatsCard({ label, value, color, icon }: { label: string; value: number; color: string; icon?: string }) {
-  const colorMap: Record<string, string> = {
-    blue: 'text-blue-600',
-    amber: 'text-amber-600',
-    emerald: 'text-emerald-600',
-    purple: 'text-purple-600',
-    slate: 'text-slate-600',
-  };
-
-  return (
-    <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-200/60 shadow-sm">
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
-      <div className="flex items-center gap-1.5">
-        <span className={`text-sm font-black ${colorMap[color] || 'text-slate-900'}`}>{value}</span>
-        {icon && <span className="text-xs">{icon}</span>}
-      </div>
+      {/* Cannot Apply Dialog */}
+      <CannotApplyDialog
+        task={cannotApplyTask}
+        open={!!cannotApplyTask}
+        onOpenChange={(open) => !open && setCannotApplyTask(null)}
+        onConfirm={handleCannotApply}
+      />
     </div>
   );
 }

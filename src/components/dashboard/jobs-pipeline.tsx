@@ -8,6 +8,16 @@ import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus } from 'l
 
 type TabType = 'saved' | 'applying' | 'applied' | 'trashed';
 
+// Generate a unique delegated job ID (format: JOB-XXXXXX)
+function generateDelegatedJobId(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = 'JOB-';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 interface Resume {
   id: string;
   job_role: string | null;
@@ -234,11 +244,22 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
   const handleBulkDelegate = async () => {
     if (selectedJobIds.length === 0) return;
     try {
-      const { error } = await (supabase.from('jobs') as any)
-        .update({ status: 'delegate_to_va', updated_at: new Date().toISOString() })
-        .in('id', selectedJobIds);
+      // Generate unique job IDs and update each job
+      const updates = selectedJobIds.map(async (jobId) => {
+        const delegatedJobId = generateDelegatedJobId();
+        return (supabase.from('jobs') as any)
+          .update({
+            status: 'delegate_to_va',
+            delegated_job_id: delegatedJobId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+      });
 
-      if (error) throw error;
+      const results = await Promise.all(updates);
+      const hasError = results.some((r: any) => r.error);
+      if (hasError) throw new Error('Some jobs failed to delegate');
+
       setSelectedJobIds([]);
       onUpdate?.();
     } catch (error) {
