@@ -76,19 +76,39 @@ export async function GET(request: NextRequest) {
     });
 
     // Update jobs that don't have a resume_id with their user's default resume
-    const jobsToUpdate = jobs.filter(job => !job.resume_id && defaultResumeMap.has(job.user_id));
+    // Check both resume_id and the joined resume object (which may be null or empty)
+    const jobsToUpdate = jobs.filter(job => {
+      const hasNoResume = !job.resume_id || !job.resume || (typeof job.resume === 'object' && !job.resume.id);
+      return hasNoResume && defaultResumeMap.has(job.user_id);
+    });
+
     if (jobsToUpdate.length > 0) {
       // Update each job with its user's default resume
-      await Promise.all(jobsToUpdate.map(job => {
+      const updateResults = await Promise.all(jobsToUpdate.map(job => {
         const defaultResume = defaultResumeMap.get(job.user_id);
         if (defaultResume) {
           return supabase
             .from('jobs')
             .update({ resume_id: defaultResume.id })
-            .eq('id', job.id);
+            .eq('id', job.id)
+            .then(result => {
+              if (!result.error) {
+                // Also update the local job object so it reflects in the response
+                job.resume_id = defaultResume.id;
+                job.resume = defaultResume;
+              }
+              return result;
+            });
         }
-        return Promise.resolve();
+        return Promise.resolve({ error: null });
       }));
+
+      // Log any errors
+      updateResults.forEach((result, idx) => {
+        if (result.error) {
+          console.error(`Failed to update job ${jobsToUpdate[idx].id} with default resume:`, result.error);
+        }
+      });
     }
 
     // Transform jobs to VACoreTask format
@@ -96,8 +116,9 @@ export async function GET(request: NextRequest) {
       const profile = profilesMap.get(job.user_id);
       const tailored = tailoredMap.get(job.id);
       const isPremium = profile?.plan?.toLowerCase() === 'premium' || profile?.plan?.toLowerCase() === 'pro';
-      // Use job's resume if available, otherwise fall back to user's default resume
-      const resumeInfo = job.resume || defaultResumeMap.get(job.user_id);
+      // Use job's resume if available (check for valid resume with id), otherwise fall back to user's default resume
+      const jobResume = job.resume && typeof job.resume === 'object' && job.resume.id ? job.resume : null;
+      const resumeInfo = jobResume || defaultResumeMap.get(job.user_id);
       const fullTailoredData = tailored?.full_tailored_data as any;
 
       return {
