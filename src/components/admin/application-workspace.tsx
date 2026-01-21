@@ -574,6 +574,29 @@ export function ApplicationWorkspace({
                       <ProfileField label="Graduated On" value={task.profileDetails.education_to} />
                     </ProfileSection>
 
+                    <ProfileSection title="Work Experience">
+                      {task.profileDetails.work_experience && task.profileDetails.work_experience.length > 0 ? (
+                        task.profileDetails.work_experience.map((exp: any, i: number) => (
+                          <div key={i} className="col-span-2 p-5 bg-gray-50 rounded-3xl border border-gray-100 grid grid-cols-2 gap-4 relative group">
+                            <div className="absolute -top-3 left-4 px-2 py-0.5 bg-white border border-gray-100 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                              Experience {i + 1}
+                            </div>
+                            <ProfileField label="Company" value={exp.company_name} />
+                            <ProfileField label="Job Title" value={exp.job_title} />
+                            <ProfileField label="Location" value={exp.location} />
+                            <ProfileField label="Type" value={exp.experience_type} />
+                            <ProfileField label="Start Date" value={exp.start_date} />
+                            <ProfileField label="End Date" value={exp.currently_working ? 'Currently Working' : exp.end_date} />
+                            <ProfileField label="Description" value={exp.description} colSpan={2} />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="col-span-2 py-6 text-center">
+                          <p className="text-xs text-gray-400 italic">No work experience added</p>
+                        </div>
+                      )}
+                    </ProfileSection>
+
                     <ProfileSection title="Work Auth & Citizenship">
                       <ProfileField label="US Citizen" value={task.profileDetails.is_us_citizen} />
                       <ProfileField label="Eligible to Work in US" value={task.profileDetails.eligible_to_work_us} />
@@ -640,9 +663,9 @@ export function ApplicationWorkspace({
                       </div>
                     </ProfileSection>
 
-                    {task.profileDetails.references && task.profileDetails.references.length > 0 && (
-                      <ProfileSection title="Professional References">
-                        {task.profileDetails.references.map((ref: any, i: number) => (
+                    <ProfileSection title="Professional References">
+                      {task.profileDetails.references && task.profileDetails.references.length > 0 ? (
+                        task.profileDetails.references.map((ref: any, i: number) => (
                           <div key={i} className="col-span-2 p-5 bg-gray-50 rounded-3xl border border-gray-100 grid grid-cols-2 gap-4 relative group">
                             <div className="absolute -top-3 left-4 px-2 py-0.5 bg-white border border-gray-100 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">
                               Ref {i + 1}
@@ -653,9 +676,13 @@ export function ApplicationWorkspace({
                             <ProfileField label="Phone" value={ref.phone} />
                             <ProfileField label="Email" value={ref.email} colSpan={2} />
                           </div>
-                        ))}
-                      </ProfileSection>
-                    )}
+                        ))
+                      ) : (
+                        <div className="col-span-2 py-6 text-center">
+                          <p className="text-xs text-gray-400 italic">No references added</p>
+                        </div>
+                      )}
+                    </ProfileSection>
                   </div>
                 ) : (
                   <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
