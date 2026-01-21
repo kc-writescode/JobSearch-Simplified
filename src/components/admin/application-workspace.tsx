@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { VACoreTask } from '@/types/admin.types';
-import { Upload, FileText, Check, Eye, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Check, Eye, Loader2, AlertCircle, ChevronDown, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -53,6 +53,9 @@ export function ApplicationWorkspace({
   const [pendingJobDescription, setPendingJobDescription] = useState('');
   const [descriptionAction, setDescriptionAction] = useState<'tailor' | 'cover_letter' | null>(null);
   const [isSavingDescription, setIsSavingDescription] = useState(false);
+
+  // Profile search state
+  const [profileSearch, setProfileSearch] = useState('');
 
   // Sync state with task when it changes
   React.useEffect(() => {
@@ -532,8 +535,29 @@ export function ApplicationWorkspace({
                 </div>
 
                 {task.profileDetails ? (
-                  <div className="grid grid-cols-1 gap-6">
-                    <ProfileSection title="Core Personal Details">
+                  <div className="space-y-4">
+                    {/* Profile Search Bar */}
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={profileSearch}
+                        onChange={(e) => setProfileSearch(e.target.value)}
+                        placeholder="Search profile fields (e.g., email, phone, visa...)"
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+                      />
+                      {profileSearch && (
+                        <button
+                          onClick={() => setProfileSearch('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3">
+                    <ProfileSection title="Core Personal Details" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['first name', 'middle name', 'last name', 'email', 'phone', 'date of birth', 'password', 'ssn', 'driving license'].some(f => f.includes(profileSearch.toLowerCase())) : false}>
                       <ProfileField label="First Name" value={task.profileDetails.first_name} />
                       <ProfileField label="Middle Name" value={task.profileDetails.middle_name} />
                       <ProfileField label="Last Name" value={task.profileDetails.last_name} />
@@ -545,7 +569,7 @@ export function ApplicationWorkspace({
                       <ProfileField label="Driving License" value={task.profileDetails.driving_license} />
                     </ProfileSection>
 
-                    <ProfileSection title="Address & Geographic Details">
+                    <ProfileSection title="Address & Geographic Details" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['address', 'city', 'county', 'state', 'zip', 'country', 'nationality', 'preferred cities'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       <ProfileField label="Address Line 1" value={task.profileDetails.address_line_1} colSpan={2} />
                       <ProfileField label="Address Line 2" value={task.profileDetails.address_line_2} colSpan={2} />
                       <ProfileField label="City" value={task.profileDetails.city} />
@@ -557,7 +581,7 @@ export function ApplicationWorkspace({
                       <ProfileField label="Preferred Cities" value={task.profileDetails.preferred_cities} colSpan={2} />
                     </ProfileSection>
 
-                    <ProfileSection title="Job Preferences & Compensation">
+                    <ProfileSection title="Job Preferences & Compensation" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['salary', 'hourly', 'notice', 'start date', 'compensation'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       <ProfileField label="Desired Salary (Annual)" value={task.profileDetails.desired_salary} />
                       <ProfileField label="Desired Hourly Rate" value={task.profileDetails.desired_salary_range} />
                       <ProfileField label="Current Salary" value={task.profileDetails.current_salary} />
@@ -565,7 +589,7 @@ export function ApplicationWorkspace({
                       <ProfileField label="Available Start Date" value={task.profileDetails.start_date} />
                     </ProfileSection>
 
-                    <ProfileSection title="Academic History">
+                    <ProfileSection title="Academic History" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['university', 'college', 'degree', 'field of study', 'gpa', 'education', 'graduated'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       <ProfileField label="University / College" value={task.profileDetails.university} colSpan={2} />
                       <ProfileField label="Degree" value={task.profileDetails.degree} />
                       <ProfileField label="Field of Study" value={task.profileDetails.field_of_study} />
@@ -574,7 +598,7 @@ export function ApplicationWorkspace({
                       <ProfileField label="Graduated On" value={task.profileDetails.education_to} />
                     </ProfileSection>
 
-                    <ProfileSection title="Work Experience">
+                    <ProfileSection title="Work Experience" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['work experience', 'company', 'job title', 'employment'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       {task.profileDetails.work_experience && task.profileDetails.work_experience.length > 0 ? (
                         task.profileDetails.work_experience.map((exp: any, i: number) => (
                           <div key={i} className="col-span-2 p-5 bg-gray-50 rounded-3xl border border-gray-100 grid grid-cols-2 gap-4 relative group">
@@ -597,7 +621,7 @@ export function ApplicationWorkspace({
                       )}
                     </ProfileSection>
 
-                    <ProfileSection title="Work Auth & Citizenship">
+                    <ProfileSection title="Work Auth & Citizenship" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['citizen', 'visa', 'sponsorship', 'h1b', 'work auth', 'eligible', 'clearance'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       <ProfileField label="US Citizen" value={task.profileDetails.is_us_citizen} />
                       <ProfileField label="Eligible to Work in US" value={task.profileDetails.eligible_to_work_us} />
                       <ProfileField label="Needs Sponsorship" value={task.profileDetails.needs_sponsorship} />
@@ -611,7 +635,7 @@ export function ApplicationWorkspace({
                       <ProfileField label="Security Clearance" value={task.profileDetails.security_clearance} />
                     </ProfileSection>
 
-                    <ProfileSection title="Availability & Flexibility">
+                    <ProfileSection title="Availability & Flexibility" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['relocate', 'travel', 'overtime', 'shift', 'days', 'languages', 'availability'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       <ProfileField label="Willing to Relocate" value={task.profileDetails.willing_to_relocate} />
                       <ProfileField label="Willing to Travel %" value={task.profileDetails.travel_percentage} />
                       <ProfileField label="Travel Experience" value={task.profileDetails.experience_travel} />
@@ -621,7 +645,7 @@ export function ApplicationWorkspace({
                       <ProfileField label="Languages" value={task.profileDetails.languages} />
                     </ProfileSection>
 
-                    <ProfileSection title="Social & Online Presence">
+                    <ProfileSection title="Social & Online Presence" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['linkedin', 'github', 'portfolio', 'website', 'social'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       <ProfileField label="LinkedIn Profile" value={task.profileDetails.linkedin_url} isLink colSpan={2} />
                       <ProfileField label="GitHub Profile" value={task.profileDetails.github_url} isLink colSpan={2} />
                       <ProfileField label="Portfolio / Website" value={task.profileDetails.portfolio_url} isLink colSpan={2} />
@@ -629,7 +653,7 @@ export function ApplicationWorkspace({
                       <ProfileField label="LinkedIn Password" value={task.profileDetails.linkedin_password} />
                     </ProfileSection>
 
-                    <ProfileSection title="Demographics & Diversity">
+                    <ProfileSection title="Demographics & Diversity" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['veteran', 'gender', 'ethnicity', 'sexual', 'disabilities', 'diversity'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       <ProfileField label="Veteran Status" value={task.profileDetails.is_veteran} />
                       <ProfileField label="Gender" value={task.profileDetails.gender} />
                       <ProfileField label="Ethnicity" value={task.profileDetails.ethnicity} />
@@ -637,7 +661,7 @@ export function ApplicationWorkspace({
                       <ProfileField label="Disabilities" value={task.profileDetails.disabilities} colSpan={2} />
                     </ProfileSection>
 
-                    <ProfileSection title="Security Questions & Verification">
+                    <ProfileSection title="Security Questions & Verification" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['security', 'question', 'verification', 'answer'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       <div className="col-span-2 space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="col-span-1">
@@ -663,7 +687,7 @@ export function ApplicationWorkspace({
                       </div>
                     </ProfileSection>
 
-                    <ProfileSection title="Professional References">
+                    <ProfileSection title="Professional References" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['reference', 'referral', 'recommendation'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
                       {task.profileDetails.references && task.profileDetails.references.length > 0 ? (
                         task.profileDetails.references.map((ref: any, i: number) => (
                           <div key={i} className="col-span-2 p-5 bg-gray-50 rounded-3xl border border-gray-100 grid grid-cols-2 gap-4 relative group">
@@ -683,6 +707,7 @@ export function ApplicationWorkspace({
                         </div>
                       )}
                     </ProfileSection>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
@@ -1170,13 +1195,23 @@ export function ApplicationWorkspace({
   );
 }
 
-function ProfileSection({ title, children }: { title: string; children: React.ReactNode }) {
+function ProfileSection({ title, children, defaultExpanded = false, highlighted = false }: { title: string; children: React.ReactNode; defaultExpanded?: boolean; highlighted?: boolean }) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
   return (
-    <div className="space-y-4">
-      <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.2em] px-1">{title}</h4>
-      <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm grid grid-cols-2 gap-x-6 gap-y-5">
-        {children}
-      </div>
+    <div className={`rounded-3xl border transition-all duration-200 overflow-hidden ${highlighted ? 'border-blue-300 ring-2 ring-blue-100' : 'border-gray-100'} ${isExpanded ? 'shadow-sm' : ''}`}>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={`w-full flex items-center justify-between px-6 py-4 text-left transition-colors ${isExpanded ? 'bg-gray-50/50' : 'bg-white hover:bg-gray-50/50'}`}
+      >
+        <h4 className={`text-[10px] font-extrabold uppercase tracking-[0.2em] ${highlighted ? 'text-blue-600' : 'text-gray-400'}`}>{title}</h4>
+        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
+      {isExpanded && (
+        <div className="bg-white px-6 pb-6 pt-2 grid grid-cols-2 gap-x-6 gap-y-5">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
