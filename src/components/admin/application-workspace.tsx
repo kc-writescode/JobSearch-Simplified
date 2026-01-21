@@ -146,10 +146,11 @@ export function ApplicationWorkspace({
       return;
     }
 
-    // Validate file size (4MB limit - Vercel default, increased to 10MB in config)
-    const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
+    // Validate file size - Vercel has ~4.5MB limit for API routes
+    // Use 3MB as safe limit to account for FormData overhead
+    const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
     if (file.size > MAX_FILE_SIZE) {
-      toast.warning('File size exceeds 4MB limit. Please compress the PDF or use a smaller file.');
+      toast.warning(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds 3MB limit. Please compress the PDF or use a smaller file.`);
       return;
     }
 
@@ -169,12 +170,19 @@ export function ApplicationWorkspace({
       });
 
       if (!response.ok) {
-        // Handle specific error codes
+        // Handle specific error codes - 413 often returns plain text, not JSON
         if (response.status === 413) {
-          throw new Error('File too large. Please use a smaller file (max 4MB).');
+          throw new Error('File too large. Please compress the PDF to under 3MB.');
         }
-        const result = await response.json().catch(() => ({ error: 'Upload failed' }));
-        throw new Error(result.error || 'Upload failed');
+        // Try to parse JSON, but handle plain text responses gracefully
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const result = await response.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(result.error || 'Upload failed');
+        } else {
+          const text = await response.text().catch(() => 'Upload failed');
+          throw new Error(text.includes('too large') ? 'File too large. Please compress the PDF to under 3MB.' : 'Upload failed');
+        }
       }
 
       const { path } = await response.json();
@@ -981,7 +989,7 @@ export function ApplicationWorkspace({
                               <p className="text-sm font-bold text-gray-700">
                                 {proofUploadStatus === 'uploading' ? 'Uploading...' : 'Upload Application Proof (PDF)'}
                               </p>
-                              <p className="text-xs text-gray-400 mt-1">Max 10MB</p>
+                              <p className="text-xs text-gray-400 mt-1">Max 3MB</p>
                             </div>
                           </div>
                         </label>
