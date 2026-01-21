@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { VACoreTask } from '@/types/admin.types';
-import { Upload, FileText, Check, Eye, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Check, Eye, Loader2, AlertCircle, Key, Copy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -53,6 +53,25 @@ export function ApplicationWorkspace({
   const [pendingJobDescription, setPendingJobDescription] = useState('');
   const [descriptionAction, setDescriptionAction] = useState<'tailor' | 'cover_letter' | null>(null);
   const [isSavingDescription, setIsSavingDescription] = useState(false);
+
+  // Shared email password
+  const [sharedEmailPassword, setSharedEmailPassword] = useState<string | null>(null);
+
+  // Fetch shared email password on mount
+  React.useEffect(() => {
+    const fetchSharedPassword = async () => {
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const data = await response.json();
+          setSharedEmailPassword(data.shared_email_password);
+        }
+      } catch (error) {
+        console.error('Error fetching shared password:', error);
+      }
+    };
+    fetchSharedPassword();
+  }, []);
 
   // Sync state with task when it changes
   React.useEffect(() => {
@@ -461,31 +480,54 @@ export function ApplicationWorkspace({
         </div>
 
         {/* Status Bar */}
-        <div className="px-6 py-2 bg-gray-100 border-b border-gray-200 flex items-center gap-4">
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${task.status === 'Applying' ? 'bg-yellow-100 text-yellow-700' :
-            'bg-green-100 text-green-700'
-            }`}>
-            {task.status}
-          </span>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${currentAiStatus === 'Completed' ? 'bg-green-100 text-green-700' :
-            currentAiStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-              currentAiStatus === 'Error' ? 'bg-red-100 text-red-700' :
-                'bg-gray-100 text-gray-700'
-            }`}>
-            Tailored: {currentAiStatus === 'Completed' ? 'Yes' : currentAiStatus === 'In Progress' ? 'Processing' : 'No'}
-          </span>
-          <button
-            onClick={handleRefreshStatus}
-            disabled={isRefreshing}
-            className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
-            title="Refresh tailoring status"
-          >
-            <RefreshIcon className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </button>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${task.priority === 'Premium' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
-            }`}>
-            {task.priority}
-          </span>
+        <div className="px-6 py-2 bg-gray-100 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${task.status === 'Applying' ? 'bg-yellow-100 text-yellow-700' :
+              'bg-green-100 text-green-700'
+              }`}>
+              {task.status}
+            </span>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${currentAiStatus === 'Completed' ? 'bg-green-100 text-green-700' :
+              currentAiStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                currentAiStatus === 'Error' ? 'bg-red-100 text-red-700' :
+                  'bg-gray-100 text-gray-700'
+              }`}>
+              Tailored: {currentAiStatus === 'Completed' ? 'Yes' : currentAiStatus === 'In Progress' ? 'Processing' : 'No'}
+            </span>
+            <button
+              onClick={handleRefreshStatus}
+              disabled={isRefreshing}
+              className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+              title="Refresh tailoring status"
+            >
+              <RefreshIcon className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${task.priority === 'Premium' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
+              }`}>
+              {task.priority}
+            </span>
+          </div>
+
+          {/* Shared Email Password */}
+          {sharedEmailPassword && (
+            <div className="flex items-center gap-2">
+              <Key className="h-3.5 w-3.5 text-gray-400" />
+              <span className="text-xs text-gray-500">Email Password:</span>
+              <code className="px-2 py-0.5 bg-white border border-gray-200 rounded text-xs font-mono text-gray-700">
+                {sharedEmailPassword}
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(sharedEmailPassword);
+                  toast.success('Password copied to clipboard!');
+                }}
+                className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="Copy password"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
