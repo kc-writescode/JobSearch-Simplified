@@ -19,7 +19,10 @@ import {
   CreditCard,
   Languages,
   Clock,
-  Heart
+  Heart,
+  Plus,
+  X,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
@@ -100,6 +103,16 @@ interface FormData {
     relationship: string;
     phone: string;
   }>;
+  work_experience: Array<{
+    company_name: string;
+    job_title: string;
+    location: string;
+    experience_type: string;
+    start_date: string;
+    end_date: string;
+    currently_working: boolean;
+    description: string;
+  }>;
 }
 
 const DEFAULT_FORM_DATA: FormData = {
@@ -111,6 +124,7 @@ const DEFAULT_FORM_DATA: FormData = {
   is_veteran: '', ethnicity: '', gender: '', sexual_orientation: '', disabilities: '', driving_license: '', ssn: '', linkedin_email: '', linkedin_password: '',
   security_q1: 'What is the name of your first school?', security_a1: '', security_q2: 'What is your favourite vacation spot?', security_a2: '', security_q3: "What is your mother's maiden name?", security_a3: '',
   references: [{ name: '', email: '', position: '', relationship: '', phone: '' }, { name: '', email: '', position: '', relationship: '', phone: '' }, { name: '', email: '', position: '', relationship: '', phone: '' }],
+  work_experience: [{ company_name: '', job_title: '', location: '', experience_type: '', start_date: '', end_date: '', currently_working: false, description: '' }],
 };
 
 const YES_NO_OPTIONS = [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }];
@@ -258,7 +272,7 @@ ProfileField.displayName = 'ProfileField';
 export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFormProps) {
   const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM_DATA, ...initialData });
   const [saving, setSaving] = useState(false);
-  const [expandedSections, setExpandedSections] = useState({ personal: true, jobPreference: false, residential: false, education: false, jobProfile: false, additional: false, miscellaneous: false, security: false, references: false });
+  const [expandedSections, setExpandedSections] = useState({ personal: true, jobPreference: false, residential: false, education: false, workExperience: false, jobProfile: false, additional: false, miscellaneous: false, security: false, references: false });
   const supabase = createClient();
 
   const toggleSection = useCallback((section: keyof typeof expandedSections) => {
@@ -295,6 +309,28 @@ export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFo
       newReferences[index] = { ...newReferences[index], [field]: value };
       return { ...prev, references: newReferences };
     });
+  }, []);
+
+  const handleWorkExperienceChange = useCallback((index: number, field: string, value: string | boolean) => {
+    setFormData(prev => {
+      const newWorkExperience = [...prev.work_experience];
+      newWorkExperience[index] = { ...newWorkExperience[index], [field]: value };
+      return { ...prev, work_experience: newWorkExperience };
+    });
+  }, []);
+
+  const addWorkExperience = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      work_experience: [...prev.work_experience, { company_name: '', job_title: '', location: '', experience_type: '', start_date: '', end_date: '', currently_working: false, description: '' }]
+    }));
+  }, []);
+
+  const removeWorkExperience = useCallback((index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      work_experience: prev.work_experience.filter((_, i) => i !== index)
+    }));
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -436,6 +472,98 @@ export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFo
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ProfileField label="Started On" field="education_from" type="date" formData={formData} handleInputChange={handleInputChange} />
           <ProfileField label="Graduated On" field="education_to" type="date" formData={formData} handleInputChange={handleInputChange} />
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Work Experience"
+        icon={<Building2 className="h-5 w-5" />}
+        expanded={expandedSections.workExperience}
+        onToggle={() => toggleSection('workExperience')}
+        description="Employment history for applications"
+      >
+        <div className="space-y-6">
+          {formData.work_experience.map((exp, index) => (
+            <div key={`exp-${index}`} className="p-6 bg-gray-50/50 rounded-2xl border border-gray-100 relative group transition-all hover:bg-white hover:border-blue-100 hover:shadow-sm">
+              {formData.work_experience.length > 1 && (
+                <button
+                  onClick={() => removeWorkExperience(index)}
+                  className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Remove this experience"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              <div className="absolute -top-3 left-4 px-3 py-1 bg-white border border-gray-100 rounded-full text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-blue-500 group-hover:border-blue-100 transition-colors">
+                Experience {index + 1}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
+                <FormField label="Company Name" value={exp.company_name} onChange={(v) => handleWorkExperienceChange(index, 'company_name', v)} placeholder="Company Name" required />
+                <FormField label="Job Title" value={exp.job_title} onChange={(v) => handleWorkExperienceChange(index, 'job_title', v)} placeholder="Job Title" required />
+                <FormField label="Location (city, state, country)" value={exp.location} onChange={(v) => handleWorkExperienceChange(index, 'location', v)} placeholder="e.g., Chicago, IL, USA" required />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    Experience Type
+                  </label>
+                  <select
+                    value={exp.experience_type}
+                    onChange={(e) => handleWorkExperienceChange(index, 'experience_type', e.target.value)}
+                    className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[13px] font-semibold transition-all focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 focus:bg-white appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2394a3b8%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%223%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1rem] bg-[right_1.25rem_center] bg-no-repeat pr-12 cursor-pointer"
+                  >
+                    <option value="">Select type...</option>
+                    <option value="full_time">Full-time</option>
+                    <option value="part_time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="internship">Internship</option>
+                    <option value="freelance">Freelance</option>
+                  </select>
+                </div>
+                <FormField label="Start Date" type="date" value={exp.start_date} onChange={(v) => handleWorkExperienceChange(index, 'start_date', v)} required />
+                <div className="space-y-2">
+                  <FormField
+                    label="End Date"
+                    type="date"
+                    value={exp.end_date}
+                    onChange={(v) => handleWorkExperienceChange(index, 'end_date', v)}
+                    required={!exp.currently_working}
+                  />
+                  <label className="flex items-center gap-2 cursor-pointer ml-1">
+                    <input
+                      type="checkbox"
+                      checked={exp.currently_working}
+                      onChange={(e) => {
+                        handleWorkExperienceChange(index, 'currently_working', e.target.checked);
+                        if (e.target.checked) {
+                          handleWorkExperienceChange(index, 'end_date', '');
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-xs font-semibold text-slate-500">I currently work here</span>
+                  </label>
+                </div>
+              </div>
+              <div className="mt-6">
+                <FormField
+                  label="Job Description (can use bullet points as well)"
+                  type="textarea"
+                  value={exp.description}
+                  onChange={(v) => handleWorkExperienceChange(index, 'description', v)}
+                  placeholder="Describe your responsibilities and achievements..."
+                  required
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={addWorkExperience}
+            className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+          >
+            <Plus className="h-5 w-5" />
+            Add Work Experience
+          </button>
         </div>
       </FormSection>
 
