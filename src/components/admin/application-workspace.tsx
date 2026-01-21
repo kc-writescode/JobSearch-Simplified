@@ -146,9 +146,10 @@ export function ApplicationWorkspace({
       return;
     }
 
-    // Validate file size (e.g., 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.warning('File size exceeds 10MB limit.');
+    // Validate file size (4MB limit - Vercel default, increased to 10MB in config)
+    const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast.warning('File size exceeds 4MB limit. Please compress the PDF or use a smaller file.');
       return;
     }
 
@@ -168,7 +169,11 @@ export function ApplicationWorkspace({
       });
 
       if (!response.ok) {
-        const result = await response.json();
+        // Handle specific error codes
+        if (response.status === 413) {
+          throw new Error('File too large. Please use a smaller file (max 4MB).');
+        }
+        const result = await response.json().catch(() => ({ error: 'Upload failed' }));
         throw new Error(result.error || 'Upload failed');
       }
 
@@ -177,10 +182,11 @@ export function ApplicationWorkspace({
       // Store the path. We will use /api/resume/view?path=... to view it later.
       setProofPath(path);
       setProofUploadStatus('success');
+      toast.success('Proof uploaded successfully!');
     } catch (error) {
       console.error('Error uploading proof:', error);
       setProofUploadStatus('error');
-      toast.error('Failed to upload proof file: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Failed to upload proof: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setProofFile(null);
     }
   };
