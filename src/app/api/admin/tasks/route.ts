@@ -44,20 +44,60 @@ export async function GET(request: NextRequest) {
     const userIds = [...new Set(jobs.map(job => job.user_id))];
     const jobIds = jobs.map(job => job.id);
 
-    const [profilesRes, tailoredRes] = await Promise.all([
+    const [profilesRes, tailoredRes, defaultResumesRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, plan, phone, linkedin_url, personal_details').in('id', userIds),
       supabase.from('tailored_resumes').select('job_id, status, id, full_tailored_data').in('job_id', jobIds),
+      // Fetch default resumes for all users (is_default=true or single resume)
+      supabase.from('resumes').select('id, user_id, file_name, file_path, job_role, title, status, is_default').in('user_id', userIds).eq('status', 'ready'),
     ]);
 
     const profilesMap = new Map(profilesRes.data?.map(p => [p.id, p]) || []);
     const tailoredMap = new Map(tailoredRes.data?.map(t => [t.job_id, t]) || []);
+
+    // Build a map of user_id -> default resume
+    // Priority: 1) is_default=true, 2) single resume for user
+    const userResumesMap = new Map<string, any[]>();
+    (defaultResumesRes.data || []).forEach(resume => {
+      const existing = userResumesMap.get(resume.user_id) || [];
+      existing.push(resume);
+      userResumesMap.set(resume.user_id, existing);
+    });
+
+    const defaultResumeMap = new Map<string, any>();
+    userResumesMap.forEach((resumes, userId) => {
+      // First check for explicitly set default
+      const explicitDefault = resumes.find(r => r.is_default === true);
+      if (explicitDefault) {
+        defaultResumeMap.set(userId, explicitDefault);
+      } else if (resumes.length === 1) {
+        // If only one resume, use it as default
+        defaultResumeMap.set(userId, resumes[0]);
+      }
+    });
+
+    // Update jobs that don't have a resume_id with their user's default resume
+    const jobsToUpdate = jobs.filter(job => !job.resume_id && defaultResumeMap.has(job.user_id));
+    if (jobsToUpdate.length > 0) {
+      // Update each job with its user's default resume
+      await Promise.all(jobsToUpdate.map(job => {
+        const defaultResume = defaultResumeMap.get(job.user_id);
+        if (defaultResume) {
+          return supabase
+            .from('jobs')
+            .update({ resume_id: defaultResume.id })
+            .eq('id', job.id);
+        }
+        return Promise.resolve();
+      }));
+    }
 
     // Transform jobs to VACoreTask format
     let tasks: VACoreTask[] = jobs.map(job => {
       const profile = profilesMap.get(job.user_id);
       const tailored = tailoredMap.get(job.id);
       const isPremium = profile?.plan?.toLowerCase() === 'premium' || profile?.plan?.toLowerCase() === 'pro';
-      const resumeInfo = job.resume as any;
+      // Use job's resume if available, otherwise fall back to user's default resume
+      const resumeInfo = job.resume || defaultResumeMap.get(job.user_id);
       const fullTailoredData = tailored?.full_tailored_data as any;
 
       return {
