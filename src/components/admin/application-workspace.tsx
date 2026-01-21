@@ -535,180 +535,8 @@ export function ApplicationWorkspace({
                 </div>
 
                 {task.profileDetails ? (
-                  <div className="space-y-4">
-                    {/* Profile Search Bar */}
-                    <div className="relative">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={profileSearch}
-                        onChange={(e) => setProfileSearch(e.target.value)}
-                        placeholder="Search profile fields (e.g., email, phone, visa...)"
-                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
-                      />
-                      {profileSearch && (
-                        <button
-                          onClick={() => setProfileSearch('')}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      )}
-                    </div>
+                  <ProfileDetailsWithSearch profileDetails={task.profileDetails} profileSearch={profileSearch} setProfileSearch={setProfileSearch} />
 
-                    <div className="grid grid-cols-1 gap-3">
-                    <ProfileSection title="Core Personal Details" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['first name', 'middle name', 'last name', 'email', 'phone', 'date of birth', 'password', 'ssn', 'driving license'].some(f => f.includes(profileSearch.toLowerCase())) : false}>
-                      <ProfileField label="First Name" value={task.profileDetails.first_name} />
-                      <ProfileField label="Middle Name" value={task.profileDetails.middle_name} />
-                      <ProfileField label="Last Name" value={task.profileDetails.last_name} />
-                      <ProfileField label="Email Address" value={task.profileDetails.email} />
-                      <ProfileField label="Phone Number" value={task.profileDetails.phone} />
-                      <ProfileField label="Date of Birth" value={task.profileDetails.date_of_birth} />
-                      <ProfileField label="Application Password" value={task.profileDetails.password_applications} />
-                      <ProfileField label="SSN Number" value={task.profileDetails.ssn} />
-                      <ProfileField label="Driving License" value={task.profileDetails.driving_license} />
-                    </ProfileSection>
-
-                    <ProfileSection title="Address & Geographic Details" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['address', 'city', 'county', 'state', 'zip', 'country', 'nationality', 'preferred cities'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      <ProfileField label="Address Line 1" value={task.profileDetails.address_line_1} colSpan={2} />
-                      <ProfileField label="Address Line 2" value={task.profileDetails.address_line_2} colSpan={2} />
-                      <ProfileField label="City" value={task.profileDetails.city} />
-                      <ProfileField label="County" value={task.profileDetails.county} />
-                      <ProfileField label="State / Province" value={task.profileDetails.state} />
-                      <ProfileField label="Zip / Postal Code" value={task.profileDetails.zipcode} />
-                      <ProfileField label="Country" value={task.profileDetails.country} />
-                      <ProfileField label="Nationality" value={task.profileDetails.nationality} />
-                      <ProfileField label="Preferred Cities" value={task.profileDetails.preferred_cities} colSpan={2} />
-                    </ProfileSection>
-
-                    <ProfileSection title="Job Preferences & Compensation" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['salary', 'hourly', 'notice', 'start date', 'compensation'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      <ProfileField label="Desired Salary (Annual)" value={task.profileDetails.desired_salary} />
-                      <ProfileField label="Desired Hourly Rate" value={task.profileDetails.desired_salary_range} />
-                      <ProfileField label="Current Salary" value={task.profileDetails.current_salary} />
-                      <ProfileField label="Notice Period" value={task.profileDetails.notice_period} />
-                      <ProfileField label="Available Start Date" value={task.profileDetails.start_date} />
-                    </ProfileSection>
-
-                    <ProfileSection title="Academic History" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['university', 'college', 'degree', 'field of study', 'gpa', 'education', 'graduated'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      <ProfileField label="University / College" value={task.profileDetails.university} colSpan={2} />
-                      <ProfileField label="Degree" value={task.profileDetails.degree} />
-                      <ProfileField label="Field of Study" value={task.profileDetails.field_of_study} />
-                      <ProfileField label="GPA" value={task.profileDetails.gpa} />
-                      <ProfileField label="Started On" value={task.profileDetails.education_from} />
-                      <ProfileField label="Graduated On" value={task.profileDetails.education_to} />
-                    </ProfileSection>
-
-                    <ProfileSection title="Work Experience" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['work experience', 'company', 'job title', 'employment'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      {task.profileDetails.work_experience && task.profileDetails.work_experience.length > 0 ? (
-                        task.profileDetails.work_experience.map((exp: any, i: number) => (
-                          <div key={i} className="col-span-2 p-5 bg-gray-50 rounded-3xl border border-gray-100 grid grid-cols-2 gap-4 relative group">
-                            <div className="absolute -top-3 left-4 px-2 py-0.5 bg-white border border-gray-100 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                              Experience {i + 1}
-                            </div>
-                            <ProfileField label="Company" value={exp.company_name} />
-                            <ProfileField label="Job Title" value={exp.job_title} />
-                            <ProfileField label="Location" value={exp.location} />
-                            <ProfileField label="Type" value={exp.experience_type} />
-                            <ProfileField label="Start Date" value={exp.start_date} />
-                            <ProfileField label="End Date" value={exp.currently_working ? 'Currently Working' : exp.end_date} />
-                            <ProfileField label="Description" value={exp.description} colSpan={2} />
-                          </div>
-                        ))
-                      ) : (
-                        <div className="col-span-2 py-6 text-center">
-                          <p className="text-xs text-gray-400 italic">No work experience added</p>
-                        </div>
-                      )}
-                    </ProfileSection>
-
-                    <ProfileSection title="Work Auth & Citizenship" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['citizen', 'visa', 'sponsorship', 'h1b', 'work auth', 'eligible', 'clearance'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      <ProfileField label="US Citizen" value={task.profileDetails.is_us_citizen} />
-                      <ProfileField label="Eligible to Work in US" value={task.profileDetails.eligible_to_work_us} />
-                      <ProfileField label="Needs Sponsorship" value={task.profileDetails.needs_sponsorship} />
-                      <ProfileField label="Sponsorship Type" value={task.profileDetails.sponsorship_type} />
-                      <ProfileField label="Authorized to Work" value={task.profileDetails.authorized_work} />
-                      <ProfileField label="Citizenship Status" value={task.profileDetails.citizenship_status} />
-                      <ProfileField label="Visa Start Date" value={task.profileDetails.visa_start_date} />
-                      <ProfileField label="Visa Expiration Date" value={task.profileDetails.visa_expiration_date} />
-                      <ProfileField label="H1B Caps/Info" value={task.profileDetails.h1b_info} colSpan={2} />
-                      <ProfileField label="Visa Status Explanation" value={task.profileDetails.visa_status_explanation} colSpan={2} />
-                      <ProfileField label="Security Clearance" value={task.profileDetails.security_clearance} />
-                    </ProfileSection>
-
-                    <ProfileSection title="Availability & Flexibility" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['relocate', 'travel', 'overtime', 'shift', 'days', 'languages', 'availability'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      <ProfileField label="Willing to Relocate" value={task.profileDetails.willing_to_relocate} />
-                      <ProfileField label="Willing to Travel %" value={task.profileDetails.travel_percentage} />
-                      <ProfileField label="Travel Experience" value={task.profileDetails.experience_travel} />
-                      <ProfileField label="Able to work Overtime" value={task.profileDetails.able_overtime} />
-                      <ProfileField label="Preferred Shift" value={task.profileDetails.preferred_shift} />
-                      <ProfileField label="Preferred Days" value={task.profileDetails.preferred_days} />
-                      <ProfileField label="Languages" value={task.profileDetails.languages} />
-                    </ProfileSection>
-
-                    <ProfileSection title="Social & Online Presence" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['linkedin', 'github', 'portfolio', 'website', 'social'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      <ProfileField label="LinkedIn Profile" value={task.profileDetails.linkedin_url} isLink colSpan={2} />
-                      <ProfileField label="GitHub Profile" value={task.profileDetails.github_url} isLink colSpan={2} />
-                      <ProfileField label="Portfolio / Website" value={task.profileDetails.portfolio_url} isLink colSpan={2} />
-                      <ProfileField label="LinkedIn Login Email" value={task.profileDetails.linkedin_email} />
-                      <ProfileField label="LinkedIn Password" value={task.profileDetails.linkedin_password} />
-                    </ProfileSection>
-
-                    <ProfileSection title="Demographics & Diversity" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['veteran', 'gender', 'ethnicity', 'sexual', 'disabilities', 'diversity'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      <ProfileField label="Veteran Status" value={task.profileDetails.is_veteran} />
-                      <ProfileField label="Gender" value={task.profileDetails.gender} />
-                      <ProfileField label="Ethnicity" value={task.profileDetails.ethnicity} />
-                      <ProfileField label="Sexual Orientation" value={task.profileDetails.sexual_orientation} />
-                      <ProfileField label="Disabilities" value={task.profileDetails.disabilities} colSpan={2} />
-                    </ProfileSection>
-
-                    <ProfileSection title="Security Questions & Verification" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['security', 'question', 'verification', 'answer'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      <div className="col-span-2 space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="col-span-1">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Question 1</p>
-                            <p className="text-sm font-semibold text-gray-600 italic">"{task.profileDetails.security_q1 || "Question 1"}"</p>
-                          </div>
-                          <ProfileField label="Answer 1" value={task.profileDetails.security_a1} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
-                          <div className="col-span-1">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Question 2</p>
-                            <p className="text-sm font-semibold text-gray-600 italic">"{task.profileDetails.security_q2 || "Question 2"}"</p>
-                          </div>
-                          <ProfileField label="Answer 2" value={task.profileDetails.security_a2} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
-                          <div className="col-span-1">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Question 3</p>
-                            <p className="text-sm font-semibold text-gray-600 italic">"{task.profileDetails.security_q3 || "Question 3"}"</p>
-                          </div>
-                          <ProfileField label="Answer 3" value={task.profileDetails.security_a3} />
-                        </div>
-                      </div>
-                    </ProfileSection>
-
-                    <ProfileSection title="Professional References" defaultExpanded={!profileSearch} highlighted={profileSearch ? ['reference', 'referral', 'recommendation'].some(f => f.includes(profileSearch.toLowerCase()) || profileSearch.toLowerCase().includes(f)) : false}>
-                      {task.profileDetails.references && task.profileDetails.references.length > 0 ? (
-                        task.profileDetails.references.map((ref: any, i: number) => (
-                          <div key={i} className="col-span-2 p-5 bg-gray-50 rounded-3xl border border-gray-100 grid grid-cols-2 gap-4 relative group">
-                            <div className="absolute -top-3 left-4 px-2 py-0.5 bg-white border border-gray-100 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                              Ref {i + 1}
-                            </div>
-                            <ProfileField label="Name" value={ref.name} />
-                            <ProfileField label="Relationship" value={ref.relationship} />
-                            <ProfileField label="Position" value={ref.position} />
-                            <ProfileField label="Phone" value={ref.phone} />
-                            <ProfileField label="Email" value={ref.email} colSpan={2} />
-                          </div>
-                        ))
-                      ) : (
-                        <div className="col-span-2 py-6 text-center">
-                          <p className="text-xs text-gray-400 italic">No references added</p>
-                        </div>
-                      )}
-                    </ProfileSection>
-                    </div>
-                  </div>
                 ) : (
                   <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
                     <p className="text-gray-400 font-medium italic">No complete profile data available for this task.</p>
@@ -1291,5 +1119,300 @@ function EditIcon({ className }: { className?: string }) {
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
+  );
+}
+
+// Helper to check if search matches a section's keywords
+function matchesSearch(search: string, keywords: string[]): boolean {
+  if (!search) return false;
+  const searchLower = search.toLowerCase();
+  return keywords.some(k => k.includes(searchLower) || searchLower.includes(k));
+}
+
+// Profile Details with Search component - handles sorting matched sections to top
+function ProfileDetailsWithSearch({
+  profileDetails,
+  profileSearch,
+  setProfileSearch
+}: {
+  profileDetails: any;
+  profileSearch: string;
+  setProfileSearch: (s: string) => void;
+}) {
+  // Define all sections with their keywords and render functions
+  const sections = [
+    {
+      id: 'personal',
+      title: 'Core Personal Details',
+      keywords: ['first name', 'middle name', 'last name', 'email', 'phone', 'date of birth', 'password', 'ssn', 'driving license', 'personal'],
+      render: () => (
+        <>
+          <ProfileField label="First Name" value={profileDetails.first_name} />
+          <ProfileField label="Middle Name" value={profileDetails.middle_name} />
+          <ProfileField label="Last Name" value={profileDetails.last_name} />
+          <ProfileField label="Email Address" value={profileDetails.email} />
+          <ProfileField label="Phone Number" value={profileDetails.phone} />
+          <ProfileField label="Date of Birth" value={profileDetails.date_of_birth} />
+          <ProfileField label="Application Password" value={profileDetails.password_applications} />
+          <ProfileField label="SSN Number" value={profileDetails.ssn} />
+          <ProfileField label="Driving License" value={profileDetails.driving_license} />
+        </>
+      ),
+    },
+    {
+      id: 'address',
+      title: 'Address & Geographic Details',
+      keywords: ['address', 'city', 'county', 'state', 'zip', 'country', 'nationality', 'preferred cities', 'location', 'geographic'],
+      render: () => (
+        <>
+          <ProfileField label="Address Line 1" value={profileDetails.address_line_1} colSpan={2} />
+          <ProfileField label="Address Line 2" value={profileDetails.address_line_2} colSpan={2} />
+          <ProfileField label="City" value={profileDetails.city} />
+          <ProfileField label="County" value={profileDetails.county} />
+          <ProfileField label="State / Province" value={profileDetails.state} />
+          <ProfileField label="Zip / Postal Code" value={profileDetails.zipcode} />
+          <ProfileField label="Country" value={profileDetails.country} />
+          <ProfileField label="Nationality" value={profileDetails.nationality} />
+          <ProfileField label="Preferred Cities" value={profileDetails.preferred_cities} colSpan={2} />
+        </>
+      ),
+    },
+    {
+      id: 'compensation',
+      title: 'Job Preferences & Compensation',
+      keywords: ['salary', 'hourly', 'notice', 'start date', 'compensation', 'pay', 'rate'],
+      render: () => (
+        <>
+          <ProfileField label="Desired Salary (Annual)" value={profileDetails.desired_salary} />
+          <ProfileField label="Desired Hourly Rate" value={profileDetails.desired_salary_range} />
+          <ProfileField label="Current Salary" value={profileDetails.current_salary} />
+          <ProfileField label="Notice Period" value={profileDetails.notice_period} />
+          <ProfileField label="Available Start Date" value={profileDetails.start_date} />
+        </>
+      ),
+    },
+    {
+      id: 'education',
+      title: 'Academic History',
+      keywords: ['university', 'college', 'degree', 'field of study', 'gpa', 'education', 'graduated', 'school', 'academic'],
+      render: () => (
+        <>
+          <ProfileField label="University / College" value={profileDetails.university} colSpan={2} />
+          <ProfileField label="Degree" value={profileDetails.degree} />
+          <ProfileField label="Field of Study" value={profileDetails.field_of_study} />
+          <ProfileField label="GPA" value={profileDetails.gpa} />
+          <ProfileField label="Started On" value={profileDetails.education_from} />
+          <ProfileField label="Graduated On" value={profileDetails.education_to} />
+        </>
+      ),
+    },
+    {
+      id: 'workExperience',
+      title: 'Work Experience',
+      keywords: ['work experience', 'company', 'job title', 'employment', 'experience', 'employer'],
+      render: () => (
+        <>
+          {profileDetails.work_experience && profileDetails.work_experience.length > 0 ? (
+            profileDetails.work_experience.map((exp: any, i: number) => (
+              <div key={i} className="col-span-2 p-5 bg-gray-50 rounded-3xl border border-gray-100 grid grid-cols-2 gap-4 relative group">
+                <div className="absolute -top-3 left-4 px-2 py-0.5 bg-white border border-gray-100 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                  Experience {i + 1}
+                </div>
+                <ProfileField label="Company" value={exp.company_name} />
+                <ProfileField label="Job Title" value={exp.job_title} />
+                <ProfileField label="Location" value={exp.location} />
+                <ProfileField label="Type" value={exp.experience_type} />
+                <ProfileField label="Start Date" value={exp.start_date} />
+                <ProfileField label="End Date" value={exp.currently_working ? 'Currently Working' : exp.end_date} />
+                <ProfileField label="Description" value={exp.description} colSpan={2} />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-2 py-6 text-center">
+              <p className="text-xs text-gray-400 italic">No work experience added</p>
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'workAuth',
+      title: 'Work Auth & Citizenship',
+      keywords: ['citizen', 'visa', 'sponsorship', 'h1b', 'work auth', 'eligible', 'clearance', 'authorization', 'citizenship'],
+      render: () => (
+        <>
+          <ProfileField label="US Citizen" value={profileDetails.is_us_citizen} />
+          <ProfileField label="Eligible to Work in US" value={profileDetails.eligible_to_work_us} />
+          <ProfileField label="Needs Sponsorship" value={profileDetails.needs_sponsorship} />
+          <ProfileField label="Sponsorship Type" value={profileDetails.sponsorship_type} />
+          <ProfileField label="Authorized to Work" value={profileDetails.authorized_work} />
+          <ProfileField label="Citizenship Status" value={profileDetails.citizenship_status} />
+          <ProfileField label="Visa Start Date" value={profileDetails.visa_start_date} />
+          <ProfileField label="Visa Expiration Date" value={profileDetails.visa_expiration_date} />
+          <ProfileField label="H1B Caps/Info" value={profileDetails.h1b_info} colSpan={2} />
+          <ProfileField label="Visa Status Explanation" value={profileDetails.visa_status_explanation} colSpan={2} />
+          <ProfileField label="Security Clearance" value={profileDetails.security_clearance} />
+        </>
+      ),
+    },
+    {
+      id: 'availability',
+      title: 'Availability & Flexibility',
+      keywords: ['relocate', 'travel', 'overtime', 'shift', 'days', 'languages', 'availability', 'flexible'],
+      render: () => (
+        <>
+          <ProfileField label="Willing to Relocate" value={profileDetails.willing_to_relocate} />
+          <ProfileField label="Willing to Travel %" value={profileDetails.travel_percentage} />
+          <ProfileField label="Travel Experience" value={profileDetails.experience_travel} />
+          <ProfileField label="Able to work Overtime" value={profileDetails.able_overtime} />
+          <ProfileField label="Preferred Shift" value={profileDetails.preferred_shift} />
+          <ProfileField label="Preferred Days" value={profileDetails.preferred_days} />
+          <ProfileField label="Languages" value={profileDetails.languages} />
+        </>
+      ),
+    },
+    {
+      id: 'social',
+      title: 'Social & Online Presence',
+      keywords: ['linkedin', 'github', 'portfolio', 'website', 'social', 'online', 'url'],
+      render: () => (
+        <>
+          <ProfileField label="LinkedIn Profile" value={profileDetails.linkedin_url} isLink colSpan={2} />
+          <ProfileField label="GitHub Profile" value={profileDetails.github_url} isLink colSpan={2} />
+          <ProfileField label="Portfolio / Website" value={profileDetails.portfolio_url} isLink colSpan={2} />
+          <ProfileField label="LinkedIn Login Email" value={profileDetails.linkedin_email} />
+          <ProfileField label="LinkedIn Password" value={profileDetails.linkedin_password} />
+        </>
+      ),
+    },
+    {
+      id: 'demographics',
+      title: 'Demographics & Diversity',
+      keywords: ['veteran', 'gender', 'ethnicity', 'sexual', 'disabilities', 'diversity', 'demographic'],
+      render: () => (
+        <>
+          <ProfileField label="Veteran Status" value={profileDetails.is_veteran} />
+          <ProfileField label="Gender" value={profileDetails.gender} />
+          <ProfileField label="Ethnicity" value={profileDetails.ethnicity} />
+          <ProfileField label="Sexual Orientation" value={profileDetails.sexual_orientation} />
+          <ProfileField label="Disabilities" value={profileDetails.disabilities} colSpan={2} />
+        </>
+      ),
+    },
+    {
+      id: 'security',
+      title: 'Security Questions & Verification',
+      keywords: ['security', 'question', 'verification', 'answer'],
+      render: () => (
+        <div className="col-span-2 space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-1">
+              <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Question 1</p>
+              <p className="text-sm font-semibold text-gray-600 italic">"{profileDetails.security_q1 || "Question 1"}"</p>
+            </div>
+            <ProfileField label="Answer 1" value={profileDetails.security_a1} />
+          </div>
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+            <div className="col-span-1">
+              <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Question 2</p>
+              <p className="text-sm font-semibold text-gray-600 italic">"{profileDetails.security_q2 || "Question 2"}"</p>
+            </div>
+            <ProfileField label="Answer 2" value={profileDetails.security_a2} />
+          </div>
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+            <div className="col-span-1">
+              <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Question 3</p>
+              <p className="text-sm font-semibold text-gray-600 italic">"{profileDetails.security_q3 || "Question 3"}"</p>
+            </div>
+            <ProfileField label="Answer 3" value={profileDetails.security_a3} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'references',
+      title: 'Professional References',
+      keywords: ['reference', 'referral', 'recommendation'],
+      render: () => (
+        <>
+          {profileDetails.references && profileDetails.references.length > 0 ? (
+            profileDetails.references.map((ref: any, i: number) => (
+              <div key={i} className="col-span-2 p-5 bg-gray-50 rounded-3xl border border-gray-100 grid grid-cols-2 gap-4 relative group">
+                <div className="absolute -top-3 left-4 px-2 py-0.5 bg-white border border-gray-100 rounded-full text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                  Ref {i + 1}
+                </div>
+                <ProfileField label="Name" value={ref.name} />
+                <ProfileField label="Relationship" value={ref.relationship} />
+                <ProfileField label="Position" value={ref.position} />
+                <ProfileField label="Phone" value={ref.phone} />
+                <ProfileField label="Email" value={ref.email} colSpan={2} />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-2 py-6 text-center">
+              <p className="text-xs text-gray-400 italic">No references added</p>
+            </div>
+          )}
+        </>
+      ),
+    },
+  ];
+
+  // Sort sections: matching ones first (auto-expanded), non-matching after
+  const sortedSections = React.useMemo(() => {
+    if (!profileSearch) return sections;
+
+    const matched: typeof sections = [];
+    const unmatched: typeof sections = [];
+
+    sections.forEach(section => {
+      if (matchesSearch(profileSearch, section.keywords)) {
+        matched.push(section);
+      } else {
+        unmatched.push(section);
+      }
+    });
+
+    return [...matched, ...unmatched];
+  }, [profileSearch]);
+
+  return (
+    <div className="space-y-4">
+      {/* Profile Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          value={profileSearch}
+          onChange={(e) => setProfileSearch(e.target.value)}
+          placeholder="Search profile fields (e.g., email, phone, visa...)"
+          className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+        />
+        {profileSearch && (
+          <button
+            onClick={() => setProfileSearch('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
+        {sortedSections.map(section => {
+          const isMatch = profileSearch ? matchesSearch(profileSearch, section.keywords) : false;
+          return (
+            <ProfileSection
+              key={section.id}
+              title={section.title}
+              defaultExpanded={isMatch} // Auto-expand matching sections
+              highlighted={isMatch}
+            >
+              {section.render()}
+            </ProfileSection>
+          );
+        })}
+      </div>
+    </div>
   );
 }
