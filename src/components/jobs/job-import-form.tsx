@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,18 +44,32 @@ export function JobImportForm({ open, onClose, onSuccess, initialUrl, autoSubmit
   const [selectedResumeId, setSelectedResumeId] = useState('');
   const [extractedData, setExtractedData] = useState<any>(null);
   const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUrlRef = useRef<string | null>(null);
   const router = useRouter();
 
   // Update URL if initialUrl changes
   useEffect(() => {
     if (initialUrl && open) {
-      setUrl(initialUrl);
-      setMode('url');
+      // If we get a new URL while the modal is open, reset state to handle it fresh
+      if (initialUrl !== lastUrlRef.current) {
+        lastUrlRef.current = initialUrl;
+        if (closeTimeoutRef.current) {
+          clearTimeout(closeTimeoutRef.current);
+          closeTimeoutRef.current = null;
+        }
 
-      // Auto submit if requested and haven't yet for this specific URL/open session
-      if (autoSubmit && !loading && !result && !hasAutoSubmitted) {
+        setUrl(initialUrl);
+        setMode('url');
+        setResult(null);
+        setError('');
+        setNeedsResumeSelection(false);
+        setHasAutoSubmitted(false);
+      }
+
+      // Auto submit if requested and haven't yet for this specific session
+      if (autoSubmit && !hasAutoSubmitted) {
         setHasAutoSubmitted(true);
-        // Call handleImport with the URL directly to avoid state timing issues
         setTimeout(() => {
           handleImportWithUrl(initialUrl);
         }, 100);
@@ -63,18 +77,21 @@ export function JobImportForm({ open, onClose, onSuccess, initialUrl, autoSubmit
     }
   }, [initialUrl, open, autoSubmit]);
 
-  // Reset hasAutoSubmitted when modal closes
+  // Reset session when modal closes
   useEffect(() => {
     if (!open) {
       setHasAutoSubmitted(false);
+      lastUrlRef.current = null;
     }
   }, [open]);
+
 
   const resetForm = () => {
     setUrl('');
     setText('');
     setError('');
     setResult(null);
+    setLoading(false);
     setMode('url');
     setNeedsResumeSelection(false);
     setAvailableResumes([]);
@@ -83,6 +100,10 @@ export function JobImportForm({ open, onClose, onSuccess, initialUrl, autoSubmit
   };
 
   const handleClose = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     resetForm();
     onClose();
   };
@@ -113,12 +134,7 @@ export function JobImportForm({ open, onClose, onSuccess, initialUrl, autoSubmit
       }
 
       if (!response.ok) {
-        console.error('Import API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          data,
-          url: urlToImport,
-        });
+        console.error('Import API Error:', response.status, response.statusText, data);
 
         if (data.fallback === 'text') {
           setMode('text');
@@ -157,11 +173,13 @@ export function JobImportForm({ open, onClose, onSuccess, initialUrl, autoSubmit
 
       router.refresh();
       onSuccess?.(data.data);
-      setTimeout(() => handleClose(), 2000);
+      // Store timeout so we can cancel it if needed
+      closeTimeoutRef.current = setTimeout(() => handleClose(), 2000);
     } catch (e) {
       console.error('Import error:', e);
       setError(e instanceof Error ? e.message : 'Network error. Please check your connection and try again.');
-      setLoading(false);
+    } finally {
+      if (!needsResumeSelection) setLoading(false);
     }
   };
 
@@ -240,7 +258,8 @@ export function JobImportForm({ open, onClose, onSuccess, initialUrl, autoSubmit
 
       router.refresh();
       onSuccess?.(data.data);
-      setTimeout(() => handleClose(), 2000);
+      // Store timeout so we can cancel it if needed
+      closeTimeoutRef.current = setTimeout(() => handleClose(), 2000);
     } catch (e) {
       console.error('Import error:', e);
       setError(e instanceof Error ? e.message : 'Network error. Please check your connection and try again.');
@@ -278,7 +297,9 @@ export function JobImportForm({ open, onClose, onSuccess, initialUrl, autoSubmit
       });
 
       router.refresh();
-      setTimeout(() => handleClose(), 2000);
+
+      // Store timeout so we can cancel it if needed
+      closeTimeoutRef.current = setTimeout(() => handleClose(), 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delegate. Please try again.');
     } finally {
