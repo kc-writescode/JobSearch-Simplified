@@ -53,19 +53,26 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Prevent browser extension interference with React hydration */
+/* Note: Do NOT use `all: unset` here — it strips layout styles from body/containers */
+/* React's suppressHydrationWarning on html/body handles extension-added attributes */
 
 /* Progress bar animation */
 @keyframes progress {
   0% {
     width: 0%;
   }
+
   50% {
     width: 70%;
   }
+
   100% {
     width: 100%;
   }

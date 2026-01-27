@@ -75,8 +75,25 @@ export interface VACoreTask {
     submissionLink?: string;
     submittedAt?: string;
   };
+  assignedTo?: string;
+  assignedToName?: string;
+  assignmentStatus?: 'unassigned' | 'assigned' | 'in_progress' | 'completed';
+  assignedAt?: string;
+  clientNotes?: string;
+  globalNotes?: string;
+  certifications?: any[];
+  profileUpdatedAt?: string;
+  inputLogs?: ClientInputLog[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ClientInputLog {
+  id: string;
+  field_name: string;
+  old_value: any;
+  new_value: any;
+  changed_at: string;
 }
 
 export interface TaskFilters {

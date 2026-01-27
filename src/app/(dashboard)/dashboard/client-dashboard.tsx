@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { PersonalDetailsForm } from '@/components/dashboard/personal-details-form';
 import { ResumesSection } from '@/components/dashboard/resumes-section';
 import { JobsPipeline } from '@/components/dashboard/jobs-pipeline';
+import { VaultSection } from '@/components/dashboard/vault-section';
 import { cn } from '@/lib/utils/cn';
 
 interface ProfileData {
@@ -15,6 +16,8 @@ interface ProfileData {
   linkedin_url?: string | null;
   github_url?: string | null;
   personal_details?: any;
+  certifications?: any[];
+  global_notes?: string;
 }
 
 interface Resume {
@@ -39,7 +42,7 @@ interface Job {
   tailored_status?: string | null;
   cover_letter?: string | null;
   submission_proof?: string | null;
-  applied_at?: string | null;
+  client_notes?: string | null;
   created_at: string;
 }
 
@@ -51,7 +54,7 @@ interface ClientDashboardProps {
 
 export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'profile' | 'resumes' | 'jobs'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'resumes' | 'jobs' | 'vault'>('profile');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const supabase = createClient();
 
@@ -172,6 +175,18 @@ export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps
                   <span className="text-base">💼</span>
                   Job List
                 </button>
+                <button
+                  onClick={() => { setActiveTab('vault'); setIsMenuOpen(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-[13px] font-bold tracking-tight transition-all duration-300",
+                    activeTab === 'vault'
+                      ? "bg-blue-600 text-white shadow-xl shadow-blue-500/20"
+                      : "text-slate-500 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-100"
+                  )}
+                >
+                  <span className="text-base">🔐</span>
+                  Vault & Notes
+                </button>
               </nav>
 
               {/* Quick Info Box */}
@@ -221,6 +236,14 @@ export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps
                   file_name: r.file_name,
                   file_path: r.file_path,
                 }))}
+                onUpdate={handleRefresh}
+              />
+            )}
+
+            {activeTab === 'vault' && (
+              <VaultSection
+                initialCertifications={profile.certifications}
+                initialNotes={profile.global_notes}
                 onUpdate={handleRefresh}
               />
             )}

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Fetch all jobs with resume relationship
     let query = supabase
       .from('jobs')
-      .select('*, resume:resumes(id, file_name, file_path, job_role, title, status)', { count: 'exact' })
+      .select('*, resume:resumes(id, file_name, file_path, job_role, title, status), client_notes', { count: 'exact' })
       .order('created_at', { ascending: false });
 
     // If no status filter includes Trashed, exclude trashed jobs
@@ -42,10 +42,12 @@ export async function GET(request: NextRequest) {
 
     // Fetch related data
     const userIds = [...new Set(jobs.map(job => job.user_id))];
+    const assignedAdminIds = [...new Set(jobs.map(job => job.assigned_to).filter(Boolean))];
+    const allProfileIds = [...new Set([...userIds, ...assignedAdminIds])];
     const jobIds = jobs.map(job => job.id);
 
     const [profilesRes, tailoredRes, defaultResumesRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email, plan, phone, linkedin_url, personal_details').in('id', userIds),
+      supabase.from('profiles').select('id, full_name, email, plan, phone, linkedin_url, personal_details, certifications, global_notes, updated_at').in('id', allProfileIds),
       supabase.from('tailored_resumes').select('job_id, status, id, full_tailored_data').in('job_id', jobIds),
       // Fetch default resumes for all users (is_default=true or single resume)
       supabase.from('resumes').select('id, user_id, file_name, file_path, job_role, title, status, is_default').in('user_id', userIds).eq('status', 'ready'),
@@ -168,6 +170,14 @@ export async function GET(request: NextRequest) {
           submittedAt: job.applied_at,
         } : undefined,
         profileDetails: profile?.personal_details,
+        assignedTo: job.assigned_to,
+        assignedToName: job.assigned_to ? profilesMap.get(job.assigned_to)?.full_name || 'Unknown Admin' : undefined,
+        assignmentStatus: job.assignment_status,
+        assignedAt: job.assigned_at,
+        clientNotes: job.client_notes,
+        globalNotes: profile?.global_notes,
+        certifications: profile?.certifications || [],
+        profileUpdatedAt: profile?.updated_at,
         createdAt: job.created_at,
         updatedAt: job.updated_at,
       };

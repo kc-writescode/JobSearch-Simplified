@@ -39,7 +39,7 @@ interface Job {
   tailored_status?: string | null;
   cover_letter?: string | null;
   submission_proof?: string | null;
-  applied_at?: string | null;
+  client_notes?: string | null;
   created_at: string;
 }
 
@@ -784,6 +784,7 @@ interface JobDetailModalProps {
 }
 
 function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMarkApplied, onUpdate }: JobDetailModalProps) {
+  const supabase = createClient();
   const [isTailoring, setIsTailoring] = useState(false);
   const [isGeneratingCL, setIsGeneratingCL] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -797,6 +798,8 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
   } | null>(null);
   const [isSavingTweaks, setIsSavingTweaks] = useState(false);
   const [copiedCL, setCopiedCL] = useState(false);
+  const [localClientNotes, setLocalClientNotes] = useState(job.client_notes || '');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   // Initial fetch of tailored data
   useEffect(() => {
@@ -1336,6 +1339,46 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
               </a>
             )}
           </div>
+
+          {/* Job Specific Deployment Notes (FOR CLIENT) */}
+          {(tab === 'applying' || tab === 'saved') && (
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
+                <div className="h-1 w-4 bg-blue-600 rounded-full"></div>
+                Job Specific Deployment Notes
+              </h3>
+              <div className="p-6 bg-blue-50/30 border border-blue-100 rounded-[2rem] space-y-4">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Add specific instructions for the VA for this application only.</p>
+                <textarea
+                  value={localClientNotes}
+                  onChange={(e) => setLocalClientNotes(e.target.value)}
+                  placeholder="e.g. 'Please use my alternative email for this one' or 'Make sure to highlight my React experience above all else'"
+                  className="w-full min-h-[100px] p-4 bg-white border border-blue-100 rounded-xl text-xs font-semibold focus:outline-none focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-300 resize-none"
+                />
+                <button
+                  onClick={async () => {
+                    setIsSavingNotes(true);
+                    try {
+                      const { error } = await (supabase.from('jobs') as any)
+                        .update({ client_notes: localClientNotes, updated_at: new Date().toISOString() })
+                        .eq('id', job.id);
+                      if (error) throw error;
+                      toast.success('Notes updated!');
+                      onUpdate?.();
+                    } catch (e) {
+                      toast.error('Failed to save notes');
+                    } finally {
+                      setIsSavingNotes(false);
+                    }
+                  }}
+                  disabled={isSavingNotes || localClientNotes === (job.client_notes || '')}
+                  className="w-full py-3 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+                >
+                  {isSavingNotes ? 'Saving...' : 'Save Notes for VA'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

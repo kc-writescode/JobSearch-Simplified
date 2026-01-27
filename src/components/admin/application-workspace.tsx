@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { VACoreTask } from '@/types/admin.types';
-import { Upload, FileText, Check, Eye, Loader2, AlertCircle, ChevronDown, Search } from 'lucide-react';
+import { Upload, FileText, Check, Eye, Loader2, AlertCircle, ChevronDown, Search, ClipboardList } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -21,6 +21,8 @@ interface ApplicationWorkspaceProps {
   onClose: () => void;
   onSubmit: (proofOfWork: { screenshotUrl?: string; submissionLink?: string; proofPath?: string }) => Promise<void>;
   isSubmitting: boolean;
+  currentAdminId?: string;
+  onClaim?: (task: VACoreTask) => Promise<void>;
 }
 
 export function ApplicationWorkspace({
@@ -28,13 +30,15 @@ export function ApplicationWorkspace({
   onClose,
   onSubmit,
   isSubmitting,
+  currentAdminId,
+  onClaim,
 }: ApplicationWorkspaceProps) {
 
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofUploadStatus, setProofUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [proofPath, setProofPath] = useState<string>(task?.proofOfWork?.screenshotUrl || ''); // Reusing screenshotUrl field for storage path if needed, or mapping it.
 
-  const [activeTab, setActiveTab] = useState<'applicant' | 'documents'>('applicant');
+  const [activeTab, setActiveTab] = useState<'applicant' | 'documents' | 'inputs'>('applicant');
   const [isTailoring, setIsTailoring] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentAiStatus, setCurrentAiStatus] = useState(task?.aiStatus || 'Pending');
@@ -489,6 +493,18 @@ export function ApplicationWorkspace({
             }`}>
             {task.priority}
           </span>
+          {task.assignedTo ? (
+            <span className={`px-2 py-1 text-xs font-bold rounded-full ${task.assignedTo === currentAdminId ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+              {(task.assignedTo === currentAdminId && currentAdminId) ? 'My Assignment' : `Assigned to: ${task.assignedToName}`}
+            </span>
+          ) : (
+            <button
+              onClick={() => onClaim?.(task)}
+              className="px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-blue-700 transition-all shadow-sm"
+            >
+              Claim Task
+            </button>
+          )}
         </div>
 
         {/* Tabs */}
@@ -501,6 +517,15 @@ export function ApplicationWorkspace({
               }`}
           >
             Job & Profile
+          </button>
+          <button
+            onClick={() => setActiveTab('inputs')}
+            className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-all ${activeTab === 'inputs'
+              ? 'border-blue-600 text-blue-600 bg-blue-50/50'
+              : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+          >
+            Client Inputs
           </button>
           <button
             onClick={() => setActiveTab('documents')}
@@ -519,7 +544,7 @@ export function ApplicationWorkspace({
             {/* Applicant & Job Tab */}
             {activeTab === 'applicant' && (
               <div className="space-y-6 pb-10">
-                {/* Job Posting Heading */}
+                {/* ... existing job heading ... */}
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg shadow-blue-100">
                   <h3 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Target Job</h3>
                   <h2 className="text-xl font-bold mb-4">{task.jobTitle} @ {task.company}</h2>
@@ -535,13 +560,97 @@ export function ApplicationWorkspace({
                 </div>
 
                 {task.profileDetails ? (
-                  <ProfileDetailsWithSearch profileDetails={task.profileDetails} profileSearch={profileSearch} setProfileSearch={setProfileSearch} />
+                  <ProfileDetailsWithSearch profileDetails={task.profileDetails} profileSearch={profileSearch} setProfileSearch={setProfileSearch} task={task} />
 
                 ) : (
                   <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
                     <p className="text-gray-400 font-medium italic">No complete profile data available for this task.</p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Client Inputs Tab */}
+            {activeTab === 'inputs' && (
+              <div className="space-y-8 pb-10">
+                {/* Global Instructions Section */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-1 flex items-center gap-2">
+                    <ClipboardList className="h-3 w-3" />
+                    Global Deployment Instructions
+                  </h3>
+                  <div className="bg-white border-2 border-blue-50 rounded-3xl p-6 shadow-sm">
+                    {task.globalNotes ? (
+                      <div className="bg-blue-50/30 border border-blue-100/30 rounded-2xl p-5">
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-medium italic">
+                          "{task.globalNotes}"
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-xs text-slate-400 font-medium italic">No global instructions provided by the client.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Client Notes Section */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                    <FileText className="h-3 w-3" />
+                    Job Specific Notes
+                  </h3>
+                  <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
+                    {task.clientNotes ? (
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                          {task.clientNotes}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-xs text-slate-400 font-medium italic">No specific notes provided for this application.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Certifications Section */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Client Certifications</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {task.certifications && task.certifications.length > 0 ? (
+                      task.certifications.map((cert, i) => (
+                        <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-slate-100 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-xl">
+                              <FileText className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-900">{cert.name}</p>
+                              <p className="text-[10px] text-slate-500 font-medium">{cert.date || 'No date specified'}</p>
+                            </div>
+                          </div>
+                          {cert.url && (
+                            <a
+                              href={cert.url.startsWith('http') ? cert.url : `/api/resume/view?path=${encodeURIComponent(cert.url)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 bg-white text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-xl border border-slate-200 hover:border-blue-300 transition-all shadow-sm"
+                            >
+                              View Asset
+                            </a>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="bg-white border border-gray-100 rounded-3xl p-8 text-center">
+                        <p className="text-xs text-slate-400 italic">No certifications attached to this profile.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
             )}
 
@@ -935,12 +1044,27 @@ export function ApplicationWorkspace({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !proofPath}
+              disabled={isSubmitting || !proofPath || (task.assignedTo !== currentAdminId && !!task.assignedTo)}
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Submitting...' : 'Mark as Applied'}
             </button>
           </div>
+          {task.assignedTo && currentAdminId && task.assignedTo !== currentAdminId && (
+            <p className="text-[10px] text-red-500 font-bold mt-2 text-center uppercase tracking-wider">
+              ⚠️ Warning: This mission is assigned to another agent ({task.assignedToName}).
+            </p>
+          )}
+          {task.assignedTo && !currentAdminId && (
+            <p className="text-[10px] text-slate-500 font-bold mt-2 text-center uppercase tracking-wider italic">
+              Authenticating credentials...
+            </p>
+          )}
+          {!task.assignedTo && (
+            <p className="text-[10px] text-amber-600 font-bold mt-2 text-center uppercase tracking-wider">
+              ⚠️ Warning: Claim this mission before beginning deployment.
+            </p>
+          )}
         </div>
       </div>
 
@@ -1019,7 +1143,7 @@ export function ApplicationWorkspace({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }
 
@@ -1133,11 +1257,13 @@ function matchesSearch(search: string, keywords: string[]): boolean {
 function ProfileDetailsWithSearch({
   profileDetails,
   profileSearch,
-  setProfileSearch
+  setProfileSearch,
+  task
 }: {
   profileDetails: any;
   profileSearch: string;
   setProfileSearch: (s: string) => void;
+  task: VACoreTask | null;
 }) {
   // Define all sections with their keywords and render functions
   const sections = [
@@ -1145,19 +1271,28 @@ function ProfileDetailsWithSearch({
       id: 'personal',
       title: 'Core Personal Details',
       keywords: ['first name', 'middle name', 'last name', 'email', 'phone', 'date of birth', 'password', 'ssn', 'driving license', 'personal'],
-      render: () => (
-        <>
-          <ProfileField label="First Name" value={profileDetails.first_name} />
-          <ProfileField label="Middle Name" value={profileDetails.middle_name} />
-          <ProfileField label="Last Name" value={profileDetails.last_name} />
-          <ProfileField label="Email Address" value={profileDetails.email} />
-          <ProfileField label="Phone Number" value={profileDetails.phone} />
-          <ProfileField label="Date of Birth" value={profileDetails.date_of_birth} />
-          <ProfileField label="Application Password" value={profileDetails.password_applications} />
-          <ProfileField label="SSN Number" value={profileDetails.ssn} />
-          <ProfileField label="Driving License" value={profileDetails.driving_license} />
-        </>
-      ),
+      render: () => {
+        const isUpdated = task?.profileUpdatedAt && task?.createdAt && new Date(task.profileUpdatedAt) > new Date(task.createdAt);
+        return (
+          <>
+            {isUpdated && (
+              <div className="col-span-2 mb-2 flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-xl">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Client Recently Updated Profile</span>
+              </div>
+            )}
+            <ProfileField label="First Name" value={profileDetails.first_name} />
+            <ProfileField label="Middle Name" value={profileDetails.middle_name} />
+            <ProfileField label="Last Name" value={profileDetails.last_name} />
+            <ProfileField label="Email Address" value={profileDetails.email} />
+            <ProfileField label="Phone Number" value={profileDetails.phone} />
+            <ProfileField label="Date of Birth" value={profileDetails.date_of_birth} />
+            <ProfileField label="Application Password" value={profileDetails.password_applications} />
+            <ProfileField label="SSN Number" value={profileDetails.ssn} />
+            <ProfileField label="Driving License" value={profileDetails.driving_license} />
+          </>
+        );
+      },
     },
     {
       id: 'address',

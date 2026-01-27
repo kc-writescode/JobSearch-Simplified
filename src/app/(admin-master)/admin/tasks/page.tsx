@@ -1,0 +1,471 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { TasksDataTable } from '@/components/admin/tasks-data-table';
+import { ApplicationWorkspace } from '@/components/admin/application-workspace';
+import { CannotApplyDialog } from '@/components/admin/cannot-apply-dialog';
+import { VACoreTask, TaskFilters, TaskStatus } from '@/types/admin.types';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
+import { LogOut, Trash2, BarChart3, Users, LayoutDashboard, Calendar } from 'lucide-react';
+import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
+
+const statuses: TaskStatus[] = ['Applying', 'Applied'];
+
+
+export default function VATasksPage() {
+  const searchParams = useSearchParams();
+  const [tasks, setTasks] = useState<VACoreTask[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<VACoreTask[]>([]);
+  const [dashboardTab, setDashboardTab] = useState<'Applying' | 'Applied' | 'Trashed' | 'Reports'>('Applying');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'reports') {
+      setDashboardTab('Reports');
+    } else if (tab === 'applied') {
+      setDashboardTab('Applied');
+      setFilters(prev => ({ ...prev, status: ['Applied'] }));
+    } else if (tab === 'trashed') {
+      setDashboardTab('Trashed');
+      setFilters(prev => ({ ...prev, status: ['Trashed'] }));
+    } else {
+      setDashboardTab('Applying');
+      setFilters(prev => ({ ...prev, status: ['Applying'] }));
+    }
+  }, [searchParams]);
+  const [selectedTask, setSelectedTask] = useState<VACoreTask | null>(null);
+  const [adminProfile, setAdminProfile] = useState<{ id: string, full_name: string, email: string, role: string } | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [performanceData, setPerformanceData] = useState<any>(null);
+  const [filters, setFilters] = useState<TaskFilters>({
+    status: ['Applying'],
+    priority: [],
+    search: '',
+  });
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [cannotApplyTask, setCannotApplyTask] = useState<VACoreTask | null>(null);
+
+  const router = useRouter();
+  const supabase = createClient();
+
+  // Initial fetch on mount
+  useEffect(() => {
+    if (!hasInitialized) {
+      fetchTasks();
+      fetchAdminContext();
+      setHasInitialized(true);
+    }
+  }, [hasInitialized]);
+
+  const fetchAdminContext = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setCurrentUserId(user.id);
+      const { data: profile } = await supabase.from('profiles').select('id, full_name, email, role').eq('id', user.id).single();
+      setAdminProfile(profile as any);
+
+      // Fetch performance for this specific admin
+      const perfRes = await fetch('/api/admin/reports/performance', { cache: 'no-store' });
+      const perfData = await perfRes.json();
+      const myStats = perfData.adminStats?.find((s: any) => s.id === user.id);
+      setPerformanceData(myStats);
+    }
+  };
+
+  // Refetch when filters change (but not on initial mount)
+  useEffect(() => {
+    if (hasInitialized && dashboardTab !== 'Reports') {
+      fetchTasks();
+    }
+  }, [filters, hasInitialized, dashboardTab]);
+
+  // Auto-refresh every 30 minutes to catch new tasks
+  useEffect(() => {
+    if (!hasInitialized) return;
+
+    const interval = setInterval(() => {
+      fetchTasks();
+    }, 1800000);
+
+    return () => clearInterval(interval);
+  }, [hasInitialized, filters]);
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+
+      if (filters.status && filters.status.length > 0) {
+        filters.status.forEach(s => params.append('status', s));
+      }
+      if (filters.priority && filters.priority.length > 0) {
+        filters.priority.forEach(p => params.append('priority', p));
+      }
+      if (filters.search) {
+        params.append('search', filters.search);
+      }
+
+      const url = `/api/admin/tasks?${params.toString()}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      const result = await response.json();
+      setTasks(result.data || []);
+      setFilteredTasks(result.data || []);
+      setLastRefresh(new Date());
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      setTasks([]);
+      setFilteredTasks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: 'Applying' | 'Applied' | 'Trashed' | 'Reports') => {
+    setDashboardTab(tab);
+    if (tab === 'Reports') {
+      fetchAdminContext();
+    } else {
+      setFilters({ ...filters, status: [tab as TaskStatus] });
+    }
+  };
+
+  const activeFilterCount = (filters.status?.length || 0) + (filters.priority?.length || 0);
+
+  const handleSubmitTask = async (proofOfWork: {
+    screenshotUrl?: string;
+    submissionLink?: string;
+  }) => {
+    if (!selectedTask) return;
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch(`/api/admin/tasks/${selectedTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Applied', proofOfWork }),
+      });
+
+      if (!response.ok) throw new Error('Failed to submit task');
+
+      const updated = tasks.map(task =>
+        task.id === selectedTask.id
+          ? { ...task, status: 'Applied' as TaskStatus, proofOfWork }
+          : task
+      );
+      setTasks(updated);
+      setFilteredTasks(updated);
+      setSelectedTask(null);
+      toast.success('Application submitted successfully!');
+
+      // Refresh performance metrics immediately
+      fetchAdminContext();
+    } catch (error) {
+      console.error('Error submitting task:', error);
+      toast.error('Failed to submit application');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+
+
+  const handleCannotApply = async (reason: string) => {
+    if (!cannotApplyTask) return;
+
+    const response = await fetch(`/api/admin/tasks/${cannotApplyTask.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Trashed', cannotApplyReason: reason }),
+    });
+
+    if (!response.ok) throw new Error('Failed to mark as cannot apply');
+
+    // Remove from current list
+    const updated = tasks.filter(task => task.id !== cannotApplyTask.id);
+    setTasks(updated);
+    setFilteredTasks(updated);
+  };
+
+  const handleClaimTask = async (task: VACoreTask) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      const response = await fetch(`/api/admin/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignedTo: user.id,
+          assignmentStatus: 'assigned',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 409) {
+          toast.warning(errorData.error || 'This mission was just claimed by another agent.');
+          fetchTasks(); // Sync UI
+          return;
+        }
+        throw new Error(errorData.error || 'Failed to claim task');
+      }
+
+      toast.success('Task claimed successfully!');
+
+      // Update local state for immediate UI feedback
+      if (selectedTask?.id === task.id) {
+        setSelectedTask({
+          ...selectedTask,
+          assignedTo: user.id,
+          assignedToName: adminProfile?.full_name || 'Me',
+          assignmentStatus: 'assigned',
+        });
+      }
+
+      fetchTasks(); // Refresh the list
+    } catch (error: any) {
+      console.error('System error claiming task:', error);
+      toast.error(error.message || 'An unexpected error occurred during claim.');
+    }
+  };
+
+  return (
+    <>
+      {/* Header Area */}
+      <header className="bg-white border-b border-slate-200/60 sticky top-0 z-30 shadow-sm shadow-slate-200/20 backdrop-blur-xl bg-white/90">
+        <div className="px-8 py-5" suppressHydrationWarning>
+          <div className="flex items-center justify-between gap-8" suppressHydrationWarning>
+            <div className="flex items-center gap-4" suppressHydrationWarning>
+              <div className={`h-12 w-12 ${adminProfile?.role === 'master' ? 'bg-purple-600' : 'bg-slate-900'} rounded-2xl flex items-center justify-center text-white font-black text-xs italic shadow-lg shadow-slate-200`} suppressHydrationWarning>
+                {adminProfile?.role === 'master' ? 'M' : 'VA'}
+              </div>
+              <div suppressHydrationWarning>
+                <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none uppercase italic">
+                  {adminProfile?.full_name || 'Administrator'}
+                </h1>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
+                  <span className={`h-1.5 w-1.5 rounded-full ${adminProfile?.role === 'master' ? 'bg-purple-500' : 'bg-emerald-500'}`}></span>
+                  {adminProfile?.role === 'master' ? 'System Master' : 'Verified Deployment Agent'}
+                </p>
+              </div>
+            </div>
+
+            {/* Tab Switcher */}
+            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50" suppressHydrationWarning>
+              <button
+                onClick={() => handleTabChange('Applying')}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${dashboardTab === 'Applying'
+                  ? 'bg-white text-blue-600 shadow-md shadow-slate-200 border border-slate-100'
+                  : 'text-slate-500 hover:text-slate-900'
+                  }`}
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                Active
+              </button>
+              <button
+                onClick={() => handleTabChange('Applied')}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${dashboardTab === 'Applied'
+                  ? 'bg-white text-emerald-600 shadow-md shadow-slate-200 border border-slate-100'
+                  : 'text-slate-500 hover:text-slate-900'
+                  }`}
+              >
+                <Users className="h-3.5 w-3.5" />
+                Submitted
+              </button>
+              <button
+                onClick={() => handleTabChange('Trashed')}
+                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${dashboardTab === 'Trashed'
+                  ? 'bg-white text-red-600 shadow-md shadow-slate-200 border border-slate-100'
+                  : 'text-slate-500 hover:text-slate-900'
+                  }`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Trash
+              </button>
+            </div>
+
+            {dashboardTab !== 'Reports' && (
+              <div className="flex-1 max-w-xl relative group" suppressHydrationWarning>
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors" suppressHydrationWarning>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Filter deployments..."
+                  value={filters.search || ''}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-[12px] font-semibold focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400 shadow-inner"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center gap-3" suppressHydrationWarning>
+              {dashboardTab !== 'Reports' && (
+                <button
+                  onClick={fetchTasks}
+                  disabled={loading}
+                  className="p-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 disabled:opacity-50 transition-all active:scale-[0.95] shadow-sm relative group"
+                  title="Sync Feed"
+                >
+                  <RefreshIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              )}
+
+              <button
+                onClick={handleSignOut}
+                className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-2xl hover:bg-red-100 transition-all active:scale-[0.95] shadow-sm ml-2"
+                title="Sign Out"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="px-8 py-8 animate-in fade-in duration-700">
+        {dashboardTab === 'Reports' ? (
+          <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700" suppressHydrationWarning>
+            {/* Reports Header */}
+            <div className="flex items-center justify-between" suppressHydrationWarning>
+              <div className="flex items-center gap-4" suppressHydrationWarning>
+                <div className="p-3 bg-purple-600 rounded-2xl text-white shadow-lg shadow-purple-200" suppressHydrationWarning>
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div suppressHydrationWarning>
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight uppercase italic">Performance Report</h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{adminProfile?.full_name || 'Agent'} &mdash; Application Metrics</p>
+                </div>
+              </div>
+              <button
+                onClick={fetchAdminContext}
+                className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 transition-all active:scale-95 shadow-sm flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+              >
+                <RefreshIcon className="h-4 w-4" />
+                Refresh
+              </button>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5" suppressHydrationWarning>
+              <StatBox label="Today" value={performanceData?.today || 0} color="emerald" icon={<Calendar className="h-4 w-4" />} />
+              <StatBox label="Last 7 Days" value={performanceData?.lastWeek || 0} color="blue" icon={<BarChart3 className="h-4 w-4" />} />
+              <StatBox label="This Month" value={performanceData?.thisMonth || 0} color="purple" icon={<BarChart3 className="h-4 w-4" />} />
+              <StatBox label="Lifetime" value={performanceData?.total || 0} color="slate" icon={<Users className="h-4 w-4" />} />
+            </div>
+
+            {/* Deployment Calendar */}
+            <DeploymentCalendar
+              dailyStats={performanceData?.dailyStats || {}}
+              title={`${adminProfile?.full_name}'s Deployment History`}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-6" suppressHydrationWarning>
+              <div className="flex items-center gap-3" suppressHydrationWarning>
+                <div className={`h-8 w-1 rounded-full ${dashboardTab === 'Applying' ? 'bg-blue-600' :
+                  dashboardTab === 'Applied' ? 'bg-emerald-600' : 'bg-red-600'
+                  }`} suppressHydrationWarning></div>
+                <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
+                  {dashboardTab === 'Applying' ? 'Active Missions' :
+                    dashboardTab === 'Applied' ? 'Successful Deployments' : 'Mission Trash'}
+                </h2>
+                <span className="px-2.5 py-1 bg-slate-200/50 text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200">
+                  {filteredTasks.length} Assignments
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-6" suppressHydrationWarning>
+              <TasksDataTable
+                tasks={filteredTasks}
+                loading={loading}
+                onSelectTask={setSelectedTask}
+                selectedTaskId={selectedTask?.id}
+                onCannotApply={dashboardTab === 'Applying' ? setCannotApplyTask : undefined}
+                showCannotApplyReason={dashboardTab === 'Trashed'}
+                showProofColumn={dashboardTab === 'Applied'}
+                onClaimTask={handleClaimTask}
+                currentUserId={adminProfile?.id}
+              />
+            </div>
+          </>
+        )}
+      </main>
+
+      <ApplicationWorkspace
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onSubmit={handleSubmitTask}
+        isSubmitting={isSubmitting}
+        currentAdminId={currentUserId || adminProfile?.id}
+        onClaim={handleClaimTask}
+      />
+
+      <CannotApplyDialog
+        task={cannotApplyTask}
+        open={!!cannotApplyTask}
+        onOpenChange={(open) => !open && setCannotApplyTask(null)}
+        onConfirm={handleCannotApply}
+      />
+    </>
+  );
+}
+
+function StatBox({ label, value, color, icon }: any) {
+  const colors: any = {
+    emerald: { card: 'bg-emerald-50 text-emerald-600 border-emerald-100', icon: 'bg-emerald-100 text-emerald-600' },
+    blue: { card: 'bg-blue-50 text-blue-600 border-blue-100', icon: 'bg-blue-100 text-blue-600' },
+    purple: { card: 'bg-purple-50 text-purple-600 border-purple-100', icon: 'bg-purple-100 text-purple-600' },
+    slate: { card: 'bg-slate-100 text-slate-900 border-slate-200', icon: 'bg-slate-200 text-slate-700' },
+  };
+
+  return (
+    <div className={`p-6 rounded-[2rem] border ${colors[color].card} shadow-sm group hover:scale-[1.02] transition-transform duration-500 relative overflow-hidden`} suppressHydrationWarning>
+      <div className="flex items-center justify-between mb-4" suppressHydrationWarning>
+        <p className="text-[10px] font-black uppercase tracking-widest opacity-60 italic">{label}</p>
+        {icon && (
+          <div className={`p-2 rounded-xl ${colors[color].icon}`} suppressHydrationWarning>
+            {icon}
+          </div>
+        )}
+      </div>
+      <p className="text-4xl font-black tracking-tighter">{value}</p>
+    </div>
+  );
+}
+
+function RefreshIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
+  );
+}
+
+function FilterIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+  );
+}

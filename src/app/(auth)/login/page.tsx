@@ -38,17 +38,23 @@ function LoginForm() {
     // Check user role to determine redirect
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single<{ role: 'user' | 'admin' }>();
+      let role = 'user';
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single<{ role: 'user' | 'admin' | 'master' }>();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError.message);
+        if (profileError) {
+          console.error('Role check bypassed:', profileError.message);
+        } else {
+          role = profile?.role || 'user';
+        }
+      } catch (err) {
+        console.error('Role detection failed:', err);
       }
 
-      const role = profile?.role;
       console.log('User role:', role);
 
       // Refresh to ensure cookies are set before redirect
@@ -57,10 +63,11 @@ function LoginForm() {
       // Small delay to ensure session is properly set
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      if (redirectTo && redirectTo !== '/dashboard' && !redirectTo.startsWith('/admin')) {
+      if (redirectTo && redirectTo !== '/dashboard' && !redirectTo.startsWith('/master') && !redirectTo.startsWith('/admin')) {
         router.push(redirectTo);
+      } else if (role === 'master') {
+        router.push('/master');
       } else if (role === 'admin') {
-        console.log('Redirecting admin to /admin/tasks');
         router.push('/admin/tasks');
       } else {
         router.push('/dashboard');

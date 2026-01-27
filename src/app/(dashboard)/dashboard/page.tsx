@@ -26,7 +26,7 @@ export default async function DashboardPage() {
   // Fetch profile
   const { data: profileData } = await (supabase
     .from('profiles') as any)
-    .select('full_name, phone, linkedin_url, github_url, personal_details')
+    .select('full_name, phone, linkedin_url, github_url, personal_details, certifications, global_notes')
     .eq('id', user.id)
     .single();
 
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
   // Fetch jobs
   const { data: jobs } = await (supabase
     .from('jobs') as any)
-    .select('id, title, company, status, job_url, location, description, resume_id, cover_letter, submission_proof, applied_at, created_at')
+    .select('id, title, company, status, job_url, location, description, resume_id, cover_letter, submission_proof, applied_at, created_at, client_notes')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -71,10 +71,12 @@ export default async function DashboardPage() {
       profile={{
         full_name: profile?.full_name || null,
         email: user.email || '',
-        phone: profile?.phone || null,
-        linkedin_url: profile?.linkedin_url || null,
-        github_url: profile?.github_url || null,
-        personal_details: profile?.personal_details || null,
+        phone: (profileData as any)?.phone || null,
+        linkedin_url: (profileData as any)?.linkedin_url || null,
+        github_url: (profileData as any)?.github_url || null,
+        personal_details: (profileData as any)?.personal_details || null,
+        certifications: (profileData as any)?.certifications || [],
+        global_notes: (profileData as any)?.global_notes || '',
       }}
       resumes={resumes || []}
       jobs={jobsWithTailoredStatus}

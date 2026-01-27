@@ -56,7 +56,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // 1. Admin Routes Protection
-  if (path.startsWith('/admin')) {
+  if (path.startsWith('/admin') || path.startsWith('/master')) {
     if (!user) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
@@ -65,8 +65,8 @@ export async function proxy(request: NextRequest) {
     }
 
     const role = await getUserRole(user.id);
-    if (role !== 'admin') {
-      console.log('[Proxy] Non-admin trying to access admin route, redirecting to dashboard');
+    if (role !== 'admin' && role !== 'master') {
+      console.log('[Proxy] Non-privileged user trying to access admin/master route, redirecting to dashboard');
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
@@ -84,9 +84,10 @@ export async function proxy(request: NextRequest) {
     }
 
     const role = await getUserRole(user.id);
-    if (role === 'admin') {
-      console.log('[Proxy] Admin accessing user route, redirecting to admin/tasks');
-      return NextResponse.redirect(new URL('/admin/tasks', request.url));
+    if (role === 'admin' || role === 'master') {
+      const target = role === 'master' ? '/master' : '/admin/tasks';
+      console.log(`[Proxy] privileged user acting as ${role} accessing user route, redirecting to ${target}`);
+      return NextResponse.redirect(new URL(target, request.url));
     }
   }
 
@@ -95,9 +96,10 @@ export async function proxy(request: NextRequest) {
   if (authPaths.includes(path)) {
     if (user) {
       const role = await getUserRole(user.id);
-      if (role === 'admin') {
-        console.log('[Proxy] Admin on auth page, redirecting to admin/tasks');
-        return NextResponse.redirect(new URL('/admin/tasks', request.url));
+      if (role === 'admin' || role === 'master') {
+        const target = role === 'master' ? '/master' : '/admin/tasks';
+        console.log(`[Proxy] privileged user acting as ${role} on auth page, redirecting to ${target}`);
+        return NextResponse.redirect(new URL(target, request.url));
       } else {
         console.log('[Proxy] User on auth page, redirecting to dashboard');
         return NextResponse.redirect(new URL('/dashboard', request.url));
