@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await params;
@@ -33,11 +33,11 @@ export async function PATCH(
         updateData.updated_at = new Date().toISOString();
 
         const { data, error } = await (supabase
-            .from('profiles')
+            .from('profiles') as any)
             .update(updateData)
             .eq('id', id)
             .select()
-            .single() as any);
+            .single();
 
         if (error) throw error;
 

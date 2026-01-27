@@ -19,11 +19,11 @@ export async function PATCH(request: NextRequest) {
         updateData.updated_at = new Date().toISOString();
 
         const { data, error } = await (supabase
-            .from('profiles')
+            .from('profiles') as any)
             .update(updateData)
             .eq('id', user.id)
             .select()
-            .single() as any);
+            .single();
 
         if (error) throw error;
 

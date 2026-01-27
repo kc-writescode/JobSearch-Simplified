@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
             .eq('status', 'applied')
             .gte('applied_at', ninetyDaysAgo);
 
-        const clientsMap = new Map(clients?.map((c: any) => [c.id, c.full_name || c.email]) || []);
+        const clientsMap = new Map<string, string>(clients?.map((c: any) => [c.id, c.full_name || c.email]) || []);
         // Filter to jobs that have an admin attribution (either applied_by or assigned_to)
         const jobs = (allAppliedJobs || []).filter((j: any) => j.applied_by || j.assigned_to);
 
