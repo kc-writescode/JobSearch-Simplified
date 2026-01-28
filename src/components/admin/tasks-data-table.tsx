@@ -23,11 +23,11 @@ interface TasksDataTableProps {
 const getStatusColor = (status: TaskStatus) => {
   switch (status) {
     case 'Applying':
-      return 'bg-amber-50 text-amber-700 border-amber-100 shadow-sm shadow-amber-50';
+      return 'bg-amber-50 text-amber-700 border-amber-100';
     case 'Applied':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-100 shadow-sm shadow-emerald-50';
+      return 'bg-emerald-50 text-emerald-700 border-emerald-100';
     case 'Trashed':
-      return 'bg-red-50 text-red-700 border-red-100 shadow-sm shadow-red-50';
+      return 'bg-red-50 text-red-700 border-red-100';
     default:
       return 'bg-slate-50 text-slate-600 border-slate-100';
   }
@@ -36,13 +36,13 @@ const getStatusColor = (status: TaskStatus) => {
 const getAIStatusBadge = (status: string) => {
   switch (status) {
     case 'Pending':
-      return <span className="flex items-center gap-1.5 text-slate-400 font-bold uppercase text-[10px] tracking-wider"><span className="h-1.5 w-1.5 rounded-full bg-slate-300"></span> Pending</span>;
+      return <span className="flex items-center gap-1 text-slate-400 font-bold uppercase text-[9px]"><span className="h-1.5 w-1.5 rounded-full bg-slate-300"></span>Pending</span>;
     case 'In Progress':
-      return <span className="flex items-center gap-1.5 text-blue-600 font-bold uppercase text-[10px] tracking-wider"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse"></span> In Ops</span>;
+      return <span className="flex items-center gap-1 text-blue-600 font-bold uppercase text-[9px]"><span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse"></span>In Ops</span>;
     case 'Completed':
-      return <span className="flex items-center gap-1.5 text-emerald-600 font-bold uppercase text-[10px] tracking-wider"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Ready</span>;
+      return <span className="flex items-center gap-1 text-emerald-600 font-bold uppercase text-[9px]"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Ready</span>;
     case 'Error':
-      return <span className="flex items-center gap-1.5 text-rose-600 font-bold uppercase text-[10px] tracking-wider"><span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span> Failed</span>;
+      return <span className="flex items-center gap-1 text-rose-600 font-bold uppercase text-[9px]"><span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>Failed</span>;
     default:
       return status;
   }
@@ -64,10 +64,10 @@ export function TasksDataTable({
 }: TasksDataTableProps) {
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center p-20 bg-white/50 rounded-3xl border border-dashed border-slate-200" suppressHydrationWarning>
+      <div className="flex-1 flex items-center justify-center p-12 bg-white/50 rounded-2xl border border-dashed border-slate-200" suppressHydrationWarning>
         <div className="text-center" suppressHydrationWarning>
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-[3px] border-blue-600 border-t-transparent" suppressHydrationWarning></div>
-          <p className="mt-4 text-sm font-bold text-slate-900 uppercase tracking-widest">Fetching Operations...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent" suppressHydrationWarning></div>
+          <p className="mt-3 text-xs font-bold text-slate-900 uppercase tracking-widest">Loading...</p>
         </div>
       </div>
     );
@@ -75,62 +75,60 @@ export function TasksDataTable({
 
   if (tasks.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center p-20 bg-white/50 rounded-3xl border border-dashed border-slate-200" suppressHydrationWarning>
+      <div className="flex-1 flex items-center justify-center p-12 bg-white/50 rounded-2xl border border-dashed border-slate-200" suppressHydrationWarning>
         <div className="text-center max-w-sm" suppressHydrationWarning>
-          <div className="bg-slate-100 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4" suppressHydrationWarning>
-            <svg className="h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+          <div className="bg-slate-100 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-3" suppressHydrationWarning>
+            <svg className="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
           </div>
-          <p className="text-xl font-black text-slate-900">Zero Active Missions</p>
-          <p className="text-sm text-slate-500 mt-2 font-medium">
-            The protocol is clear. No applications match the current active reconnaissance filters.
-          </p>
+          <p className="text-base font-black text-slate-900">No Missions Found</p>
+          <p className="text-xs text-slate-500 mt-1">No tasks match the current filters.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+    <div className="flex-1 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-[12px]">
           <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-100">
-              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                Job ID
+            <tr className="bg-slate-50/80 border-b border-slate-100">
+              <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                ID
               </th>
-              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                Job Specification
+              <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Job
               </th>
-              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+              <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
                 Labels
               </th>
-              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                Client Profile
+              <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Client
               </th>
-              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                Deadline
+              <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Date
               </th>
-              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                Phase
+              <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Status
               </th>
-              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                AI Process
+              <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                AI
               </th>
-              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
-                Assignment
+              <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Assigned
               </th>
               {showProofColumn && (
-                <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
                   Proof
                 </th>
               )}
               {showCannotApplyReason && (
-                <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
                   Reason
                 </th>
               )}
               {onCannotApply && (
-                <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                <th className="px-3 py-2.5 text-left text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">
                   Actions
                 </th>
               )}
@@ -143,115 +141,110 @@ export function TasksDataTable({
                 <tr
                   key={task.id}
                   onClick={() => onSelectTask(task)}
-                  className={`group cursor-pointer transition-all duration-200 ${isSelected
-                    ? 'bg-blue-50/50'
-                    : 'hover:bg-slate-50'
+                  className={`group cursor-pointer transition-colors ${isSelected
+                    ? 'bg-blue-50/60'
+                    : 'hover:bg-slate-50/80'
                     }`}
                 >
-                  <td className="px-4 py-6">
+                  <td className="px-3 py-2">
                     {task.delegatedJobId ? (
-                      <span className="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-[11px] font-bold font-mono border border-blue-100">
+                      <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-[10px] font-bold font-mono border border-blue-100">
                         {task.delegatedJobId}
                       </span>
                     ) : (
-                      <span className="text-[10px] text-slate-400">-</span>
+                      <span className="text-[9px] text-slate-300">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-6">
-                    <div className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
+                  <td className="px-3 py-2 max-w-[200px]">
+                    <div className="text-[12px] font-semibold text-slate-900 group-hover:text-blue-700 transition-colors truncate" title={task.jobTitle}>
                       {task.jobTitle}
                     </div>
-                    <div className="text-xs font-semibold text-slate-400 mt-0.5">{task.company}</div>
+                    <div className="text-[10px] text-slate-400 truncate">{task.company}</div>
                   </td>
-                  <td className="px-4 py-6">
+                  <td className="px-3 py-2">
                     {task.labels && task.labels.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 max-w-[160px]">
+                      <div className="flex flex-wrap gap-0.5 max-w-[120px]">
                         {task.labels.slice(0, 2).map((label) => (
-                          <span key={label} className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border whitespace-nowrap ${getLabelClasses(label)}`}>
+                          <span key={label} className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full border whitespace-nowrap ${getLabelClasses(label)}`}>
                             {label}
                           </span>
                         ))}
                         {task.labels.length > 2 && (
-                          <span className="text-[9px] font-bold text-slate-400 px-1">+{task.labels.length - 2}</span>
+                          <span className="text-[8px] font-bold text-slate-400">+{task.labels.length - 2}</span>
                         )}
                       </div>
                     ) : (
-                      <span className="text-[10px] text-slate-300">-</span>
+                      <span className="text-[9px] text-slate-300">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-6">
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-bold text-slate-900">{task.clientName}</div>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1">
+                      <div className="text-[11px] font-semibold text-slate-900 truncate max-w-[100px]" title={task.clientName}>{task.clientName}</div>
                       {task.profileUpdatedAt && task.createdAt && new Date(task.profileUpdatedAt) > new Date(task.createdAt) && (
-                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" title="Client recently updated profile details"></div>
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" title="Profile updated"></div>
                       )}
                     </div>
-                    <div className="text-xs font-medium text-slate-400 break-all">{task.clientEmail}</div>
+                    <div className="text-[9px] text-slate-400 truncate max-w-[120px]">{task.clientEmail}</div>
                   </td>
-                  <td className="px-4 py-6">
-                    <div className="text-sm font-bold text-slate-900">
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <div className="text-[11px] font-medium text-slate-700">
                       {new Date(task.deadline).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
-                        year: 'numeric',
                       })}
                     </div>
                   </td>
-                  <td className="px-4 py-6">
+                  <td className="px-3 py-2">
                     <span
-                      className={`inline-flex items-center px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border ${getStatusColor(
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${getStatusColor(
                         task.status
                       )}`}
                     >
                       {task.status}
                     </span>
                   </td>
-                  <td className="px-4 py-6 whitespace-nowrap">
+                  <td className="px-3 py-2 whitespace-nowrap">
                     {getAIStatusBadge(task.aiStatus)}
                   </td>
-                  <td className="px-4 py-6">
+                  <td className="px-3 py-2">
                     {task.assignedTo ? (
                       <div className="flex flex-col">
-                        <span className={`text-[10px] font-black uppercase tracking-wider ${task.assignedTo === currentUserId ? 'text-blue-600' : 'text-slate-500'}`}>
-                          {task.assignedTo === currentUserId ? 'Assigned to Me' : task.assignedToName}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">
-                          {task.assignmentStatus || 'Assigned'}
+                        <span className={`text-[9px] font-bold uppercase ${task.assignedTo === currentUserId ? 'text-blue-600' : 'text-slate-500'}`}>
+                          {task.assignedTo === currentUserId ? 'Me' : task.assignedToName?.split(' ')[0]}
                         </span>
                       </div>
                     ) : (
-                      <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider italic">Unassigned</span>
+                      <span className="text-[9px] font-bold text-slate-300 uppercase italic">-</span>
                     )}
                   </td>
                   {showProofColumn && (
-                    <td className="px-4 py-6">
+                    <td className="px-3 py-2">
                       {task.proofOfWork?.screenshotUrl ? (
                         <a
                           href={`/api/resume/view?path=${encodeURIComponent(task.proofOfWork.screenshotUrl)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors"
+                          className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 transition-colors"
                         >
-                          <FileText className="h-3.5 w-3.5" />
-                          View
-                          <ExternalLink className="h-3 w-3" />
+                          <FileText className="h-3 w-3" />
+                          <ExternalLink className="h-2.5 w-2.5" />
                         </a>
                       ) : (
-                        <span className="text-xs text-slate-400">-</span>
+                        <span className="text-[9px] text-slate-300">-</span>
                       )}
                     </td>
                   )}
                   {showCannotApplyReason && (
-                    <td className="px-4 py-6">
-                      <span className="text-xs text-slate-600 max-w-[200px] truncate block" title={task.cannotApplyReason}>
+                    <td className="px-3 py-2">
+                      <span className="text-[10px] text-slate-600 max-w-[150px] truncate block" title={task.cannotApplyReason}>
                         {task.cannotApplyReason || '-'}
                       </span>
                     </td>
                   )}
                   {(onCannotApply || (onClaimTask && !task.assignedTo)) && (
-                    <td className="px-4 py-6">
-                      <div className="flex items-center gap-2">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1">
                         {onClaimTask && !task.assignedTo && task.status === 'Applying' && (
                           <button
                             onClick={(e) => {
@@ -259,14 +252,14 @@ export function TasksDataTable({
                               if (!claimDisabled) onClaimTask(task);
                             }}
                             disabled={claimDisabled}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors shadow-sm ${
+                            className={`inline-flex items-center px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${
                               claimDisabled
-                                ? 'bg-slate-300 text-slate-500 border border-slate-300 cursor-not-allowed'
-                                : 'text-white bg-blue-600 border border-blue-700 hover:bg-blue-700'
+                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                : 'text-white bg-blue-600 hover:bg-blue-700'
                             }`}
-                            title={claimDisabled ? `Claim limit reached (${activeClaimCount}/${maxClaims})` : 'Claim Mission'}
+                            title={claimDisabled ? `Limit: ${activeClaimCount}/${maxClaims}` : 'Claim'}
                           >
-                            <span className="text-[10px] uppercase font-black tracking-widest">Claim</span>
+                            Claim
                           </button>
                         )}
                         {onCannotApply && task.status === 'Applying' && (
@@ -275,11 +268,10 @@ export function TasksDataTable({
                               e.stopPropagation();
                               onCannotApply(task);
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors"
-                            title="Mark as Cannot Apply"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold uppercase text-red-600 bg-red-50 border border-red-100 rounded hover:bg-red-100 transition-colors"
+                            title="Can't Apply"
                           >
-                            <Ban className="h-3.5 w-3.5" />
-                            <span className="text-[10px] uppercase font-black tracking-widest sr-only lg:not-sr-only">Can't Apply</span>
+                            <Ban className="h-3 w-3" />
                           </button>
                         )}
                       </div>

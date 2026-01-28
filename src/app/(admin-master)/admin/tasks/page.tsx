@@ -295,69 +295,69 @@ export default function VATasksPage() {
     <>
       {/* Header Area */}
       <header className="bg-white border-b border-slate-200/60 sticky top-0 z-30 shadow-sm shadow-slate-200/20 backdrop-blur-xl bg-white/90">
-        <div className="px-8 py-5" suppressHydrationWarning>
-          <div className="flex items-center justify-between gap-8" suppressHydrationWarning>
-            <div className="flex items-center gap-4" suppressHydrationWarning>
-              <div className={`h-12 w-12 ${adminProfile?.role === 'master' ? 'bg-purple-600' : 'bg-slate-900'} rounded-2xl flex items-center justify-center text-white font-black text-xs italic shadow-lg shadow-slate-200`} suppressHydrationWarning>
+        <div className="px-6 py-3" suppressHydrationWarning>
+          <div className="flex items-center justify-between gap-4" suppressHydrationWarning>
+            <div className="flex items-center gap-3" suppressHydrationWarning>
+              <div className={`h-9 w-9 ${adminProfile?.role === 'master' ? 'bg-purple-600' : 'bg-slate-900'} rounded-xl flex items-center justify-center text-white font-black text-[10px] italic shadow-md`} suppressHydrationWarning>
                 {adminProfile?.role === 'master' ? 'M' : 'VA'}
               </div>
               <div suppressHydrationWarning>
-                <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none uppercase italic">
+                <h1 className="text-sm font-black text-slate-900 tracking-tight leading-none uppercase italic">
                   {adminProfile?.full_name || 'Administrator'}
                 </h1>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 flex items-center gap-1.5">
                   <span className={`h-1.5 w-1.5 rounded-full ${adminProfile?.role === 'master' ? 'bg-purple-500' : 'bg-emerald-500'}`}></span>
-                  {adminProfile?.role === 'master' ? 'System Master' : 'Verified Deployment Agent'}
+                  {adminProfile?.role === 'master' ? 'Master' : 'Agent'}
                 </p>
               </div>
             </div>
 
             {/* Tab Switcher */}
-            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50" suppressHydrationWarning>
+            <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50" suppressHydrationWarning>
               <button
                 onClick={() => handleTabChange('Applying')}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${dashboardTab === 'Applying'
-                  ? 'bg-white text-blue-600 shadow-md shadow-slate-200 border border-slate-100'
+                className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${dashboardTab === 'Applying'
+                  ? 'bg-white text-blue-600 shadow-sm border border-slate-100'
                   : 'text-slate-500 hover:text-slate-900'
                   }`}
               >
-                <LayoutDashboard className="h-3.5 w-3.5" />
+                <LayoutDashboard className="h-3 w-3" />
                 Active
               </button>
               <button
                 onClick={() => handleTabChange('Applied')}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${dashboardTab === 'Applied'
-                  ? 'bg-white text-emerald-600 shadow-md shadow-slate-200 border border-slate-100'
+                className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${dashboardTab === 'Applied'
+                  ? 'bg-white text-emerald-600 shadow-sm border border-slate-100'
                   : 'text-slate-500 hover:text-slate-900'
                   }`}
               >
-                <Users className="h-3.5 w-3.5" />
-                Submitted
+                <Users className="h-3 w-3" />
+                Done
               </button>
               <button
                 onClick={() => handleTabChange('Trashed')}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${dashboardTab === 'Trashed'
-                  ? 'bg-white text-red-600 shadow-md shadow-slate-200 border border-slate-100'
+                className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${dashboardTab === 'Trashed'
+                  ? 'bg-white text-red-600 shadow-sm border border-slate-100'
                   : 'text-slate-500 hover:text-slate-900'
                   }`}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3 w-3" />
                 Trash
               </button>
             </div>
 
             {dashboardTab !== 'Reports' && (
-              <div className="flex-1 flex items-center gap-3 max-w-2xl">
+              <div className="flex-1 flex items-center gap-2 max-w-xl">
                 <div className="flex-1 relative group" suppressHydrationWarning>
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors" suppressHydrationWarning>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors" suppressHydrationWarning>
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                   </div>
                   <input
                     type="text"
-                    placeholder="Filter deployments..."
+                    placeholder="Search..."
                     value={filters.search || ''}
                     onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-[12px] font-semibold focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400 shadow-inner"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200/60 rounded-xl text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-50 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400"
                   />
                 </div>
 
@@ -366,30 +366,29 @@ export default function VATasksPage() {
                   <div className="relative" suppressHydrationWarning>
                     <button
                       onClick={() => setShowLabelDropdown(!showLabelDropdown)}
-                      className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-[11px] font-bold border transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold border transition-all ${
                         selectedLabelFilters.length > 0
                           ? 'bg-blue-50 border-blue-200 text-blue-700'
                           : 'bg-slate-50 border-slate-200/60 text-slate-500 hover:text-slate-700'
                       }`}
                     >
-                      <Tag className="h-3.5 w-3.5" />
-                      Labels
+                      <Tag className="h-3 w-3" />
                       {selectedLabelFilters.length > 0 && (
-                        <span className="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{selectedLabelFilters.length}</span>
+                        <span className="bg-blue-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">{selectedLabelFilters.length}</span>
                       )}
-                      <ChevronDown className="h-3 w-3" />
+                      <ChevronDown className="h-2.5 w-2.5" />
                     </button>
 
                     {showLabelDropdown && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowLabelDropdown(false)} />
-                        <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-3 space-y-1.5">
+                        <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 p-2 space-y-1">
                           {selectedLabelFilters.length > 0 && (
                             <button
                               onClick={() => { setSelectedLabelFilters([]); setShowLabelDropdown(false); }}
-                              className="w-full text-left px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors uppercase tracking-wide"
+                              className="w-full text-left px-2 py-1.5 text-[9px] font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors uppercase"
                             >
-                              Clear All
+                              Clear
                             </button>
                           )}
                           {allLabels.map((label) => {
@@ -404,15 +403,15 @@ export default function VATasksPage() {
                                       : [...selectedLabelFilters, label]
                                   );
                                 }}
-                                className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${
+                                className={`w-full text-left px-2 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
                                   isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
                                 }`}
                               >
-                                <span className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${getLabelClasses(label)}`}>
+                                <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full border ${getLabelClasses(label)}`}>
                                   {label}
                                 </span>
                                 {isActive && (
-                                  <span className="ml-auto text-blue-600 text-xs font-bold">&#10003;</span>
+                                  <span className="ml-auto text-blue-600 text-[10px] font-bold">✓</span>
                                 )}
                               </button>
                             );
@@ -425,24 +424,24 @@ export default function VATasksPage() {
               </div>
             )}
 
-            <div className="flex items-center gap-3" suppressHydrationWarning>
+            <div className="flex items-center gap-2" suppressHydrationWarning>
               {dashboardTab !== 'Reports' && (
                 <button
                   onClick={() => fetchTasks(currentPage, pageSize)}
                   disabled={loading}
-                  className="p-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 disabled:opacity-50 transition-all active:scale-[0.95] shadow-sm relative group"
-                  title="Sync Feed"
+                  className="p-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 disabled:opacity-50 transition-all"
+                  title="Refresh"
                 >
-                  <RefreshIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 </button>
               )}
 
               <button
                 onClick={handleSignOut}
-                className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-2xl hover:bg-red-100 transition-all active:scale-[0.95] shadow-sm ml-2"
+                className="p-2 bg-red-50 border border-red-100 text-red-600 rounded-xl hover:bg-red-100 transition-all"
                 title="Sign Out"
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -450,7 +449,7 @@ export default function VATasksPage() {
       </header>
 
       {/* Main Content Area */}
-      <main className="px-8 py-8 animate-in fade-in duration-700">
+      <main className="px-6 py-4 animate-in fade-in duration-500">
         {dashboardTab === 'Reports' ? (
           <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700" suppressHydrationWarning>
             {/* Reports Header */}
@@ -489,31 +488,31 @@ export default function VATasksPage() {
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-6" suppressHydrationWarning>
-              <div className="flex items-center gap-3" suppressHydrationWarning>
-                <div className={`h-8 w-1 rounded-full ${dashboardTab === 'Applying' ? 'bg-blue-600' :
+            <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
+              <div className="flex items-center gap-2" suppressHydrationWarning>
+                <div className={`h-5 w-1 rounded-full ${dashboardTab === 'Applying' ? 'bg-blue-600' :
                   dashboardTab === 'Applied' ? 'bg-emerald-600' : 'bg-red-600'
                   }`} suppressHydrationWarning></div>
-                <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
-                  {dashboardTab === 'Applying' ? 'Active Missions' :
-                    dashboardTab === 'Applied' ? 'Successful Deployments' : 'Mission Trash'}
+                <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                  {dashboardTab === 'Applying' ? 'Active' :
+                    dashboardTab === 'Applied' ? 'Submitted' : 'Trash'}
                 </h2>
-                <span className="px-2.5 py-1 bg-slate-200/50 text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200">
-                  {totalItems} Assignments
+                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-bold rounded border border-slate-200">
+                  {totalItems}
                 </span>
                 {dashboardTab === 'Applying' && currentUserId && (
-                  <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                  <span className={`px-2 py-0.5 text-[9px] font-bold rounded border ${
                     claimLimitReached
                       ? 'bg-red-50 text-red-600 border-red-200'
                       : 'bg-blue-50 text-blue-600 border-blue-200'
                   }`}>
-                    {activeClaimCount}/{MAX_ACTIVE_CLAIMS} Claims
+                    {activeClaimCount}/{MAX_ACTIVE_CLAIMS}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="flex flex-col gap-6" suppressHydrationWarning>
+            <div className="flex flex-col gap-3" suppressHydrationWarning>
               <TasksDataTable
                 tasks={displayTasks}
                 loading={loading}
@@ -530,10 +529,9 @@ export default function VATasksPage() {
               />
 
               {/* Pagination Controls */}
-              {totalItems > 0 && (
-                <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-100 px-6 py-4 shadow-sm" suppressHydrationWarning>
-                  <div className="flex items-center gap-4" suppressHydrationWarning>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Show</span>
+              {totalPages > 0 && (
+                <div className="flex items-center justify-between bg-white rounded-xl border border-slate-100 px-4 py-2.5 shadow-sm sticky bottom-2" suppressHydrationWarning>
+                  <div className="flex items-center gap-2" suppressHydrationWarning>
                     <select
                       value={pageSize}
                       onChange={(e) => {
@@ -541,63 +539,58 @@ export default function VATasksPage() {
                         setPageSize(newSize);
                         setCurrentPage(1);
                       }}
-                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                      className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 focus:outline-none"
                     >
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>
                     </select>
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">per page</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">/ page</span>
                   </div>
 
-                  <div className="flex items-center gap-2" suppressHydrationWarning>
-                    <span className="text-[11px] font-semibold text-slate-500 mr-3">
+                  <div className="flex items-center gap-1" suppressHydrationWarning>
+                    <span className="text-[10px] font-semibold text-slate-500 mr-2">
                       {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
                     </span>
 
-                    {/* First Page */}
                     <button
                       onClick={() => setCurrentPage(1)}
                       disabled={currentPage === 1 || loading}
-                      className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                      title="First Page"
+                      className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="First"
                     >
-                      <ChevronsLeft className="h-4 w-4" />
+                      <ChevronsLeft className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* Previous Page */}
                     <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1 || loading}
-                      className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                      title="Previous Page"
+                      className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Previous"
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* Page indicator */}
-                    <span className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-[11px] font-black text-blue-700">
-                      {currentPage} / {totalPages}
+                    <span className="px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg text-[10px] font-black text-blue-700">
+                      {currentPage}/{totalPages}
                     </span>
 
-                    {/* Next Page */}
                     <button
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages || loading}
-                      className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                      title="Next Page"
+                      className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Next"
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* Last Page */}
                     <button
                       onClick={() => setCurrentPage(totalPages)}
                       disabled={currentPage === totalPages || loading}
-                      className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                      title="Last Page"
+                      className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Last"
                     >
-                      <ChevronsRight className="h-4 w-4" />
+                      <ChevronsRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
