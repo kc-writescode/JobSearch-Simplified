@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { JobImportForm } from '@/components/jobs/job-import-form';
 import { BulkJobImport } from '@/components/jobs/bulk-job-import';
-import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown } from 'lucide-react';
+import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { PRESET_LABELS, getLabelClasses } from '@/lib/constants/labels';
 
 type TabType = 'saved' | 'applying' | 'applied' | 'trashed';
@@ -30,6 +30,7 @@ interface Resume {
 
 interface Job {
   id: string;
+  delegated_job_id?: string | null;
   title: string;
   company: string;
   status: string;
@@ -72,11 +73,19 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
   const [selectedLabelFilters, setSelectedLabelFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const supabase = createClient();
 
   useEffect(() => {
     setSelectedJobIds([]);
+    setCurrentPage(1);
   }, [activeTab]);
+
+  // Reset to page 1 when search/filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedLabelFilters]);
 
   // Filter jobs by tab
   const savedJobs = jobs.filter(job =>
@@ -203,17 +212,21 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
     }
   };
 
-  const activeJobsList = getJobsForTab();
+  const allFilteredJobs = getJobsForTab();
+  const totalItems = allFilteredJobs.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const paginatedJobs = allFilteredJobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const activeJobsList = paginatedJobs;
 
   const toggleSelectJob = (id: string) => {
     setSelectedJobIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const toggleSelectAll = () => {
-    if (selectedJobIds.length === activeJobsList.length) {
+    if (selectedJobIds.length === allFilteredJobs.length) {
       setSelectedJobIds([]);
     } else {
-      setSelectedJobIds(activeJobsList.map(j => j.id));
+      setSelectedJobIds(allFilteredJobs.map(j => j.id));
     }
   };
 
@@ -692,46 +705,121 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
       )}
 
       {/* Selection Header (only visible when items exist and NOT applied tab) */}
-      {activeJobsList.length > 0 && activeTab !== 'applied' && (
+      {allFilteredJobs.length > 0 && activeTab !== 'applied' && (
         <div className="flex items-center gap-2 px-2">
           <button
             onClick={toggleSelectAll}
-            className="text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-wider flex items-center gap-2 transition-colors"
+            className="text-[9px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-wider flex items-center gap-1.5 transition-colors"
           >
-            {selectedJobIds.length === activeJobsList.length ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-            Select All {activeJobsList.length} Tasks
+            {selectedJobIds.length === allFilteredJobs.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+            Select All {allFilteredJobs.length}
           </button>
         </div>
       )}
 
       {/* Mission Intelligence List */}
-      <div className="space-y-4">
-        {getJobsForTab().length === 0 ? (
-          <div className="py-24 bg-white rounded-[2rem] border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
-            <div className="p-6 bg-slate-50 rounded-full mb-4">
-              <RadarIcon className="h-12 w-12 text-slate-300" />
+      <div className="space-y-3">
+        {allFilteredJobs.length === 0 ? (
+          <div className="py-16 bg-white rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
+            <div className="p-4 bg-slate-50 rounded-full mb-3">
+              <RadarIcon className="h-8 w-8 text-slate-300" />
             </div>
-            <p className="text-lg font-black text-slate-900 italic">No Jobs Found</p>
-            <p className="text-sm text-slate-500 mt-2 max-w-xs px-6">Your job list is clear. Add a new job to start your applications.</p>
+            <p className="text-base font-black text-slate-900">No Jobs Found</p>
+            <p className="text-xs text-slate-500 mt-1 max-w-xs px-6">Your job list is clear. Add a new job to start your applications.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {getJobsForTab().map((job) => (
-              <JobRow
-                key={job.id}
-                job={job}
-                tab={activeTab}
-                resumeName={getResumeName(job.resume_id)}
-                onClick={() => setSelectedJob(job)}
-                onUntrash={() => handleUntrashJob(job.id)}
-                selected={selectedJobIds.includes(job.id)}
-                onSelect={(e) => { e.stopPropagation(); toggleSelectJob(job.id); }}
-                showSelection={activeTab !== 'applied'}
-              />
-            ))}
+          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+            <div className="divide-y divide-slate-50">
+              {paginatedJobs.map((job) => (
+                <JobRow
+                  key={job.id}
+                  job={job}
+                  tab={activeTab}
+                  resumeName={getResumeName(job.resume_id)}
+                  onClick={() => setSelectedJob(job)}
+                  onUntrash={() => handleUntrashJob(job.id)}
+                  selected={selectedJobIds.includes(job.id)}
+                  onSelect={(e) => { e.stopPropagation(); toggleSelectJob(job.id); }}
+                  showSelection={activeTab !== 'applied'}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalItems > 0 && (
+        <div className="flex items-center justify-between bg-white rounded-xl border border-slate-100 px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Show</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(parseInt(e.target.value, 10));
+                setCurrentPage(1);
+              }}
+              className="px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">per page</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold text-slate-500 mr-2">
+              {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
+            </span>
+
+            {/* First Page */}
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              title="First Page"
+            >
+              <ChevronsLeft className="h-3.5 w-3.5" />
+            </button>
+
+            {/* Previous Page */}
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              title="Previous Page"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+
+            {/* Page indicator */}
+            <span className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-[10px] font-black text-blue-700">
+              {currentPage} / {totalPages || 1}
+            </span>
+
+            {/* Next Page */}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              title="Next Page"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+
+            {/* Last Page */}
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              title="Last Page"
+            >
+              <ChevronsRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Slide-over Detail Modal */}
       {selectedJob && (
@@ -788,7 +876,7 @@ interface JobRowProps {
 function JobRow({ job, tab, resumeName, onClick, onUntrash, selected, onSelect, showSelection = true }: JobRowProps) {
   const getStatusBadge = () => {
     if (job.status === 'delegate_to_va') {
-      return <span className="flex items-center gap-1.5 bg-purple-50 text-purple-700 text-[9px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-lg border border-purple-100"><div className="h-1.5 w-1.5 rounded-full bg-purple-500"></div> Delegated to VA</span>;
+      return <span className="flex items-center gap-1 bg-purple-50 text-purple-700 text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border border-purple-100"><div className="h-1 w-1 rounded-full bg-purple-500"></div> VA</span>;
     }
     return null;
   };
@@ -796,9 +884,9 @@ function JobRow({ job, tab, resumeName, onClick, onUntrash, selected, onSelect, 
   const getTailoredBadge = () => {
     switch (job.tailored_status) {
       case 'completed':
-        return <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-lg border border-emerald-100"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div> Tailored</span>;
+        return <span className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border border-emerald-100"><div className="h-1 w-1 rounded-full bg-emerald-500"></div> Tailored</span>;
       case 'processing':
-        return <span className="flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[9px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-lg border border-amber-100"><div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></div> Processing</span>;
+        return <span className="flex items-center gap-1 bg-amber-50 text-amber-700 text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border border-amber-100"><div className="h-1 w-1 rounded-full bg-amber-500 animate-pulse"></div> Processing</span>;
       default:
         return null;
     }
@@ -806,78 +894,93 @@ function JobRow({ job, tab, resumeName, onClick, onUntrash, selected, onSelect, 
 
   return (
     <div
-      className="group bg-white p-6 rounded-[1.75rem] border border-slate-100 hover:border-blue-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 flex items-center gap-6 cursor-pointer relative overflow-hidden"
+      className="group bg-white px-4 py-3 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all duration-200 flex items-center gap-3 cursor-pointer"
       onClick={tab !== 'trashed' ? onClick : undefined}
     >
       {showSelection && (
         <div
-          className="shrink-0 pl-1 pr-2"
+          className="shrink-0"
           onClick={onSelect}
         >
-          {selected ? <CheckSquare className="h-5 w-5 text-blue-600" /> : <Square className="h-5 w-5 text-slate-200 hover:text-slate-400" />}
+          {selected ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4 text-slate-300 hover:text-slate-400" />}
         </div>
       )}
 
-      <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors shrink-0 overflow-hidden relative">
-        <BuildingIcon className="h-6 w-6 relative z-10" />
-        <div className="absolute inset-0 bg-blue-600 opacity-0 group-hover:opacity-5 transition-opacity"></div>
+      {/* Job ID Badge */}
+      {job.delegated_job_id && (
+        <span className="shrink-0 text-[9px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+          {job.delegated_job_id}
+        </span>
+      )}
+
+      {/* Company Icon */}
+      <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors shrink-0">
+        <BuildingIcon className="h-4 w-4" />
       </div>
 
+      {/* Job Title & Company */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-4 mb-1">
-          <div className="min-w-0">
-            <h4 className="text-base font-black text-slate-900 tracking-tight truncate leading-tight group-hover:text-blue-600 transition-colors">
-              {job.title}
-            </h4>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm font-bold text-slate-500">{job.company}</span>
-              {job.location && <span className="text-slate-300 text-xs">•</span>}
-              {job.location && <span className="text-xs text-slate-400 font-medium">{job.location}</span>}
-            </div>
-            {job.labels && job.labels.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {job.labels.map((label) => (
-                  <span key={label} className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${getLabelClasses(label)}`}>
-                    {label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col items-end shrink-0 gap-2">
-            {getStatusBadge()}
-            {getTailoredBadge()}
-            {/* View Proof button for applied jobs */}
-            {tab === 'applied' && job.submission_proof && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const proof = job.submission_proof!;
-                  const isUrl = proof.startsWith('http');
-                  const url = isUrl ? proof : `/api/resume/view?path=${encodeURIComponent(proof)}`;
-                  window.open(url, '_blank');
-                }}
-                className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition-colors"
-              >
-                <EyeIcon className="h-3 w-3" />
-                View Proof
-              </button>
-            )}
-            <div className="flex items-center gap-2">
-              {resumeName && <span className="text-[10px] font-black uppercase text-blue-500/70 bg-blue-50/50 px-2 py-0.5 rounded-md border border-blue-100/50">{resumeName}</span>}
-              <span className="text-xs font-black text-slate-900/40 tracking-tighter">
-                {new Date(job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </span>
-            </div>
-          </div>
-        </div>
+        <h4 className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+          {job.title}
+        </h4>
+        <span className="text-xs text-slate-500">{job.company}</span>
       </div>
 
-      <div className="shrink-0 flex items-center justify-center h-10 w-10 rounded-full border border-slate-100 group-hover:bg-slate-50 transition-all">
+      {/* Labels */}
+      {job.labels && job.labels.length > 0 && (
+        <div className="hidden sm:flex items-center gap-1 shrink-0">
+          {job.labels.slice(0, 2).map((label) => (
+            <span key={label} className={`text-[8px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${getLabelClasses(label)}`}>
+              {label}
+            </span>
+          ))}
+          {job.labels.length > 2 && (
+            <span className="text-[8px] font-bold text-slate-400">+{job.labels.length - 2}</span>
+          )}
+        </div>
+      )}
+
+      {/* Status Badges */}
+      <div className="hidden sm:flex items-center gap-1 shrink-0">
+        {getStatusBadge()}
+        {getTailoredBadge()}
+      </div>
+
+      {/* View Proof button for applied jobs */}
+      {tab === 'applied' && job.submission_proof && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const proof = job.submission_proof!;
+            const isUrl = proof.startsWith('http');
+            const url = isUrl ? proof : `/api/resume/view?path=${encodeURIComponent(proof)}`;
+            window.open(url, '_blank');
+          }}
+          className="shrink-0 flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase tracking-tighter px-2 py-1 rounded border border-emerald-100 hover:bg-emerald-100 transition-colors"
+        >
+          <EyeIcon className="h-3 w-3" />
+          Proof
+        </button>
+      )}
+
+      {/* Resume Badge */}
+      {resumeName && (
+        <span className="hidden lg:inline-block shrink-0 text-[9px] font-bold uppercase text-blue-500/70 bg-blue-50/50 px-1.5 py-0.5 rounded border border-blue-100/50 max-w-[80px] truncate">
+          {resumeName}
+        </span>
+      )}
+
+      {/* Date */}
+      <span className="shrink-0 text-[10px] font-bold text-slate-400">
+        {new Date(job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+      </span>
+
+      {/* Action */}
+      <div className="shrink-0">
         {tab === 'trashed' ? (
-          <button onClick={(e) => { e.stopPropagation(); onUntrash(); }} className="p-2 text-blue-600 hover:scale-110 transition-transform"><RefreshIcon className="h-5 w-5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onUntrash(); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><RefreshIcon className="h-4 w-4" /></button>
         ) : (
-          <ChevronRightIcon className="h-5 w-5 text-slate-300 group-hover:translate-x-0.5 transition-all" />
+          <ChevronRightIcon className="h-4 w-4 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all" />
         )}
       </div>
     </div>

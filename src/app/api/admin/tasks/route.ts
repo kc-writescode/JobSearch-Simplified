@@ -13,6 +13,9 @@ export async function GET(request: NextRequest) {
     const statusFilters = searchParams.getAll('status');
     const priorityFilters = searchParams.getAll('priority');
     const search = searchParams.get('search') || '';
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const offset = (page - 1) * limit;
 
     // Fetch all jobs with resume relationship
     let query = supabase
@@ -201,7 +204,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ data: tasks, total: tasks.length }, { status: 200 });
+    // Get total count before pagination
+    const total = tasks.length;
+    const totalPages = Math.ceil(total / limit);
+
+    // Apply pagination
+    const paginatedTasks = tasks.slice(offset, offset + limit);
+
+    return NextResponse.json({
+      data: paginatedTasks,
+      total,
+      page,
+      limit,
+      totalPages,
+    }, { status: 200 });
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });

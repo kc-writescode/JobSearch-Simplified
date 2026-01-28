@@ -8,7 +8,7 @@ import { VACoreTask, TaskFilters, TaskStatus } from '@/types/admin.types';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { LogOut, Trash2, BarChart3, Users, LayoutDashboard, Calendar, Tag, ChevronDown } from 'lucide-react';
+import { LogOut, Trash2, BarChart3, Users, LayoutDashboard, Calendar, Tag, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { getLabelClasses } from '@/lib/constants/labels';
 import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
 
@@ -53,6 +53,12 @@ export default function VATasksPage() {
   const [selectedLabelFilters, setSelectedLabelFilters] = useState<string[]>([]);
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const router = useRouter();
   const supabase = createClient();
 
@@ -80,12 +86,20 @@ export default function VATasksPage() {
     }
   };
 
-  // Refetch when filters change (but not on initial mount)
+  // Refetch when filters change (but not on initial mount) - reset to page 1
   useEffect(() => {
     if (hasInitialized && dashboardTab !== 'Reports') {
-      fetchTasks();
+      setCurrentPage(1);
+      fetchTasks(1, pageSize);
     }
   }, [filters, hasInitialized, dashboardTab]);
+
+  // Refetch when pagination changes
+  useEffect(() => {
+    if (hasInitialized && dashboardTab !== 'Reports') {
+      fetchTasks(currentPage, pageSize);
+    }
+  }, [currentPage, pageSize]);
 
   // Auto-refresh every 30 minutes to catch new tasks
   useEffect(() => {
@@ -98,7 +112,7 @@ export default function VATasksPage() {
     return () => clearInterval(interval);
   }, [hasInitialized, filters]);
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -112,6 +126,8 @@ export default function VATasksPage() {
       if (filters.search) {
         params.append('search', filters.search);
       }
+      params.append('page', page.toString());
+      params.append('limit', limit.toString());
 
       const url = `/api/admin/tasks?${params.toString()}`;
       const response = await fetch(url);
@@ -121,11 +137,15 @@ export default function VATasksPage() {
       const result = await response.json();
       setTasks(result.data || []);
       setFilteredTasks(result.data || []);
+      setTotalItems(result.total || 0);
+      setTotalPages(result.totalPages || 0);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching tasks:', error);
       setTasks([]);
       setFilteredTasks([]);
+      setTotalItems(0);
+      setTotalPages(0);
     } finally {
       setLoading(false);
     }
@@ -408,7 +428,7 @@ export default function VATasksPage() {
             <div className="flex items-center gap-3" suppressHydrationWarning>
               {dashboardTab !== 'Reports' && (
                 <button
-                  onClick={fetchTasks}
+                  onClick={() => fetchTasks(currentPage, pageSize)}
                   disabled={loading}
                   className="p-3 bg-white border border-slate-200 text-slate-600 rounded-2xl hover:bg-slate-50 disabled:opacity-50 transition-all active:scale-[0.95] shadow-sm relative group"
                   title="Sync Feed"
@@ -479,7 +499,7 @@ export default function VATasksPage() {
                     dashboardTab === 'Applied' ? 'Successful Deployments' : 'Mission Trash'}
                 </h2>
                 <span className="px-2.5 py-1 bg-slate-200/50 text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200">
-                  {displayTasks.length} Assignments
+                  {totalItems} Assignments
                 </span>
                 {dashboardTab === 'Applying' && currentUserId && (
                   <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
@@ -508,6 +528,80 @@ export default function VATasksPage() {
                 activeClaimCount={activeClaimCount}
                 maxClaims={MAX_ACTIVE_CLAIMS}
               />
+
+              {/* Pagination Controls */}
+              {totalItems > 0 && (
+                <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-100 px-6 py-4 shadow-sm" suppressHydrationWarning>
+                  <div className="flex items-center gap-4" suppressHydrationWarning>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Show</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        const newSize = parseInt(e.target.value, 10);
+                        setPageSize(newSize);
+                        setCurrentPage(1);
+                      }}
+                      className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">per page</span>
+                  </div>
+
+                  <div className="flex items-center gap-2" suppressHydrationWarning>
+                    <span className="text-[11px] font-semibold text-slate-500 mr-3">
+                      {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
+                    </span>
+
+                    {/* First Page */}
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1 || loading}
+                      className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      title="First Page"
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </button>
+
+                    {/* Previous Page */}
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1 || loading}
+                      className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+
+                    {/* Page indicator */}
+                    <span className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-[11px] font-black text-blue-700">
+                      {currentPage} / {totalPages}
+                    </span>
+
+                    {/* Next Page */}
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages || loading}
+                      className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      title="Next Page"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+
+                    {/* Last Page */}
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages || loading}
+                      className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      title="Last Page"
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}
