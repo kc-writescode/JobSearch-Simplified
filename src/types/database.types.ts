@@ -167,6 +167,7 @@ export type Database = {
           is_favorite: boolean;
           priority: number;
           notes: string | null;
+          labels: string[] | null;
           deadline: string | null;
           applied_at: string | null;
           created_at: string;
@@ -193,6 +194,7 @@ export type Database = {
           is_favorite?: boolean;
           priority?: number;
           notes?: string | null;
+          labels?: string[] | null;
           deadline?: string | null;
           applied_at?: string | null;
           created_at?: string;
@@ -219,6 +221,7 @@ export type Database = {
           is_favorite?: boolean;
           priority?: number;
           notes?: string | null;
+          labels?: string[] | null;
           deadline?: string | null;
           applied_at?: string | null;
           created_at?: string;

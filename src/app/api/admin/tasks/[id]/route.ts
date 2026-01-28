@@ -19,7 +19,7 @@ export async function PATCH(
 
     const { id: taskId } = await context.params;
     const body = await request.json();
-    const { status, proofOfWork, cannotApplyReason, assignedTo, assignmentStatus } = body;
+    const { status, proofOfWork, cannotApplyReason, assignedTo, assignmentStatus, labels } = body;
 
     // Build update data
     const updateData: Record<string, unknown> = {
@@ -32,6 +32,7 @@ export async function PATCH(
 
     if (assignedTo !== undefined) updateData.assigned_to = assignedTo;
     if (assignmentStatus !== undefined) updateData.assignment_status = assignmentStatus;
+    if (labels !== undefined) updateData.labels = labels;
 
     // Identify the current administrator from the session
     const { data: { user: adminUser } } = await serverSupabase.auth.getUser();

@@ -82,6 +82,7 @@ export interface VACoreTask {
   clientNotes?: string;
   globalNotes?: string;
   certifications?: any[];
+  labels?: string[];
   profileUpdatedAt?: string;
   inputLogs?: ClientInputLog[];
   createdAt: string;
@@ -99,5 +100,6 @@ export interface ClientInputLog {
 export interface TaskFilters {
   status?: TaskStatus[];
   priority?: ClientPriority[];
+  labels?: string[];
   search?: string;
 }

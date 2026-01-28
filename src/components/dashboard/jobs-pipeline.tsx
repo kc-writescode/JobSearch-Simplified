@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { JobImportForm } from '@/components/jobs/job-import-form';
 import { BulkJobImport } from '@/components/jobs/bulk-job-import';
-import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus } from 'lucide-react';
+import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown } from 'lucide-react';
+import { PRESET_LABELS, getLabelClasses } from '@/lib/constants/labels';
 
 type TabType = 'saved' | 'applying' | 'applied' | 'trashed';
 
@@ -40,6 +41,7 @@ interface Job {
   cover_letter?: string | null;
   submission_proof?: string | null;
   client_notes?: string | null;
+  labels?: string[] | null;
   created_at: string;
 }
 
@@ -67,6 +69,9 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
   });
   const [saving, setSaving] = useState(false);
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
+  const [selectedLabelFilters, setSelectedLabelFilters] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showLabelDropdown, setShowLabelDropdown] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -86,13 +91,33 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
   const trashedJobs = jobs.filter(job => job.status === 'trashed');
 
   const getJobsForTab = () => {
+    let tabJobs: Job[];
     switch (activeTab) {
-      case 'saved': return savedJobs;
-      case 'applying': return applyingJobs;
-      case 'applied': return appliedJobs;
-      case 'trashed': return trashedJobs;
+      case 'saved': tabJobs = savedJobs; break;
+      case 'applying': tabJobs = applyingJobs; break;
+      case 'applied': tabJobs = appliedJobs; break;
+      case 'trashed': tabJobs = trashedJobs; break;
     }
+    if (selectedLabelFilters.length > 0) {
+      tabJobs = tabJobs.filter(job =>
+        job.labels && job.labels.some(l => selectedLabelFilters.includes(l))
+      );
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      tabJobs = tabJobs.filter(job =>
+        job.title.toLowerCase().includes(q) ||
+        job.company.toLowerCase().includes(q) ||
+        (job.location && job.location.toLowerCase().includes(q))
+      );
+    }
+    return tabJobs;
   };
+
+  // Derive all unique labels across ALL jobs for filter options
+  const allLabelsForTab = Array.from(new Set(
+    jobs.flatMap(j => j.labels || [])
+  ));
 
   const getResumeName = (resumeId: string | null | undefined) => {
     if (!resumeId) return null;
@@ -512,6 +537,84 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
         ))}
       </div>
 
+      {/* Search Bar + Label Filter */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 relative group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Filter jobs..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-[12px] font-semibold focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400 shadow-inner"
+          />
+        </div>
+
+        {/* Labels Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowLabelDropdown(!showLabelDropdown)}
+            className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-[11px] font-bold border transition-all whitespace-nowrap ${
+              selectedLabelFilters.length > 0
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                : 'bg-slate-50 border-slate-200/60 text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Tag className="h-3.5 w-3.5" />
+            Labels
+            {selectedLabelFilters.length > 0 && (
+              <span className="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{selectedLabelFilters.length}</span>
+            )}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+
+          {showLabelDropdown && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowLabelDropdown(false)} />
+              <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-3 space-y-1.5">
+                {selectedLabelFilters.length > 0 && (
+                  <button
+                    onClick={() => { setSelectedLabelFilters([]); setShowLabelDropdown(false); }}
+                    className="w-full text-left px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors uppercase tracking-wide"
+                  >
+                    Clear All
+                  </button>
+                )}
+                {allLabelsForTab.length > 0 ? (
+                  allLabelsForTab.map((label) => {
+                    const isActive = selectedLabelFilters.includes(label);
+                    return (
+                      <button
+                        key={label}
+                        onClick={() => {
+                          setSelectedLabelFilters(prev =>
+                            isActive ? prev.filter(l => l !== label) : [...prev, label]
+                          );
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${
+                          isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${getLabelClasses(label)}`}>
+                          {label}
+                        </span>
+                        {isActive && (
+                          <span className="ml-auto text-blue-600 text-xs font-bold">&#10003;</span>
+                        )}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="px-3 py-2 text-[10px] font-semibold text-slate-400">No labels yet. Add labels from a job detail.</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Bulk Actions Bar */}
       {selectedJobIds.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white p-2 rounded-2xl shadow-2xl flex items-center gap-2 animate-in slide-in-from-bottom-4 duration-300 border border-slate-700">
@@ -731,6 +834,15 @@ function JobRow({ job, tab, resumeName, onClick, onUntrash, selected, onSelect, 
               {job.location && <span className="text-slate-300 text-xs">•</span>}
               {job.location && <span className="text-xs text-slate-400 font-medium">{job.location}</span>}
             </div>
+            {job.labels && job.labels.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {job.labels.map((label) => (
+                  <span key={label} className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${getLabelClasses(label)}`}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-end shrink-0 gap-2">
             {getStatusBadge()}
@@ -800,6 +912,9 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
   const [copiedCL, setCopiedCL] = useState(false);
   const [localClientNotes, setLocalClientNotes] = useState(job.client_notes || '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [localLabels, setLocalLabels] = useState<string[]>(job.labels || []);
+  const [customLabelInput, setCustomLabelInput] = useState('');
+  const [isSavingLabels, setIsSavingLabels] = useState(false);
 
   // Initial fetch of tailored data
   useEffect(() => {
@@ -1056,6 +1171,155 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
               </span>
             </div>
           </div>
+
+          {/* Job Information — Quick Link */}
+          {job.job_url && (
+            <a href={job.job_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl group/link hover:from-blue-100 hover:to-indigo-100 hover:border-blue-200 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white rounded-xl shadow-sm text-blue-500 group-hover/link:shadow-md transition-shadow"><ExternalLinkIcon className="h-4 w-4" /></div>
+                <div>
+                  <span className="text-sm font-black text-slate-900 group-hover/link:text-blue-700 transition-colors">View Job Posting</span>
+                  <span className="block text-[10px] text-slate-400 font-medium truncate max-w-[280px]">{job.job_url}</span>
+                </div>
+              </div>
+              <ChevronRightIcon className="h-4 w-4 text-blue-300 group-hover/link:translate-x-1 group-hover/link:text-blue-500 transition-all" />
+            </a>
+          )}
+
+          {/* Labels — Inline Tag Editor */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                <Tag className="h-3 w-3" />
+                Labels
+              </h3>
+              {JSON.stringify(localLabels) !== JSON.stringify(job.labels || []) && (
+                <button
+                  onClick={async () => {
+                    setIsSavingLabels(true);
+                    try {
+                      const { error } = await (supabase.from('jobs') as any)
+                        .update({ labels: localLabels, updated_at: new Date().toISOString() })
+                        .eq('id', job.id);
+                      if (error) throw error;
+                      toast.success('Labels updated!');
+                      onUpdate?.();
+                    } catch (e) {
+                      toast.error('Failed to save labels');
+                    } finally {
+                      setIsSavingLabels(false);
+                    }
+                  }}
+                  disabled={isSavingLabels}
+                  className="px-3 py-1 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-700 transition-all disabled:opacity-30 shadow-sm"
+                >
+                  {isSavingLabels ? 'Saving...' : 'Save'}
+                </button>
+              )}
+            </div>
+
+            {/* Active labels as removable pills */}
+            {localLabels.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {localLabels.map((label) => (
+                  <span key={label} className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border ${getLabelClasses(label)}`}>
+                    {label}
+                    <button
+                      onClick={() => setLocalLabels(localLabels.filter(l => l !== label))}
+                      className="ml-0.5 hover:opacity-70 transition-opacity"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Preset chips + custom input in a single row */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {PRESET_LABELS.filter(p => !localLabels.includes(p.name)).map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => setLocalLabels([...localLabels, preset.name])}
+                  className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border opacity-40 hover:opacity-100 transition-opacity ${getLabelClasses(preset.name)}`}
+                >
+                  + {preset.name}
+                </button>
+              ))}
+              <div className="flex items-center gap-1 ml-1">
+                <input
+                  type="text"
+                  value={customLabelInput}
+                  onChange={(e) => setCustomLabelInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && customLabelInput.trim()) {
+                      const trimmed = customLabelInput.trim();
+                      if (!localLabels.includes(trimmed)) {
+                        setLocalLabels([...localLabels, trimmed]);
+                      }
+                      setCustomLabelInput('');
+                    }
+                  }}
+                  placeholder="Custom..."
+                  className="w-24 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-[10px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:w-36 transition-all placeholder:text-slate-300"
+                />
+                {customLabelInput.trim() && (
+                  <button
+                    onClick={() => {
+                      const trimmed = customLabelInput.trim();
+                      if (trimmed && !localLabels.includes(trimmed)) {
+                        setLocalLabels([...localLabels, trimmed]);
+                      }
+                      setCustomLabelInput('');
+                    }}
+                    className="p-1 bg-slate-900 text-white rounded-full hover:bg-slate-700 transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Job Specific Deployment Notes (FOR CLIENT) */}
+          {(tab === 'applying' || tab === 'saved') && (
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
+                <div className="h-1 w-4 bg-blue-600 rounded-full"></div>
+                Job Specific Deployment Notes
+              </h3>
+              <div className="p-6 bg-blue-50/30 border border-blue-100 rounded-[2rem] space-y-4">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Add specific instructions for the VA for this application only.</p>
+                <textarea
+                  value={localClientNotes}
+                  onChange={(e) => setLocalClientNotes(e.target.value)}
+                  placeholder="e.g. 'Please use my alternative email for this one' or 'Make sure to highlight my React experience above all else'"
+                  className="w-full min-h-[100px] p-4 bg-white border border-blue-100 rounded-xl text-xs font-semibold focus:outline-none focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-300 resize-none"
+                />
+                <button
+                  onClick={async () => {
+                    setIsSavingNotes(true);
+                    try {
+                      const { error } = await (supabase.from('jobs') as any)
+                        .update({ client_notes: localClientNotes, updated_at: new Date().toISOString() })
+                        .eq('id', job.id);
+                      if (error) throw error;
+                      toast.success('Notes updated!');
+                      onUpdate?.();
+                    } catch (e) {
+                      toast.error('Failed to save notes');
+                    } finally {
+                      setIsSavingNotes(false);
+                    }
+                  }}
+                  disabled={isSavingNotes || localClientNotes === (job.client_notes || '')}
+                  className="w-full py-3 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+                >
+                  {isSavingNotes ? 'Saving...' : 'Save Notes for VA'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Submission Evidence (Applied Only) - Moved to top */}
           {tab === 'applied' && job.submission_proof && (
@@ -1322,63 +1586,6 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
               </div>
             </div>
           </div>
-
-          {/* Mission Coordinates */}
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-              <div className="h-1 w-4 bg-amber-500 rounded-full"></div>
-              Job Information
-            </h3>
-            {job.job_url && (
-              <a href={job.job_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group/link hover:bg-white hover:border-blue-200 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white rounded-lg shadow-sm group-hover/link:text-blue-500 transition-colors"><ExternalLinkIcon className="h-4 w-4" /></div>
-                  <span className="text-sm font-black text-slate-900 group-hover/link:text-blue-600 transition-colors italic">View Job Posting</span>
-                </div>
-                <ChevronRightIcon className="h-4 w-4 text-slate-300 group-hover/link:translate-x-1 transition-transform" />
-              </a>
-            )}
-          </div>
-
-          {/* Job Specific Deployment Notes (FOR CLIENT) */}
-          {(tab === 'applying' || tab === 'saved') && (
-            <div className="space-y-4">
-              <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
-                <div className="h-1 w-4 bg-blue-600 rounded-full"></div>
-                Job Specific Deployment Notes
-              </h3>
-              <div className="p-6 bg-blue-50/30 border border-blue-100 rounded-[2rem] space-y-4">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Add specific instructions for the VA for this application only.</p>
-                <textarea
-                  value={localClientNotes}
-                  onChange={(e) => setLocalClientNotes(e.target.value)}
-                  placeholder="e.g. 'Please use my alternative email for this one' or 'Make sure to highlight my React experience above all else'"
-                  className="w-full min-h-[100px] p-4 bg-white border border-blue-100 rounded-xl text-xs font-semibold focus:outline-none focus:ring-4 focus:ring-blue-500/10 placeholder:text-slate-300 resize-none"
-                />
-                <button
-                  onClick={async () => {
-                    setIsSavingNotes(true);
-                    try {
-                      const { error } = await (supabase.from('jobs') as any)
-                        .update({ client_notes: localClientNotes, updated_at: new Date().toISOString() })
-                        .eq('id', job.id);
-                      if (error) throw error;
-                      toast.success('Notes updated!');
-                      onUpdate?.();
-                    } catch (e) {
-                      toast.error('Failed to save notes');
-                    } finally {
-                      setIsSavingNotes(false);
-                    }
-                  }}
-                  disabled={isSavingNotes || localClientNotes === (job.client_notes || '')}
-                  className="w-full py-3 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
-                >
-                  {isSavingNotes ? 'Saving...' : 'Save Notes for VA'}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Actions */}

@@ -3,6 +3,7 @@
 import React from 'react';
 import { VACoreTask, TaskStatus } from '@/types/admin.types';
 import { Ban, FileText, ExternalLink } from 'lucide-react';
+import { getLabelClasses } from '@/lib/constants/labels';
 
 interface TasksDataTableProps {
   tasks: VACoreTask[];
@@ -95,6 +96,9 @@ export function TasksDataTable({
                 Job Specification
               </th>
               <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                Labels
+              </th>
+              <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
                 Client Profile
               </th>
               <th className="px-4 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
@@ -152,6 +156,22 @@ export function TasksDataTable({
                       {task.jobTitle}
                     </div>
                     <div className="text-xs font-semibold text-slate-400 mt-0.5">{task.company}</div>
+                  </td>
+                  <td className="px-4 py-6">
+                    {task.labels && task.labels.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 max-w-[160px]">
+                        {task.labels.slice(0, 2).map((label) => (
+                          <span key={label} className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border whitespace-nowrap ${getLabelClasses(label)}`}>
+                            {label}
+                          </span>
+                        ))}
+                        {task.labels.length > 2 && (
+                          <span className="text-[9px] font-bold text-slate-400 px-1">+{task.labels.length - 2}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-300">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-6">
                     <div className="flex items-center gap-2">

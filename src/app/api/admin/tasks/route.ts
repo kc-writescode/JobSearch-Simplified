@@ -177,6 +177,7 @@ export async function GET(request: NextRequest) {
         clientNotes: job.client_notes,
         globalNotes: profile?.global_notes,
         certifications: profile?.certifications || [],
+        labels: job.labels || [],
         profileUpdatedAt: profile?.updated_at,
         createdAt: job.created_at,
         updatedAt: job.updated_at,

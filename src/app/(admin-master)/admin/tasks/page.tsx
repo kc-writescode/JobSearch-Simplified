@@ -8,7 +8,8 @@ import { VACoreTask, TaskFilters, TaskStatus } from '@/types/admin.types';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { LogOut, Trash2, BarChart3, Users, LayoutDashboard, Calendar } from 'lucide-react';
+import { LogOut, Trash2, BarChart3, Users, LayoutDashboard, Calendar, Tag, ChevronDown } from 'lucide-react';
+import { getLabelClasses } from '@/lib/constants/labels';
 import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
 
 const statuses: TaskStatus[] = ['Applying', 'Applied'];
@@ -49,6 +50,8 @@ export default function VATasksPage() {
   const [hasInitialized, setHasInitialized] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [cannotApplyTask, setCannotApplyTask] = useState<VACoreTask | null>(null);
+  const [selectedLabelFilters, setSelectedLabelFilters] = useState<string[]>([]);
+  const [showLabelDropdown, setShowLabelDropdown] = useState(false);
 
   const router = useRouter();
   const supabase = createClient();
@@ -138,6 +141,20 @@ export default function VATasksPage() {
   };
 
   const activeFilterCount = (filters.status?.length || 0) + (filters.priority?.length || 0);
+
+  // Derive all unique labels from current tasks for the filter dropdown
+  const allLabels = Array.from(new Set(filteredTasks.flatMap(t => t.labels || [])));
+
+  // Apply label filter on top of filteredTasks, then sort "Apply First" to top
+  const labelFiltered = selectedLabelFilters.length > 0
+    ? filteredTasks.filter(t => t.labels && selectedLabelFilters.some(l => t.labels!.includes(l)))
+    : filteredTasks;
+
+  const displayTasks = [...labelFiltered].sort((a, b) => {
+    const aFirst = a.labels?.includes('Apply First') ? 1 : 0;
+    const bFirst = b.labels?.includes('Apply First') ? 1 : 0;
+    return bFirst - aFirst;
+  });
 
   const handleSubmitTask = async (proofOfWork: {
     screenshotUrl?: string;
@@ -299,17 +316,81 @@ export default function VATasksPage() {
             </div>
 
             {dashboardTab !== 'Reports' && (
-              <div className="flex-1 max-w-xl relative group" suppressHydrationWarning>
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors" suppressHydrationWarning>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              <div className="flex-1 flex items-center gap-3 max-w-2xl">
+                <div className="flex-1 relative group" suppressHydrationWarning>
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors" suppressHydrationWarning>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Filter deployments..."
+                    value={filters.search || ''}
+                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-[12px] font-semibold focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400 shadow-inner"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Filter deployments..."
-                  value={filters.search || ''}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200/60 rounded-2xl text-[12px] font-semibold focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400 shadow-inner"
-                />
+
+                {/* Label Filter */}
+                {allLabels.length > 0 && (
+                  <div className="relative" suppressHydrationWarning>
+                    <button
+                      onClick={() => setShowLabelDropdown(!showLabelDropdown)}
+                      className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-[11px] font-bold border transition-all ${
+                        selectedLabelFilters.length > 0
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
+                          : 'bg-slate-50 border-slate-200/60 text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Tag className="h-3.5 w-3.5" />
+                      Labels
+                      {selectedLabelFilters.length > 0 && (
+                        <span className="bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{selectedLabelFilters.length}</span>
+                      )}
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+
+                    {showLabelDropdown && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowLabelDropdown(false)} />
+                        <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-3 space-y-1.5">
+                          {selectedLabelFilters.length > 0 && (
+                            <button
+                              onClick={() => { setSelectedLabelFilters([]); setShowLabelDropdown(false); }}
+                              className="w-full text-left px-3 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors uppercase tracking-wide"
+                            >
+                              Clear All
+                            </button>
+                          )}
+                          {allLabels.map((label) => {
+                            const isActive = selectedLabelFilters.includes(label);
+                            return (
+                              <button
+                                key={label}
+                                onClick={() => {
+                                  setSelectedLabelFilters(
+                                    isActive
+                                      ? selectedLabelFilters.filter(l => l !== label)
+                                      : [...selectedLabelFilters, label]
+                                  );
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${
+                                  isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
+                                }`}
+                              >
+                                <span className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${getLabelClasses(label)}`}>
+                                  {label}
+                                </span>
+                                {isActive && (
+                                  <span className="ml-auto text-blue-600 text-xs font-bold">&#10003;</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -387,14 +468,14 @@ export default function VATasksPage() {
                     dashboardTab === 'Applied' ? 'Successful Deployments' : 'Mission Trash'}
                 </h2>
                 <span className="px-2.5 py-1 bg-slate-200/50 text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200">
-                  {filteredTasks.length} Assignments
+                  {displayTasks.length} Assignments
                 </span>
               </div>
             </div>
 
             <div className="flex flex-col gap-6" suppressHydrationWarning>
               <TasksDataTable
-                tasks={filteredTasks}
+                tasks={displayTasks}
                 loading={loading}
                 onSelectTask={setSelectedTask}
                 selectedTaskId={selectedTask?.id}
