@@ -68,9 +68,26 @@ export async function PATCH(
       .update(updateData)
       .eq('id', taskId);
 
-    // CRITICAL: If this is a claim attempt, ensure the job is still unassigned
-    // This prevents race conditions where two admins claim the same job simultaneously
+    // CRITICAL: If this is a claim attempt, enforce limits and race-condition safety
     if (assignedTo !== undefined) {
+      // Enforce active claim limit of 5 per admin
+      const MAX_ACTIVE_CLAIMS = 5;
+      const { count: activeClaims, error: countError } = await supabase
+        .from('jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('assigned_to', assignedTo)
+        .not('status', 'in', '("applied","trashed")');
+
+      if (countError) {
+        console.error('Error counting active claims:', countError);
+      } else if ((activeClaims || 0) >= MAX_ACTIVE_CLAIMS) {
+        return NextResponse.json(
+          { error: `You have reached the maximum of ${MAX_ACTIVE_CLAIMS} active claims. Submit or release existing claims before claiming more.`, code: 'CLAIM_LIMIT_REACHED' },
+          { status: 429 }
+        );
+      }
+
+      // Ensure the job is still unassigned (race-condition guard)
       query = query.is('assigned_to', null);
     }
 

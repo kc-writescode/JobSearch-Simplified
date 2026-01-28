@@ -15,6 +15,9 @@ interface TasksDataTableProps {
   showProofColumn?: boolean;
   onClaimTask?: (task: VACoreTask) => void;
   currentUserId?: string;
+  claimDisabled?: boolean;
+  activeClaimCount?: number;
+  maxClaims?: number;
 }
 
 const getStatusColor = (status: TaskStatus) => {
@@ -55,6 +58,9 @@ export function TasksDataTable({
   showProofColumn,
   onClaimTask,
   currentUserId,
+  claimDisabled,
+  activeClaimCount,
+  maxClaims,
 }: TasksDataTableProps) {
   if (loading) {
     return (
@@ -250,10 +256,15 @@ export function TasksDataTable({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onClaimTask(task);
+                              if (!claimDisabled) onClaimTask(task);
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 border border-blue-700 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                            title="Claim Mission"
+                            disabled={claimDisabled}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors shadow-sm ${
+                              claimDisabled
+                                ? 'bg-slate-300 text-slate-500 border border-slate-300 cursor-not-allowed'
+                                : 'text-white bg-blue-600 border border-blue-700 hover:bg-blue-700'
+                            }`}
+                            title={claimDisabled ? `Claim limit reached (${activeClaimCount}/${maxClaims})` : 'Claim Mission'}
                           >
                             <span className="text-[10px] uppercase font-black tracking-widest">Claim</span>
                           </button>

@@ -142,6 +142,13 @@ export default function VATasksPage() {
 
   const activeFilterCount = (filters.status?.length || 0) + (filters.priority?.length || 0);
 
+  // Count active claims for the current admin (Applying status, assigned to me)
+  const MAX_ACTIVE_CLAIMS = 5;
+  const activeClaimCount = currentUserId
+    ? tasks.filter(t => t.assignedTo === currentUserId && t.status === 'Applying').length
+    : 0;
+  const claimLimitReached = activeClaimCount >= MAX_ACTIVE_CLAIMS;
+
   // Derive all unique labels from current tasks for the filter dropdown
   const allLabels = Array.from(new Set(filteredTasks.flatMap(t => t.labels || [])));
 
@@ -235,7 +242,11 @@ export default function VATasksPage() {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 409) {
           toast.warning(errorData.error || 'This mission was just claimed by another agent.');
-          fetchTasks(); // Sync UI
+          fetchTasks();
+          return;
+        }
+        if (response.status === 429) {
+          toast.warning(errorData.error || 'You have reached the maximum active claims. Submit existing claims first.');
           return;
         }
         throw new Error(errorData.error || 'Failed to claim task');
@@ -470,6 +481,15 @@ export default function VATasksPage() {
                 <span className="px-2.5 py-1 bg-slate-200/50 text-slate-600 text-[10px] font-bold rounded-lg border border-slate-200">
                   {displayTasks.length} Assignments
                 </span>
+                {dashboardTab === 'Applying' && currentUserId && (
+                  <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border ${
+                    claimLimitReached
+                      ? 'bg-red-50 text-red-600 border-red-200'
+                      : 'bg-blue-50 text-blue-600 border-blue-200'
+                  }`}>
+                    {activeClaimCount}/{MAX_ACTIVE_CLAIMS} Claims
+                  </span>
+                )}
               </div>
             </div>
 
@@ -484,6 +504,9 @@ export default function VATasksPage() {
                 showProofColumn={dashboardTab === 'Applied'}
                 onClaimTask={handleClaimTask}
                 currentUserId={adminProfile?.id}
+                claimDisabled={claimLimitReached}
+                activeClaimCount={activeClaimCount}
+                maxClaims={MAX_ACTIVE_CLAIMS}
               />
             </div>
           </>

@@ -52,7 +52,7 @@ interface JobsPipelineProps {
 }
 
 export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('saved');
+  const [activeTab, setActiveTab] = useState<TabType>('applying');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showImportForm, setShowImportForm] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
