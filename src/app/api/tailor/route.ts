@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. Fetch resume text and data
-        const { data: resume, error: resumeError } = await supabase
-            .from('resumes')
+        const { data: resume, error: resumeError } = await (supabase
+            .from('resumes') as any)
             .select('*')
             .eq('id', job.resume_id)
             .single();
@@ -78,9 +78,9 @@ export async function POST(request: NextRequest) {
         // 4. Perform tailoring
         try {
             const tailoredResult = await tailorWithOpenAI(
-                resume.parsed_text,
+                resume.parsed_text || '',
                 job.description,
-                resume.parsed_data?.experience || []
+                (resume.parsed_data as any)?.experience || []
             );
 
             // 5. Save results

@@ -44,8 +44,7 @@ export async function POST(request: NextRequest) {
         const globalInstructions = profileData?.global_notes || '';
 
         // 2. Fetch resume text
-        const { data: resume, error: resumeError } = await supabase
-            .from('resumes')
+        const { data: resume, error: resumeError } = await (supabase.from('resumes') as any)
             .select('parsed_text')
             .eq('id', job.resume_id)
             .single();
@@ -57,7 +56,7 @@ export async function POST(request: NextRequest) {
         // 3. Generate cover letter
         const coverLetter = await generateCoverLetterWithOpenAI(
             candidateName,
-            resume.parsed_text,
+            resume.parsed_text || '',
             job.description,
             job.client_notes || '',
             globalInstructions
