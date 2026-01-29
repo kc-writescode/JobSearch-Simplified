@@ -1,4 +1,4 @@
-import { getGeminiModel } from '@/lib/ai/gemini';
+import { openai } from '@/lib/ai/openai';
 import { ResumeData, ResumeExperience } from '@/types/resume';
 
 export interface TailoredExperience extends Partial<ResumeExperience> {
@@ -77,19 +77,17 @@ export async function tailorResumeWithAI(
   MASTER RESUME DATA:
   ${JSON.stringify(resumeData, null, 2)}`;
 
-  const model = getGeminiModel('gemini-2.5-flash');
-
-  const result = await model.generateContent({
-    contents: [
-      { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
     ],
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.4,
-    }
+    temperature: 0.4,
+    response_format: { type: 'json_object' },
   });
 
-  const responseContent = result.response.text();
+  const responseContent = completion.choices[0]?.message?.content;
   if (!responseContent) {
     throw new Error('No response from AI');
   }
