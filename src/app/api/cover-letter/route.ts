@@ -98,7 +98,7 @@ Write a compelling, professional cover letter that:
 
 Output only the body of the cover letter starting from the salutation.`;
 
-    const model = getGeminiModel('gemini-1.5-flash');
+    const model = getGeminiModel('gemini-flash-latest');
 
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],

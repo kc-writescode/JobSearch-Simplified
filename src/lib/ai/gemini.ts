@@ -10,7 +10,7 @@ if (!apiKey) {
 export const genAI = new GoogleGenerativeAI(apiKey || 'dummy_key');
 
 // Helper for getting the model
-export const getGeminiModel = (modelName: string = 'gemini-1.5-flash') => {
+export const getGeminiModel = (modelName: string = 'gemini-flash-latest') => {
     return genAI.getGenerativeModel({
         model: modelName,
         safetySettings: [
