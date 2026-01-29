@@ -347,7 +347,7 @@ export default function VATasksPage() {
             </div>
 
             {dashboardTab !== 'Reports' && (
-              <div className="flex-1 flex items-center gap-2 max-w-xl">
+              <div className="flex-1 flex items-center gap-2 max-w-xl" suppressHydrationWarning>
                 <div className="flex-1 relative group" suppressHydrationWarning>
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors" suppressHydrationWarning>
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -366,11 +366,10 @@ export default function VATasksPage() {
                   <div className="relative" suppressHydrationWarning>
                     <button
                       onClick={() => setShowLabelDropdown(!showLabelDropdown)}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold border transition-all ${
-                        selectedLabelFilters.length > 0
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold border transition-all ${selectedLabelFilters.length > 0
                           ? 'bg-blue-50 border-blue-200 text-blue-700'
                           : 'bg-slate-50 border-slate-200/60 text-slate-500 hover:text-slate-700'
-                      }`}
+                        }`}
                     >
                       <Tag className="h-3 w-3" />
                       {selectedLabelFilters.length > 0 && (
@@ -403,9 +402,8 @@ export default function VATasksPage() {
                                       : [...selectedLabelFilters, label]
                                   );
                                 }}
-                                className={`w-full text-left px-2 py-1.5 rounded-lg transition-all flex items-center gap-2 ${
-                                  isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
-                                }`}
+                                className={`w-full text-left px-2 py-1.5 rounded-lg transition-all flex items-center gap-2 ${isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
+                                  }`}
                               >
                                 <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full border ${getLabelClasses(label)}`}>
                                   {label}
@@ -501,11 +499,10 @@ export default function VATasksPage() {
                   {totalItems}
                 </span>
                 {dashboardTab === 'Applying' && currentUserId && (
-                  <span className={`px-2 py-0.5 text-[9px] font-bold rounded border ${
-                    claimLimitReached
+                  <span className={`px-2 py-0.5 text-[9px] font-bold rounded border ${claimLimitReached
                       ? 'bg-red-50 text-red-600 border-red-200'
                       : 'bg-blue-50 text-blue-600 border-blue-200'
-                  }`}>
+                    }`}>
                     {activeClaimCount}/{MAX_ACTIVE_CLAIMS}
                   </span>
                 )}

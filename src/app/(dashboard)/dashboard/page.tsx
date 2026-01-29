@@ -42,7 +42,7 @@ export default async function DashboardPage() {
   // Fetch jobs
   const { data: jobs } = await (supabase
     .from('jobs') as any)
-    .select('id, delegated_job_id, title, company, status, job_url, location, description, resume_id, cover_letter, submission_proof, applied_at, created_at, client_notes, labels')
+    .select('id, delegated_job_id, title, company, status, job_url, location, description, resume_id, cover_letter, submission_proof, applied_at, created_at, client_notes, labels, cannot_apply_reason')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 

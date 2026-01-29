@@ -50,6 +50,7 @@ interface Job {
   cover_letter?: string | null;
   submission_proof?: string | null;
   client_notes?: string | null;
+  cannot_apply_reason?: string | null;
   created_at: string;
 }
 

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { VACoreTask } from '@/types/admin.types';
+import { VACoreTask, AIStatus, TaskStatus } from '@/types/admin.types';
+import { jsPDF } from 'jspdf';
 import { Upload, FileText, Check, Eye, Loader2, AlertCircle, ChevronDown, Search, ClipboardList } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -39,24 +40,24 @@ export function ApplicationWorkspace({
   const [proofPath, setProofPath] = useState<string>(task?.proofOfWork?.screenshotUrl || ''); // Reusing screenshotUrl field for storage path if needed, or mapping it.
 
   const [activeTab, setActiveTab] = useState<'applicant' | 'documents' | 'inputs'>('applicant');
+
+  // AI & Formatting State
   const [isTailoring, setIsTailoring] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [currentAiStatus, setCurrentAiStatus] = useState(task?.aiStatus || 'Pending');
   const [isGeneratingCL, setIsGeneratingCL] = useState(false);
-  const [currentCoverLetter, setCurrentCoverLetter] = useState(task?.coverLetter || '');
+  const [currentAiStatus, setCurrentAiStatus] = useState<AIStatus>(task?.aiStatus || 'Pending');
+  const [currentCoverLetter, setCurrentCoverLetter] = useState<string>(task?.coverLetter || '');
   const [matchAnalytics, setMatchAnalytics] = useState(task?.matchAnalytics || null);
-  const [editableTailoredData, setEditableTailoredData] = useState<{
-    summary: string;
-    experience: any[];
-    skills: string[];
-  } | null>(null);
+  const [editableTailoredData, setEditableTailoredData] = useState<any>(task?.fullTailoredData || null);
   const [isSavingTweaks, setIsSavingTweaks] = useState(false);
+  const [isSavingCLContent, setIsSavingCLContent] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
-  // Job description dialog state (for when description is missing)
+  // Job Description Dialog State
   const [showDescriptionDialog, setShowDescriptionDialog] = useState(false);
-  const [pendingJobDescription, setPendingJobDescription] = useState('');
-  const [descriptionAction, setDescriptionAction] = useState<'tailor' | 'cover_letter' | null>(null);
+  const [pendingJobDescription, setPendingJobDescription] = useState(task?.profileDetails?.job_description || '');
   const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const [descriptionAction, setDescriptionAction] = useState<'tailor' | 'cover_letter' | null>(null);
 
   // Profile search state
   const [profileSearch, setProfileSearch] = useState('');
@@ -64,84 +65,337 @@ export function ApplicationWorkspace({
   // Sync state with task when it changes
   React.useEffect(() => {
     if (task) {
-      setCurrentAiStatus(task.aiStatus || 'Pending');
-      setCurrentCoverLetter(task.coverLetter || '');
-      setMatchAnalytics(task.matchAnalytics || null);
-      if (task.fullTailoredData) {
-        setEditableTailoredData({
-          summary: task.fullTailoredData.summary || '',
-          experience: task.fullTailoredData.experience || [],
-          skills: task.fullTailoredData.skills || [],
-        });
-      } else {
-        setEditableTailoredData(null);
-      }
       // Reset proof-related states when task changes
       setProofFile(null);
       setProofPath(task.proofOfWork?.screenshotUrl || '');
       setProofUploadStatus(task.proofOfWork?.screenshotUrl ? 'success' : 'idle');
+
+      // Sync AI states
+      setCurrentAiStatus(task.aiStatus || 'Pending');
+      setCurrentCoverLetter(task.coverLetter || '');
+      setMatchAnalytics(task.matchAnalytics || null);
+      setEditableTailoredData(task.fullTailoredData || null);
+      setPendingJobDescription(task.profileDetails?.job_description || '');
     }
   }, [task]);
 
-  // Refresh tailored resume status
+  if (!task) return null;
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
+  };
+
   const handleRefreshStatus = async () => {
     if (!task) return;
     setIsRefreshing(true);
     try {
-      const response = await fetch(`/api/admin/tailor/status?job_id=${task.jobId}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.data?.status === 'completed') {
-          setCurrentAiStatus('Completed');
-          if (data.data.full_tailored_data) {
-            setMatchAnalytics({
-              score: data.data.full_tailored_data.match_score || 0,
-              matched_keywords: data.data.full_tailored_data.keywords_matched || [],
-              missing_keywords: data.data.full_tailored_data.keywords_missing || [],
-            });
-            setEditableTailoredData({
-              summary: data.data.full_tailored_data.summary || '',
-              experience: data.data.full_tailored_data.experience || [],
-              skills: data.data.full_tailored_data.highlighted_skills || data.data.tailored_skills || [],
-            });
-          }
-        } else if (data.data?.status === 'processing' || data.data?.status === 'pending') {
-          setCurrentAiStatus('In Progress');
-        } else if (data.data?.status === 'failed') {
-          setCurrentAiStatus('Error');
-        }
+      const supabase = createClient();
+
+      // 1. Fetch Job basic info
+      const { data: jobData, error: jobError } = await (supabase.from('jobs') as any)
+        .select('ai_status, cover_letter')
+        .eq('id', task.id)
+        .maybeSingle();
+
+      if (jobError) throw jobError;
+
+      // 2. Fetch latest Tailored Resume
+      const { data: tailoredData, error: tailoredError } = await (supabase.from('tailored_resumes') as any)
+        .select('full_tailored_data, tailored_summary, tailored_experience, tailored_skills')
+        .eq('job_id', task.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (tailoredError) throw tailoredError;
+
+      if (jobData) {
+        setCurrentAiStatus(jobData.ai_status as AIStatus);
+        setCurrentCoverLetter(jobData.cover_letter || '');
       }
-    } catch (error) {
-      console.error('Error refreshing status:', error);
+
+      if (tailoredData) {
+        setMatchAnalytics(tailoredData.full_tailored_data);
+        setEditableTailoredData({
+          summary: tailoredData.tailored_summary,
+          experience: tailoredData.tailored_experience,
+          skills: tailoredData.tailored_skills
+        });
+      }
+
+      toast.success('Status refreshed');
+    } catch (err: any) {
+      console.error('Refresh Status Error:', {
+        message: err.message,
+        details: err.details,
+        hint: err.hint,
+        code: err.code
+      });
+      toast.error('Failed to refresh status: ' + (err.message || 'Unknown error'));
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Download tailored resume as PDF
-  const handleDownloadTailoredPdf = async () => {
-    if (!task) return;
+  const handleSaveDescriptionAndProceed = async () => {
+    if (!task || !pendingJobDescription.trim()) return;
+
+    setIsSavingDescription(true);
     try {
-      const response = await fetch(`/api/tailor/download?job_id=${task.jobId}`);
-      if (!response.ok) {
-        throw new Error('Failed to download tailored resume');
+      const supabase = createClient();
+      const { error } = await (supabase.from('jobs') as any)
+        .update({ description: pendingJobDescription })
+        .eq('id', task.id);
+
+      if (error) throw error;
+
+      setShowDescriptionDialog(false);
+      toast.success('Job description saved');
+
+      // Proceed with the action that triggered the dialog
+      if (descriptionAction === 'tailor') {
+        handleTailorResume();
+      } else if (descriptionAction === 'cover_letter') {
+        handleGenerateCoverLetter();
       }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tailored_resume_${task.clientName.replace(/\s+/g, '_')}_${task.company.replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading tailored resume:', error);
-      toast.error('Failed to download tailored resume');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save description');
+    } finally {
+      setIsSavingDescription(false);
+      setDescriptionAction(null);
     }
   };
 
-  if (!task) return null;
+  const handleTailorResume = async () => {
+    if (!task || !task.selectedResume) {
+      toast.error('No resume selected');
+      return;
+    }
+
+    // Check if job has description
+    if (!task.profileDetails?.job_description && !pendingJobDescription) {
+      setDescriptionAction('tailor');
+      setShowDescriptionDialog(true);
+      return;
+    }
+
+    setIsTailoring(true);
+    setCurrentAiStatus('In Progress');
+
+    try {
+      const response = await fetch('/api/admin/ai/tailor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: task.id,
+          resumeId: task.selectedResume.id,
+          jobDescription: pendingJobDescription || task.profileDetails?.job_description
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Tailoring failed');
+
+      toast.success('Resume tailoring completed!');
+      handleRefreshStatus();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Tailoring failed');
+      setCurrentAiStatus('Error');
+    } finally {
+      setIsTailoring(false);
+    }
+  };
+
+  const handleGenerateCoverLetter = async () => {
+    if (!task || !task.selectedResume) {
+      toast.error('No resume selected');
+      return;
+    }
+
+    // Check if job has description
+    if (!task.profileDetails?.job_description && !pendingJobDescription) {
+      setDescriptionAction('cover_letter');
+      setShowDescriptionDialog(true);
+      return;
+    }
+
+    setIsGeneratingCL(true);
+    try {
+      const response = await fetch('/api/admin/ai/cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId: task.id,
+          resumeId: task.selectedResume.id,
+          jobDescription: pendingJobDescription || task.profileDetails?.job_description,
+          clientNotes: task.clientNotes,
+          globalInstructions: task.globalNotes
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Generation failed');
+
+      setCurrentCoverLetter(result.coverLetter);
+      toast.success('Cover letter generated!');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Generation failed');
+    } finally {
+      setIsGeneratingCL(false);
+    }
+  };
+
+  const handleSaveTweaks = async () => {
+    if (!task || !editableTailoredData) return;
+    setIsSavingTweaks(true);
+    try {
+      const supabase = createClient();
+      const { error } = await (supabase.from('tailored_resumes') as any)
+        .update({
+          tailored_summary: editableTailoredData.summary,
+          tailored_experience: editableTailoredData.experience,
+          tailored_skills: editableTailoredData.skills
+        })
+        .eq('job_id', task.id);
+
+      if (error) throw error;
+      toast.success('Changes saved successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save changes');
+    } finally {
+      setIsSavingTweaks(false);
+    }
+  };
+
+  const handleSaveCoverLetter = async () => {
+    if (!task) return;
+    setIsSavingCLContent(true);
+    try {
+      const supabase = createClient();
+      const { error } = await (supabase.from('jobs') as any)
+        .update({ cover_letter: currentCoverLetter })
+        .eq('id', task.id);
+
+      if (error) throw error;
+      toast.success('Cover letter saved');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save cover letter');
+    } finally {
+      setIsSavingCLContent(false);
+    }
+  };
+
+  const updateExperienceField = (idx: number, field: string, value: string) => {
+    if (!editableTailoredData) return;
+    const newExp = [...editableTailoredData.experience];
+    newExp[idx] = { ...newExp[idx], [field]: value };
+    setEditableTailoredData({ ...editableTailoredData, experience: newExp });
+  };
+
+  const updateExperienceBullet = (expIdx: number, bulletIdx: number, value: string) => {
+    if (!editableTailoredData) return;
+    const newExp = [...editableTailoredData.experience];
+    const newBullets = [...newExp[expIdx].tailored_bullets];
+    newBullets[bulletIdx] = value;
+    newExp[expIdx] = { ...newExp[expIdx], tailored_bullets: newBullets };
+    setEditableTailoredData({ ...editableTailoredData, experience: newExp });
+  };
+
+  const updateSkills = (value: string) => {
+    if (!editableTailoredData) return;
+    const skillsArray = value.split(',').map(s => s.trim()).filter(s => s !== '');
+    setEditableTailoredData({ ...editableTailoredData, skills: skillsArray });
+  };
+
+  const handleDownloadResume = (type: 'original' | 'tailored') => {
+    if (type === 'original') {
+      if (!task?.selectedResume?.file_path) {
+        toast.error('Original resume file path not found');
+        return;
+      }
+      window.open(`/api/resume/download?path=${encodeURIComponent(task.selectedResume.file_path)}`, '_blank');
+    } else {
+      handleDownloadTailoredPdf();
+    }
+  };
+
+  const handleDownloadTailoredPdf = () => {
+    if (!task?.id) return;
+    window.open(`/api/resume/download?taskId=${task.id}&type=tailored`, '_blank');
+  };
+
+  const handleDownloadCoverLetter = (format: 'pdf' | 'docx') => {
+    if (!currentCoverLetter) {
+      toast.error('No cover letter content to download');
+      return;
+    }
+
+    // Helper to extract company name from the cover letter text
+    const extractCompanyName = (text: string): string => {
+      const lines = text.split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
+
+      // Look for the line after "Hiring Manager"
+      const managerIdx = lines.findIndex(l => l.toLowerCase().includes('hiring manager'));
+      if (managerIdx !== -1 && lines[managerIdx + 1]) {
+        // Filter out common address components or dates
+        const candidate = lines[managerIdx + 1];
+        if (!candidate.match(/^\d/) && !candidate.toLowerCase().includes('dear')) {
+          return candidate;
+        }
+      }
+
+      // Fallback: look for "at [Company]" pattern in the first paragraph
+      const atMatch = text.match(/at\s+([A-Za-z0-9&.\s]{2,40})(?:\s+for|\s+is|\.|\n)/);
+      if (atMatch && atMatch[1]) {
+        return atMatch[1].trim();
+      }
+
+      return task?.company || 'Job';
+    };
+
+    const companyName = extractCompanyName(currentCoverLetter);
+    const safeCompanyName = companyName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+
+    if (format === 'pdf') {
+      try {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const maxLineWidth = pageWidth - margin * 2;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+
+        const lines = doc.splitTextToSize(currentCoverLetter, maxLineWidth);
+        doc.text(lines, margin, 25);
+
+        doc.save(`Cover_Letter_${safeCompanyName}.pdf`);
+        toast.success('Cover letter PDF generated!');
+      } catch (err) {
+        console.error('PDF Generation Error:', err);
+        toast.error('Failed to generate PDF');
+      }
+    } else {
+      const blob = new Blob([currentCoverLetter], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Cover_Letter_${safeCompanyName}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Cover letter downloaded as .txt');
+    }
+  };
 
   const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -218,229 +472,6 @@ export function ApplicationWorkspace({
     }
   };
 
-  // Save job description and proceed with action
-  const handleSaveDescriptionAndProceed = async () => {
-    if (!task || !pendingJobDescription.trim()) {
-      toast.warning('Please enter a job description');
-      return;
-    }
-
-    setIsSavingDescription(true);
-    try {
-      // Save the description to the job
-      const supabase = createClient();
-      const { error } = await (supabase
-        .from('jobs') as any)
-        .update({
-          description: pendingJobDescription.trim(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', task.jobId);
-
-      if (error) throw error;
-
-      // Close dialog and proceed with the pending action
-      setShowDescriptionDialog(false);
-      setPendingJobDescription('');
-
-      if (descriptionAction === 'tailor') {
-        // Give a moment for the update to propagate, then tailor
-        setTimeout(() => handleTailorResume(), 500);
-      } else if (descriptionAction === 'cover_letter') {
-        setTimeout(() => handleGenerateCoverLetter(), 500);
-      }
-
-      setDescriptionAction(null);
-    } catch (error) {
-      console.error('Error saving job description:', error);
-      toast.error('Failed to save job description. Please try again.');
-    } finally {
-      setIsSavingDescription(false);
-    }
-  };
-
-  const handleTailorResume = async () => {
-    if (!task.selectedResume?.id) {
-      toast.warning('No resume selected for this job');
-      return;
-    }
-
-    setIsTailoring(true);
-    setCurrentAiStatus('In Progress');
-    try {
-      const response = await fetch('/api/tailor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_id: task.jobId, mode: 'direct' }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Check if we need a job description
-        if (data.needs_description) {
-          setIsTailoring(false);
-          setCurrentAiStatus('Pending');
-          setDescriptionAction('tailor');
-          setShowDescriptionDialog(true);
-          return;
-        }
-        throw new Error(data.error || 'Failed to tailor resume');
-      }
-
-      // Direct mode returns completed immediately
-      if (data.data?.status === 'completed') {
-        setCurrentAiStatus('Completed');
-        if (data.data.tailored) {
-          setMatchAnalytics({
-            score: data.data.tailored.match_score || 0,
-            matched_keywords: data.data.tailored.keywords_matched || [],
-            missing_keywords: data.data.tailored.keywords_missing || [],
-          });
-          setEditableTailoredData({
-            summary: data.data.tailored.summary || '',
-            experience: data.data.tailored.experience || [],
-            skills: data.data.tailored.highlighted_skills || data.data.tailored.tailored_skills || [],
-          });
-        }
-      } else {
-        // Queue mode - keep as In Progress
-        setCurrentAiStatus('In Progress');
-      }
-    } catch (error) {
-      console.error('Error tailoring resume:', error);
-      setCurrentAiStatus('Error');
-      toast.error(`Failed to tailor resume: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsTailoring(false);
-    }
-  };
-
-  const handleGenerateCoverLetter = async () => {
-    if (!task) return;
-    setIsGeneratingCL(true);
-    try {
-      const response = await fetch('/api/cover-letter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_id: task.jobId }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        // Check if we need a job description
-        if (result.error?.includes('description is required')) {
-          setIsGeneratingCL(false);
-          setDescriptionAction('cover_letter');
-          setShowDescriptionDialog(true);
-          return;
-        }
-        throw new Error(result.error || 'Failed to generate cover letter');
-      }
-
-      setCurrentCoverLetter(result.cover_letter);
-    } catch (error) {
-      console.error('Error generating cover letter:', error);
-      toast.error(`Failed to generate cover letter: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsGeneratingCL(false);
-    }
-  };
-
-  const handleSaveTweaks = async () => {
-    if (!task || !editableTailoredData) return;
-    setIsSavingTweaks(true);
-    try {
-      const response = await fetch('/api/tailor/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          job_id: task.jobId,
-          tailored_summary: editableTailoredData.summary,
-          tailored_experience: editableTailoredData.experience,
-          tailored_skills: editableTailoredData.skills,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to save tweaks');
-      toast.success('Changes saved successfully!');
-    } catch (error) {
-      console.error('Error saving tweaks:', error);
-      toast.error('Failed to save changes');
-    } finally {
-      setIsSavingTweaks(false);
-    }
-  };
-
-  const updateExperienceBullet = (expIndex: number, bulletIndex: number, newValue: string) => {
-    if (!editableTailoredData) return;
-    const newExperience = [...editableTailoredData.experience];
-    const newBullets = [...newExperience[expIndex].tailored_bullets];
-    newBullets[bulletIndex] = newValue;
-    newExperience[expIndex] = { ...newExperience[expIndex], tailored_bullets: newBullets };
-    setEditableTailoredData({ ...editableTailoredData, experience: newExperience });
-  };
-
-  const updateExperienceField = (expIndex: number, field: string, newValue: string) => {
-    if (!editableTailoredData) return;
-    const newExperience = [...editableTailoredData.experience];
-    newExperience[expIndex] = { ...newExperience[expIndex], [field]: newValue };
-    setEditableTailoredData({ ...editableTailoredData, experience: newExperience });
-  };
-
-  const updateSkills = (newSkillsStr: string) => {
-    if (!editableTailoredData) return;
-    const skills = newSkillsStr.split(',').map(s => s.trim()).filter(Boolean);
-    setEditableTailoredData({ ...editableTailoredData, skills });
-  };
-
-  const handleDownloadResume = async (type: 'original' | 'tailored') => {
-    try {
-      if (type === 'original' && task.selectedResume?.file_path) {
-        // Download original resume
-        const response = await fetch(`/api/resume/download?path=${encodeURIComponent(task.selectedResume.file_path)}`);
-        if (!response.ok) throw new Error('Failed to download');
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${task.clientName}_${task.selectedResume.title || 'resume'}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } else if (type === 'tailored' && task.tailoredResumeId) {
-        // Open tailored resume view
-        window.open(`/tailor/${task.jobId}`, '_blank');
-      }
-    } catch (error) {
-      console.error('Error downloading:', error);
-      toast.error('Failed to download resume');
-    }
-  };
-
-  const handleDownloadCoverLetter = async (format: 'pdf' | 'docx') => {
-    if (!task) return;
-    try {
-      const response = await fetch(`/api/cover-letter/download?job_id=${task.jobId}&format=${format}`);
-      if (!response.ok) throw new Error('Download failed');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Cover_Letter_${task.company.replace(/\s+/g, '_')}.${format}`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      toast.error('Operation failed');
-    }
-  };
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copied to clipboard!`);
-  };
-
   return (
     <div
       className={`fixed inset-0 z-50 overflow-hidden transition-opacity ${task ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -474,31 +505,15 @@ export function ApplicationWorkspace({
             }`}>
             {task.status}
           </span>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${currentAiStatus === 'Completed' ? 'bg-green-100 text-green-700' :
-            currentAiStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-              currentAiStatus === 'Error' ? 'bg-red-100 text-red-700' :
-                'bg-gray-100 text-gray-700'
-            }`}>
-            Tailored: {currentAiStatus === 'Completed' ? 'Yes' : currentAiStatus === 'In Progress' ? 'Processing' : 'No'}
-          </span>
-          <button
-            onClick={handleRefreshStatus}
-            disabled={isRefreshing}
-            className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
-            title="Refresh tailoring status"
-          >
-            <RefreshIcon className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </button>
           <span className={`px-2 py-1 text-xs font-medium rounded-full ${task.priority === 'Premium' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
             }`}>
             {task.priority}
           </span>
           {/* Credits display */}
-          <span className={`px-3 py-1.5 text-xs font-black rounded-xl flex items-center gap-2 border ${
-            (task.credits ?? 0) === 0 ? 'bg-red-50 text-red-700 border-red-200' :
+          <span className={`px-3 py-1.5 text-xs font-black rounded-xl flex items-center gap-2 border ${(task.credits ?? 0) === 0 ? 'bg-red-50 text-red-700 border-red-200' :
             (task.credits ?? 0) < 50 ? 'bg-amber-50 text-amber-700 border-amber-200' :
-            'bg-emerald-50 text-emerald-700 border-emerald-200'
-          }`} title="Client's remaining application credits">
+              'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`} title="Client's remaining application credits">
             <span>{(task.credits ?? 0) === 0 ? '⛔' : (task.credits ?? 0) < 50 ? '⚠️' : '✅'}</span>
             Credits: {task.credits ?? 0}
           </span>
@@ -514,7 +529,83 @@ export function ApplicationWorkspace({
               Claim Task
             </button>
           )}
+
+          {/* AI Status Badge with Refresh */}
+          <div className="flex items-center gap-2 ml-auto">
+            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${currentAiStatus === 'Completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+              currentAiStatus === 'In Progress' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                currentAiStatus === 'Error' ? 'bg-red-50 text-red-700 border border-red-100' :
+                  'bg-gray-50 text-gray-500 border border-gray-100'
+              }`}>
+              <div className={`h-1.5 w-1.5 rounded-full ${currentAiStatus === 'Completed' ? 'bg-emerald-500' :
+                currentAiStatus === 'In Progress' ? 'bg-blue-500 animate-pulse' :
+                  currentAiStatus === 'Error' ? 'bg-red-500' :
+                    'bg-gray-400'
+                }`} />
+              AI: {currentAiStatus}
+            </div>
+            <button
+              onClick={handleRefreshStatus}
+              disabled={isRefreshing}
+              className={`p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all ${isRefreshing ? 'animate-spin text-blue-600' : ''}`}
+              title="Refresh AI Status"
+            >
+              <RefreshIcon className="h-4 w-4" />
+            </button>
+          </div>
         </div>
+
+        {/* Job Description Dialog */}
+        <Dialog open={showDescriptionDialog} onOpenChange={setShowDescriptionDialog}>
+          <DialogContent className="sm:max-w-[600px] border-none shadow-2xl rounded-3xl p-0 overflow-hidden bg-white">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <ClipboardList className="h-6 w-6" />
+                  </div>
+                  Deployment Blueprint Required
+                </DialogTitle>
+                <DialogDescription className="text-blue-100 font-medium">
+                  We need the target job description to configure the AI engine for this mission.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="job-description" className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Job Description Content</Label>
+                <Textarea
+                  id="job-description"
+                  placeholder="Paste the full job posting text here..."
+                  className="min-h-[300px] bg-gray-50 border-none rounded-2xl p-6 text-sm font-medium focus:ring-2 focus:ring-blue-100 resize-none no-scrollbar"
+                  value={pendingJobDescription}
+                  onChange={(e) => setPendingJobDescription(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="ghost"
+                  className="flex-1 h-12 rounded-2xl font-bold text-gray-500 hover:bg-gray-100"
+                  onClick={() => setShowDescriptionDialog(false)}
+                >
+                  Cancel Mission
+                </Button>
+                <Button
+                  className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-[0.98]"
+                  onClick={handleSaveDescriptionAndProceed}
+                  disabled={isSavingDescription || !pendingJobDescription.trim()}
+                >
+                  {isSavingDescription ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </div>
+                  ) : 'Initialize & Proceed'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Tabs */}
         <div className="flex border-b border-gray-200 bg-gray-50">
@@ -671,38 +762,41 @@ export function ApplicationWorkspace({
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Resume Handling</h3>
                     <div className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${currentAiStatus === 'Completed' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></span>
+                      <span className={`h-2 w-2 rounded-full ${currentAiStatus === 'Completed' ? 'bg-green-500' : currentAiStatus === 'In Progress' ? 'bg-blue-500 animate-pulse' : 'bg-gray-400'}`}></span>
                       <span className="text-[10px] font-bold text-gray-500 uppercase">{currentAiStatus}</span>
                     </div>
                   </div>
 
                   {task.selectedResume ? (
                     <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-1">Master Source</p>
-                          <p className="text-sm font-bold text-gray-900">{task.selectedResume.title || 'Standard Resume'}</p>
-                          <p className="text-[11px] text-gray-500">Role: {task.selectedResume.job_role || 'Not specified'}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-red-50 rounded-2xl">
+                            <FileText className="h-6 w-6 text-red-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{task.selectedResume.title || 'Standard Resume'}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Master Source • {task.selectedResume.job_role || 'Not specified'}</p>
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleDownloadResume('original')}
                             className="px-4 py-2 bg-slate-100 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-200"
-                            title="Download original source file"
                           >
                             Download Original
                           </button>
                           <button
-                            onClick={() => window.open(`/tailor/${task.jobId}`, '_blank')}
-                            className="px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-100"
+                            onClick={() => window.open(`/api/resume/view?path=${encodeURIComponent(task.selectedResume?.file_path || '')}`, '_blank')}
+                            className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-blue-600"
                           >
-                            Preview & Edit
+                            <Eye className="h-5 w-5" />
                           </button>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 gap-3">
-                        {task.featureAccess?.resume_tailor_enabled && task.aiStatus !== 'Completed' && task.aiStatus !== 'In Progress' && (
+                        {task.featureAccess?.resume_tailor_enabled && currentAiStatus !== 'Completed' && currentAiStatus !== 'In Progress' && (
                           <button
                             onClick={handleTailorResume}
                             disabled={isTailoring}
@@ -711,9 +805,11 @@ export function ApplicationWorkspace({
                             {isTailoring ? 'Starting AI Engine...' : 'Click to Tailor Resume'}
                           </button>
                         )}
-                        {!task.featureAccess?.resume_tailor_enabled && task.aiStatus !== 'Completed' && (
-                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center">
-                            <p className="text-xs text-slate-500 font-medium">Resume Tailor feature not enabled for this client</p>
+
+                        {currentAiStatus === 'In Progress' && (
+                          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
+                            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                            <p className="text-sm font-medium text-blue-700">AI is tailoring your resume for this role...</p>
                           </div>
                         )}
 
@@ -744,7 +840,7 @@ export function ApplicationWorkspace({
                                   <div className="space-y-3">
                                     <p className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Keyword Matches</p>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {matchAnalytics.matched_keywords.length > 0 ? (
+                                      {matchAnalytics.matched_keywords?.length > 0 ? (
                                         matchAnalytics.matched_keywords.slice(0, 8).map((kw, i) => (
                                           <span key={i} className="px-2 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-md border border-emerald-100">
                                             {kw}
@@ -759,7 +855,7 @@ export function ApplicationWorkspace({
                                   <div className="space-y-3">
                                     <p className="text-[9px] font-black text-red-500 uppercase tracking-tight">Missing Gaps</p>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {matchAnalytics.missing_keywords.length > 0 ? (
+                                      {matchAnalytics.missing_keywords?.length > 0 ? (
                                         matchAnalytics.missing_keywords.slice(0, 8).map((kw, i) => (
                                           <span key={i} className="px-2 py-1 bg-red-50 text-red-700 text-[10px] font-bold rounded-md border border-red-100">
                                             {kw}
@@ -771,14 +867,6 @@ export function ApplicationWorkspace({
                                     </div>
                                   </div>
                                 </div>
-
-                                {matchAnalytics.score < 80 && (
-                                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                                    <p className="text-[10px] text-amber-800 font-bold leading-tight">
-                                      Tip: Consider adding some of the "Missing Gaps" to the master resume if applicable to boost the score.
-                                    </p>
-                                  </div>
-                                )}
                               </div>
                             )}
 
@@ -821,62 +909,63 @@ export function ApplicationWorkspace({
                                   </div>
 
                                   <div className="space-y-6 pt-2">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight ml-1">Editable Work History</p>
-                                    {editableTailoredData.experience.map((exp, expIdx) => (
-                                      <div key={expIdx} className="space-y-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                            <label className="text-[8px] font-black text-slate-400 uppercase ml-1">Company</label>
-                                            <input
-                                              type="text"
-                                              value={exp.company}
-                                              onChange={(e) => updateExperienceField(expIdx, 'company', e.target.value)}
-                                              className="w-full mt-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-50"
-                                            />
-                                          </div>
-                                          <div>
-                                            <label className="text-[8px] font-black text-slate-400 uppercase ml-1">Role / Title</label>
-                                            <input
-                                              type="text"
-                                              value={exp.role || exp.title}
-                                              onChange={(e) => updateExperienceField(expIdx, exp.role ? 'role' : 'title', e.target.value)}
-                                              className="w-full mt-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-50"
-                                            />
-                                          </div>
-                                          <div>
-                                            <label className="text-[8px] font-black text-slate-400 uppercase ml-1">Start Date</label>
-                                            <input
-                                              type="text"
-                                              value={exp.startDate || exp.start_date}
-                                              onChange={(e) => updateExperienceField(expIdx, exp.startDate ? 'startDate' : 'start_date', e.target.value)}
-                                              className="w-full mt-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-50"
-                                            />
-                                          </div>
-                                          <div>
-                                            <label className="text-[8px] font-black text-slate-400 uppercase ml-1">End Date</label>
-                                            <input
-                                              type="text"
-                                              value={exp.endDate || exp.end_date}
-                                              onChange={(e) => updateExperienceField(expIdx, exp.endDate ? 'endDate' : 'end_date', e.target.value)}
-                                              className="w-full mt-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-50"
-                                            />
-                                          </div>
-                                        </div>
-                                        <div className="space-y-2 pt-2 border-t border-slate-100">
-                                          <p className="text-[8px] font-black text-slate-400 uppercase ml-1">Tailored Bullet Points</p>
-                                          {exp.tailored_bullets?.map((bullet: string, bIdx: number) => (
-                                            <div key={bIdx} className="flex gap-2">
-                                              <span className="text-slate-300 mt-2 text-xs font-black">•</span>
-                                              <textarea
-                                                value={bullet}
-                                                onChange={(e) => updateExperienceBullet(expIdx, bIdx, e.target.value)}
-                                                className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-blue-50 resize-none min-h-[60px]"
-                                              />
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest ml-1">Work Experience Blueprint</p>
+                                      <button
+                                        onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700 underline"
+                                      >
+                                        {isPreviewMode ? 'Collapse Editor' : 'Enter Preview & Edit Mode'}
+                                      </button>
+                                    </div>
+
+                                    {isPreviewMode && (
+                                      <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        {(editableTailoredData.experience || []).map((exp: any, expIdx: number) => (
+                                          <div key={expIdx} className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100 space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                              <div>
+                                                <label className="text-[8px] font-black text-slate-400 uppercase">Company</label>
+                                                <input
+                                                  type="text"
+                                                  value={exp.company}
+                                                  onChange={(e) => updateExperienceField(expIdx, 'company', e.target.value)}
+                                                  className="w-full mt-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold focus:ring-1 focus:ring-blue-100"
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="text-[8px] font-black text-slate-400 uppercase">Role</label>
+                                                <input
+                                                  type="text"
+                                                  value={exp.role}
+                                                  onChange={(e) => updateExperienceField(expIdx, 'role', e.target.value)}
+                                                  className="w-full mt-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-[11px] font-bold focus:ring-1 focus:ring-blue-100"
+                                                />
+                                              </div>
                                             </div>
-                                          ))}
-                                        </div>
+
+                                            <div className="space-y-3">
+                                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Tailored Bullet Points</p>
+                                              <div className="space-y-2">
+                                                {(exp.tailored_bullets || []).map((bullet: string, bulletIdx: number) => (
+                                                  <div key={bulletIdx} className="p-1 bg-white rounded-xl border border-slate-100">
+                                                    <textarea
+                                                      value={bullet}
+                                                      onChange={(e) => updateExperienceBullet(expIdx, bulletIdx, e.target.value)}
+                                                      className="w-full bg-transparent border-none focus:ring-0 text-[11px] leading-relaxed p-2 min-h-[60px] resize-none"
+                                                    />
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
+                                    )}
+
+                                    {!isPreviewMode && (
+                                      <p className="text-[10px] text-gray-400 italic font-medium text-center">To edit individual work experience, use the Preview & Edit mode.</p>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -884,14 +973,6 @@ export function ApplicationWorkspace({
                           </div>
                         )}
                       </div>
-
-                      {/* Status Messages */}
-                      {currentAiStatus === 'In Progress' && (
-                        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
-                          <div className="h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                          <p className="text-sm font-medium text-blue-700">AI is crafting a tailored resume for this role...</p>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="p-8 text-center bg-yellow-50 rounded-3xl border border-yellow-100">
@@ -900,8 +981,8 @@ export function ApplicationWorkspace({
                   )}
                 </div>
 
-                {/* Cover Letter Section - Only show if feature is enabled */}
-                {task.featureAccess?.cover_letter_enabled ? (
+                {/* Cover Letter Section */}
+                {task.featureAccess?.cover_letter_enabled && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Cover Letter</h3>
@@ -913,12 +994,6 @@ export function ApplicationWorkspace({
                               className="text-[10px] font-bold text-gray-600 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors"
                             >
                               PDF
-                            </button>
-                            <button
-                              onClick={() => handleDownloadCoverLetter('docx')}
-                              className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-colors"
-                            >
-                              Word
                             </button>
                             <button
                               onClick={() => copyToClipboard(currentCoverLetter, 'Cover Letter')}
@@ -933,10 +1008,26 @@ export function ApplicationWorkspace({
 
                     {currentCoverLetter ? (
                       <div className="space-y-4">
-                        <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-h-[400px] overflow-y-auto">
-                          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">
-                            {currentCoverLetter}
-                          </pre>
+                        <div className="bg-white border-2 border-blue-50 rounded-3xl p-6 shadow-sm">
+                          <div className="flex justify-between items-center mb-4">
+                            <span className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
+                              <ClipboardList className="h-3 w-3" />
+                              Edit Content
+                            </span>
+                            <button
+                              onClick={handleSaveCoverLetter}
+                              disabled={isSavingCLContent}
+                              className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-blue-700 transition-all shadow-md shadow-blue-100 disabled:opacity-50"
+                            >
+                              {isSavingCLContent ? 'Saving...' : 'Save Changes'}
+                            </button>
+                          </div>
+                          <textarea
+                            value={currentCoverLetter}
+                            onChange={(e) => setCurrentCoverLetter(e.target.value)}
+                            className="w-full text-sm text-gray-800 bg-slate-50/50 border border-slate-100 rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-blue-100 min-h-[400px] font-sans leading-relaxed resize-none"
+                            placeholder="Edit cover letter here..."
+                          />
                         </div>
                         <button
                           onClick={handleGenerateCoverLetter}
@@ -961,23 +1052,12 @@ export function ApplicationWorkspace({
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Cover Letter</h3>
-                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl text-center">
-                      <p className="text-xs text-slate-500 font-medium">Cover Letter Generator feature not enabled for this client</p>
-                    </div>
-                  </div>
                 )}
 
                 {/* Proof of Application Section */}
                 <div className="space-y-4 pt-6 border-t border-gray-100">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Proof of Application</h3>
 
-                  {/* Submission Link (Optional) */}
-
-
-                  {/* PDF Upload */}
                   <div className="bg-white border border-gray-200 rounded-3xl p-6">
                     {!proofPath ? (
                       <div className="text-center">
@@ -1024,7 +1104,6 @@ export function ApplicationWorkspace({
                             <Check className="h-5 w-5 text-green-600" />
                           </div>
                         </div>
-                        {/* Replace option for admins - no delete option */}
                         <label className="block border border-dashed border-gray-200 rounded-xl p-3 cursor-pointer transition-colors hover:border-blue-400 hover:bg-blue-50">
                           <input
                             type="file"
@@ -1095,83 +1174,7 @@ export function ApplicationWorkspace({
           )}
         </div>
       </div>
-
-      {/* Job Description Dialog - shown when description is missing */}
-      <Dialog open={showDescriptionDialog} onOpenChange={setShowDescriptionDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-amber-500" />
-              Job Description Required
-            </DialogTitle>
-            <DialogDescription>
-              This job was imported without a description. Please paste the job description to continue with {descriptionAction === 'tailor' ? 'resume tailoring' : 'cover letter generation'}.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="job-description">Job Description</Label>
-              <Textarea
-                id="job-description"
-                placeholder="Paste the full job description here..."
-                value={pendingJobDescription}
-                onChange={(e) => setPendingJobDescription(e.target.value)}
-                rows={10}
-                className="resize-none"
-                disabled={isSavingDescription}
-              />
-              <p className="text-xs text-gray-500">
-                Tip: Copy the job description from the job posting URL and paste it here.
-              </p>
-            </div>
-
-            {task?.jobUrl && (
-              <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                <p className="text-xs text-blue-700 font-medium mb-1">Job URL:</p>
-                <a
-                  href={task.jobUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline break-all"
-                >
-                  {task.jobUrl}
-                </a>
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowDescriptionDialog(false);
-                setPendingJobDescription('');
-                setDescriptionAction(null);
-              }}
-              disabled={isSavingDescription}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveDescriptionAndProceed}
-              disabled={isSavingDescription || pendingJobDescription.trim().length < 50}
-              className="flex-1"
-            >
-              {isSavingDescription ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                `Save & ${descriptionAction === 'tailor' ? 'Tailor Resume' : 'Generate Cover Letter'}`
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div >
+    </div>
   );
 }
 

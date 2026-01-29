@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { JobImportForm } from '@/components/jobs/job-import-form';
 import { BulkJobImport } from '@/components/jobs/bulk-job-import';
-import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Ban } from 'lucide-react';
 import { PRESET_LABELS, getLabelClasses } from '@/lib/constants/labels';
 
 type TabType = 'saved' | 'applying' | 'applied' | 'trashed';
@@ -43,6 +43,7 @@ interface Job {
   submission_proof?: string | null;
   client_notes?: string | null;
   labels?: string[] | null;
+  cannot_apply_reason?: string | null;
   created_at: string;
 }
 
@@ -385,11 +386,10 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0 }: JobsPipel
             <span className="text-2xl font-bold text-slate-900 leading-none">{jobs.length}</span>
           </div>
           <div className="h-10 w-[1px] bg-slate-100 hidden sm:block"></div>
-          <div className={`hidden sm:flex flex-col px-5 py-3 rounded-2xl border-2 shadow-sm ${
-            credits === 0 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200' :
+          <div className={`hidden sm:flex flex-col px-5 py-3 rounded-2xl border-2 shadow-sm ${credits === 0 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200' :
             credits < 50 ? 'bg-gradient-to-br from-amber-50 to-orange-100 border-amber-200' :
-            'bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200'
-          }`}>
+              'bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200'
+            }`}>
             <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider leading-none mb-1">Credits</span>
             <div className="flex items-center gap-2">
               <span className="text-xl">{credits === 0 ? '⛔' : credits < 50 ? '⚠️' : '✅'}</span>
@@ -584,11 +584,10 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0 }: JobsPipel
         <div className="relative">
           <button
             onClick={() => setShowLabelDropdown(!showLabelDropdown)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-[11px] font-bold border transition-all whitespace-nowrap ${
-              selectedLabelFilters.length > 0
-                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                : 'bg-slate-50 border-slate-200/60 text-slate-500 hover:text-slate-700'
-            }`}
+            className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-[11px] font-bold border transition-all whitespace-nowrap ${selectedLabelFilters.length > 0
+              ? 'bg-blue-50 border-blue-200 text-blue-700'
+              : 'bg-slate-50 border-slate-200/60 text-slate-500 hover:text-slate-700'
+              }`}
           >
             <Tag className="h-3.5 w-3.5" />
             Labels
@@ -621,9 +620,8 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0 }: JobsPipel
                             isActive ? prev.filter(l => l !== label) : [...prev, label]
                           );
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${
-                          isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
-                        }`}
+                        className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${isActive ? 'bg-blue-50' : 'hover:bg-slate-50'
+                          }`}
                       >
                         <span className={`text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${getLabelClasses(label)}`}>
                           {label}
@@ -989,6 +987,15 @@ function JobRow({ job, tab, resumeName, onClick, onUntrash, selected, onSelect, 
       <span className="shrink-0 text-[10px] font-bold text-slate-400">
         {new Date(job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
       </span>
+
+      {/* Cannot Apply Reason (Trashed Only) */}
+      {tab === 'trashed' && job.cannot_apply_reason && (
+        <div className="shrink-0 max-w-[150px] hidden md:block">
+          <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-1 rounded-lg border border-red-100 truncate block group-hover:bg-red-100 transition-all font-mono tracking-tighter" title={job.cannot_apply_reason}>
+            {job.cannot_apply_reason}
+          </span>
+        </div>
+      )}
 
       {/* Action */}
       <div className="shrink-0">
@@ -1486,6 +1493,18 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
                   </a>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Trashed Info — Cannot Apply Reason */}
+          {job.status === 'trashed' && job.cannot_apply_reason && (
+            <div className="p-6 bg-red-50 border border-red-100 rounded-[2rem] space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-2 text-red-600">
+                <Ban className="h-4 w-4" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest">Reason for Rejection</h3>
+              </div>
+              <p className="text-sm font-bold text-red-900 italic leading-relaxed">"{job.cannot_apply_reason}"</p>
+              <p className="text-[9px] text-red-400 font-bold uppercase tracking-tight">This task was marked as 'Cannot Apply' by the recruitment team.</p>
             </div>
           )}
 
