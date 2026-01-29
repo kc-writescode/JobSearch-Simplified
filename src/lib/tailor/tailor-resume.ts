@@ -77,7 +77,7 @@ export async function tailorResumeWithAI(
   MASTER RESUME DATA:
   ${JSON.stringify(resumeData, null, 2)}`;
 
-  const model = getGeminiModel('gemini-flash-latest');
+  const model = getGeminiModel('gemini-2.5-flash');
 
   const result = await model.generateContent({
     contents: [

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { tailorResumeWithAI } from '@/lib/tailor/tailor-resume';
 
@@ -41,9 +42,14 @@ export async function POST(request: NextRequest) {
 
     const isAdmin = currentProfile?.role === 'admin';
 
+    // Switch to admin client if user is admin, to bypass RLS for other users' jobs
+    const db = isAdmin
+      ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      : supabase;
+
     // Fetch job - admins can access any job, users only their own
-    let jobQuery = (supabase
-      .from('jobs') as any)
+    let jobQuery = (db as any)
+      .from('jobs')
       .select('id, title, company, description, resume_id, user_id')
       .eq('id', job_id);
 
@@ -70,8 +76,8 @@ export async function POST(request: NextRequest) {
     // Get the resume data to use
     let resumeData = null;
     if (job.resume_id) {
-      const { data: resume } = await (supabase
-        .from('resumes') as any)
+      const { data: resume } = await (db as any)
+        .from('resumes')
         .select('parsed_data')
         .eq('id', job.resume_id)
         .single();
@@ -80,8 +86,8 @@ export async function POST(request: NextRequest) {
 
     // Fallback to primary resume or first available if job.resume_id is not set or not found
     if (!resumeData) {
-      const { data: resumes } = await (supabase
-        .from('resumes') as any)
+      const { data: resumes } = await (db as any)
+        .from('resumes')
         .select('parsed_data')
         .eq('user_id', resumeOwnerId)
         .order('is_primary', { ascending: false })
@@ -98,8 +104,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if tailored resume already exists for this job
-    const { data: existingTailored } = await (supabase
-      .from('tailored_resumes') as any)
+    const { data: existingTailored } = await (db as any)
+      .from('tailored_resumes')
       .select('id, status')
       .eq('user_id', resumeOwnerId)
       .eq('job_id', job_id)
@@ -117,8 +123,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Reset existing record for re-tailoring
-      const { error: updateError } = await (supabase
-        .from('tailored_resumes') as any)
+      const { error: updateError } = await (db as any)
+        .from('tailored_resumes')
         .update({
           status: 'pending',
           error_message: null,
@@ -140,8 +146,8 @@ export async function POST(request: NextRequest) {
       tailoredResumeId = existingTailored.id;
     } else {
       // Create new tailored_resumes record
-      const { data: newTailored, error: insertError } = await (supabase
-        .from('tailored_resumes') as any)
+      const { data: newTailored, error: insertError } = await (db as any)
+        .from('tailored_resumes')
         .insert({
           user_id: resumeOwnerId,
           job_id: job_id,
@@ -163,7 +169,7 @@ export async function POST(request: NextRequest) {
     // Direct mode: Process immediately for faster response
     if (mode === 'direct') {
       // Update status to processing
-      await (supabase.from('tailored_resumes') as any)
+      await (db as any).from('tailored_resumes')
         .update({ status: 'processing', updated_at: new Date().toISOString() })
         .eq('id', tailoredResumeId);
 
@@ -177,7 +183,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Save the tailored content
-        const { error: saveError } = await (supabase.from('tailored_resumes') as any)
+        const { error: saveError } = await (db as any).from('tailored_resumes')
           .update({
             original_resume_data: resumeData,
             tailored_summary: tailoredContent.summary,
@@ -192,7 +198,7 @@ export async function POST(request: NextRequest) {
         if (saveError) throw saveError;
 
         // Update job status to 'tailored'
-        await (supabase.from('jobs') as any)
+        await (db as any).from('jobs')
           .update({ status: 'tailored', updated_at: new Date().toISOString() })
           .eq('id', job_id);
 
@@ -210,7 +216,7 @@ export async function POST(request: NextRequest) {
         const errorMessage = tailorError?.message || 'Tailoring failed';
         const isApiKeyError = errorMessage.includes('API key') || errorMessage.includes('400');
 
-        await (supabase.from('tailored_resumes') as any)
+        await (db as any).from('tailored_resumes')
           .update({
             status: 'failed',
             error_message: isApiKeyError ? 'AI Service Error: Invalid API Key. Please check Vercel settings.' : errorMessage,
@@ -276,13 +282,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { data: currentProfile } = await (supabase
+      .from('profiles') as any)
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = currentProfile?.role === 'admin';
+    const db = isAdmin
+      ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      : supabase;
+
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get('job_id');
 
     if (!jobId) {
-      // Return all tailored resumes for user
-      const { data: tailoredResumes, error } = await (supabase
-        .from('tailored_resumes') as any)
+      // In GET list mode, stay with supabase client to adhere to RLS for normal users
+      // Admins might want to see all, but let's keep it consistent for now.
+      const client = isAdmin ? db : supabase;
+      const { data: tailoredResumes, error } = await (client as any)
+        .from('tailored_resumes')
         .select(`
           *,
           jobs:job_id (
@@ -301,9 +320,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ data: tailoredResumes });
     }
 
-    // Return specific tailored resume
-    const { data: tailoredResume, error } = await (supabase
-      .from('tailored_resumes') as any)
+    // Return specific tailored resume - use bypass for admins
+    let query = (db as any)
+      .from('tailored_resumes')
       .select(`
         *,
         jobs:job_id (
@@ -312,9 +331,13 @@ export async function GET(request: NextRequest) {
           company
         )
       `)
-      .eq('user_id', user.id)
-      .eq('job_id', jobId)
-      .single();
+      .eq('job_id', jobId);
+
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data: tailoredResume, error } = await query.single();
 
     if (error) {
       return NextResponse.json({ error: 'Tailored resume not found' }, { status: 404 });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { getGeminiModel } from '@/lib/ai/gemini';
 
 // POST /api/cover-letter - Generate cover letter for a job
@@ -29,9 +30,14 @@ export async function POST(request: NextRequest) {
 
     const isAdmin = currentProfile?.role === 'admin';
 
+    // Switch to admin client if user is admin, to bypass RLS for other users' jobs
+    const db = isAdmin
+      ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      : supabase;
+
     // Fetch job details - admins can access any job, users only their own
-    let jobQuery = (supabase
-      .from('jobs') as any)
+    let jobQuery = (db as any)
+      .from('jobs')
       .select('id, title, company, description, resume_id, user_id')
       .eq('id', job_id);
 
@@ -56,8 +62,8 @@ export async function POST(request: NextRequest) {
     // Fetch the job owner's profile (for their personal details in the cover letter)
     // If admin is generating, use the job owner's profile, not the admin's
     const profileUserId = isAdmin ? job.user_id : user.id;
-    const { data: profile } = await (supabase
-      .from('profiles') as any)
+    const { data: profile } = await (db as any)
+      .from('profiles')
       .select('full_name, email, phone, linkedin_url, resume_data')
       .eq('id', profileUserId)
       .single();
@@ -65,8 +71,8 @@ export async function POST(request: NextRequest) {
     // Fetch resume if attached
     let resumeText = '';
     if (job.resume_id) {
-      const { data: resume } = await (supabase
-        .from('resumes') as any)
+      const { data: resume } = await (db as any)
+        .from('resumes')
         .select('parsed_text')
         .eq('id', job.resume_id)
         .single();
@@ -98,7 +104,7 @@ Write a compelling, professional cover letter that:
 
 Output only the body of the cover letter starting from the salutation.`;
 
-    const model = getGeminiModel('gemini-flash-latest');
+    const model = getGeminiModel('gemini-2.5-flash');
 
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -110,8 +116,8 @@ Output only the body of the cover letter starting from the salutation.`;
     const coverLetter = result.response.text() || '';
 
     // Save cover letter to job
-    const { error: updateError } = await (supabase
-      .from('jobs') as any)
+    const { error: updateError } = await (db as any)
+      .from('jobs')
       .update({
         cover_letter: coverLetter,
         updated_at: new Date().toISOString(),
