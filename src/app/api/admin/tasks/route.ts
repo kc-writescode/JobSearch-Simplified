@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const jobIds = jobs.map(job => job.id);
 
     const [profilesRes, tailoredRes, defaultResumesRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email, plan, phone, linkedin_url, personal_details, certifications, global_notes, updated_at').in('id', allProfileIds),
+      supabase.from('profiles').select('*').in('id', allProfileIds),
       supabase.from('tailored_resumes').select('job_id, status, id, full_tailored_data').in('job_id', jobIds),
       // Fetch default resumes for all users (is_default=true or single resume)
       supabase.from('resumes').select('id, user_id, file_name, file_path, job_role, title, status, is_default').in('user_id', userIds).eq('status', 'ready'),
@@ -140,6 +140,8 @@ export async function GET(request: NextRequest) {
         status: mapJobStatusToTaskStatus(job.status),
         priority: (isPremium ? 'Premium' : 'Standard') as ClientPriority,
         aiStatus: mapAIStatus(tailored?.status),
+        featureAccess: profile?.feature_access || { cover_letter_enabled: false, resume_tailor_enabled: false },
+        credits: profile?.credits || 0,
         personalDetails: {
           full_name: profile?.full_name || '',
           email: profile?.email || '',

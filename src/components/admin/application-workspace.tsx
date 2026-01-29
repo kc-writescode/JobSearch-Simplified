@@ -468,7 +468,7 @@ export function ApplicationWorkspace({
         </div>
 
         {/* Status Bar */}
-        <div className="px-6 py-2 bg-gray-100 border-b border-gray-200 flex items-center gap-4">
+        <div className="px-6 py-2 bg-gray-100 border-b border-gray-200 flex items-center gap-4 flex-wrap">
           <span className={`px-2 py-1 text-xs font-medium rounded-full ${task.status === 'Applying' ? 'bg-yellow-100 text-yellow-700' :
             'bg-green-100 text-green-700'
             }`}>
@@ -492,6 +492,15 @@ export function ApplicationWorkspace({
           <span className={`px-2 py-1 text-xs font-medium rounded-full ${task.priority === 'Premium' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
             }`}>
             {task.priority}
+          </span>
+          {/* Credits display */}
+          <span className={`px-3 py-1.5 text-xs font-black rounded-xl flex items-center gap-2 border ${
+            (task.credits ?? 0) === 0 ? 'bg-red-50 text-red-700 border-red-200' :
+            (task.credits ?? 0) < 50 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+            'bg-emerald-50 text-emerald-700 border-emerald-200'
+          }`} title="Client's remaining application credits">
+            <span>{(task.credits ?? 0) === 0 ? '⛔' : (task.credits ?? 0) < 50 ? '⚠️' : '✅'}</span>
+            Credits: {task.credits ?? 0}
           </span>
           {task.assignedTo ? (
             <span className={`px-2 py-1 text-xs font-bold rounded-full ${task.assignedTo === currentAdminId ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
@@ -693,7 +702,7 @@ export function ApplicationWorkspace({
                       </div>
 
                       <div className="grid grid-cols-1 gap-3">
-                        {task.aiStatus !== 'Completed' && task.aiStatus !== 'In Progress' && (
+                        {task.featureAccess?.resume_tailor_enabled && task.aiStatus !== 'Completed' && task.aiStatus !== 'In Progress' && (
                           <button
                             onClick={handleTailorResume}
                             disabled={isTailoring}
@@ -701,6 +710,11 @@ export function ApplicationWorkspace({
                           >
                             {isTailoring ? 'Starting AI Engine...' : 'Click to Tailor Resume'}
                           </button>
+                        )}
+                        {!task.featureAccess?.resume_tailor_enabled && task.aiStatus !== 'Completed' && (
+                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-center">
+                            <p className="text-xs text-slate-500 font-medium">Resume Tailor feature not enabled for this client</p>
+                          </div>
                         )}
 
                         {currentAiStatus === 'Completed' && (
@@ -886,66 +900,75 @@ export function ApplicationWorkspace({
                   )}
                 </div>
 
-                {/* Cover Letter Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                {/* Cover Letter Section - Only show if feature is enabled */}
+                {task.featureAccess?.cover_letter_enabled ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Cover Letter</h3>
+                      <div className="flex items-center gap-2">
+                        {currentCoverLetter && (
+                          <>
+                            <button
+                              onClick={() => handleDownloadCoverLetter('pdf')}
+                              className="text-[10px] font-bold text-gray-600 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors"
+                            >
+                              PDF
+                            </button>
+                            <button
+                              onClick={() => handleDownloadCoverLetter('docx')}
+                              className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-colors"
+                            >
+                              Word
+                            </button>
+                            <button
+                              onClick={() => copyToClipboard(currentCoverLetter, 'Cover Letter')}
+                              className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 hover:bg-emerald-100 transition-colors"
+                            >
+                              Copy Text
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {currentCoverLetter ? (
+                      <div className="space-y-4">
+                        <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-h-[400px] overflow-y-auto">
+                          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">
+                            {currentCoverLetter}
+                          </pre>
+                        </div>
+                        <button
+                          onClick={handleGenerateCoverLetter}
+                          disabled={isGeneratingCL}
+                          className="w-full py-3 border border-blue-200 text-blue-600 text-xs font-bold rounded-xl hover:bg-blue-50 transition-all disabled:opacity-50"
+                        >
+                          {isGeneratingCL ? 'Regenerating...' : 'Regenerate Cover Letter'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                          <p className="text-gray-400 font-medium italic">No cover letter has been generated for this application.</p>
+                        </div>
+                        <button
+                          onClick={handleGenerateCoverLetter}
+                          disabled={isGeneratingCL}
+                          className="w-full py-4 bg-blue-600 text-white text-sm font-bold rounded-2xl hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-100 active:scale-[0.98]"
+                        >
+                          {isGeneratingCL ? 'Generating Cover Letter...' : 'Generate Cover Letter'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Cover Letter</h3>
-                    <div className="flex items-center gap-2">
-                      {currentCoverLetter && (
-                        <>
-                          <button
-                            onClick={() => handleDownloadCoverLetter('pdf')}
-                            className="text-[10px] font-bold text-gray-600 bg-gray-50 px-3 py-1 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors"
-                          >
-                            PDF
-                          </button>
-                          <button
-                            onClick={() => handleDownloadCoverLetter('docx')}
-                            className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-colors"
-                          >
-                            Word
-                          </button>
-                          <button
-                            onClick={() => copyToClipboard(currentCoverLetter, 'Cover Letter')}
-                            className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 hover:bg-emerald-100 transition-colors"
-                          >
-                            Copy Text
-                          </button>
-                        </>
-                      )}
+                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl text-center">
+                      <p className="text-xs text-slate-500 font-medium">Cover Letter Generator feature not enabled for this client</p>
                     </div>
                   </div>
-
-                  {currentCoverLetter ? (
-                    <div className="space-y-4">
-                      <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-h-[400px] overflow-y-auto">
-                        <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">
-                          {currentCoverLetter}
-                        </pre>
-                      </div>
-                      <button
-                        onClick={handleGenerateCoverLetter}
-                        disabled={isGeneratingCL}
-                        className="w-full py-3 border border-blue-200 text-blue-600 text-xs font-bold rounded-xl hover:bg-blue-50 transition-all disabled:opacity-50"
-                      >
-                        {isGeneratingCL ? 'Regenerating...' : 'Regenerate Cover Letter'}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-                        <p className="text-gray-400 font-medium italic">No cover letter has been generated for this application.</p>
-                      </div>
-                      <button
-                        onClick={handleGenerateCoverLetter}
-                        disabled={isGeneratingCL}
-                        className="w-full py-4 bg-blue-600 text-white text-sm font-bold rounded-2xl hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-100 active:scale-[0.98]"
-                      >
-                        {isGeneratingCL ? 'Generating Cover Letter...' : 'Generate Cover Letter'}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {/* Proof of Application Section */}
                 <div className="space-y-4 pt-6 border-t border-gray-100">
@@ -1044,12 +1067,17 @@ export function ApplicationWorkspace({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !proofPath || (task.assignedTo !== currentAdminId && !!task.assignedTo)}
+              disabled={isSubmitting || !proofPath || (task.assignedTo !== currentAdminId && !!task.assignedTo) || (task.credits ?? 0) <= 0}
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Submitting...' : 'Mark as Applied'}
             </button>
           </div>
+          {(task.credits ?? 0) <= 0 && (
+            <p className="text-[10px] text-red-600 font-bold mt-2 text-center uppercase tracking-wider">
+              ⚠️ Client has no credits remaining. Cannot submit application.
+            </p>
+          )}
           {task.assignedTo && currentAdminId && task.assignedTo !== currentAdminId && (
             <p className="text-[10px] text-red-500 font-bold mt-2 text-center uppercase tracking-wider">
               ⚠️ Warning: This mission is assigned to another agent ({task.assignedToName}).

@@ -16,11 +16,15 @@ import {
     Filter,
     MoreVertical,
     UserCog,
-    Crown
+    Crown,
+    Settings2,
+    CreditCard,
+    Sparkles
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
+import { UserFeatureDialog } from '@/components/admin/user-feature-dialog';
 
 interface Profile {
     id: string;
@@ -29,6 +33,11 @@ interface Profile {
     role: 'user' | 'admin' | 'master';
     is_verified: boolean;
     plan: string;
+    feature_access?: {
+        cover_letter_enabled: boolean;
+        resume_tailor_enabled: boolean;
+    };
+    credits?: number;
     created_at: string;
 }
 
@@ -79,6 +88,8 @@ export default function MasterDashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
+    const [selectedUserForFeatures, setSelectedUserForFeatures] = useState<Profile | null>(null);
+    const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -134,6 +145,15 @@ export default function MasterDashboard() {
         } finally {
             setUpdatingId(null);
         }
+    };
+
+    const handleOpenFeatureDialog = (user: Profile) => {
+        setSelectedUserForFeatures(user);
+        setFeatureDialogOpen(true);
+    };
+
+    const handleFeatureUpdate = (userId: string, updates: Partial<Profile>) => {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
     };
 
     const filteredUsers = users.filter(user =>
@@ -237,7 +257,8 @@ export default function MasterDashboard() {
                                             <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Identity</th>
                                             <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Clearance Level</th>
                                             <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Verified Status</th>
-                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Plan Tier</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Features</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Credits</th>
                                             <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -270,11 +291,42 @@ export default function MasterDashboard() {
                                                         {user.is_verified ? 'Access Verified' : 'Gated / Pending'}
                                                     </span>
                                                 </td>
-                                                <td className="px-8 py-6 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                                    {user.plan}
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-2">
+                                                        {user.feature_access?.resume_tailor_enabled && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100" title="Resume Tailor">
+                                                                <Sparkles className="h-2.5 w-2.5" />
+                                                                RT
+                                                            </span>
+                                                        )}
+                                                        {user.feature_access?.cover_letter_enabled && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100" title="Cover Letter">
+                                                                <FileText className="h-2.5 w-2.5" />
+                                                                CL
+                                                            </span>
+                                                        )}
+                                                        {!user.feature_access?.resume_tailor_enabled && !user.feature_access?.cover_letter_enabled && (
+                                                            <span className="text-[10px] text-slate-400 italic">None</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <CreditCard className="h-3.5 w-3.5 text-amber-500" />
+                                                        <span className={`text-sm font-black ${(user.credits ?? 0) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                                                            {user.credits ?? 0}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-8 py-6 text-right">
                                                     <div className="flex items-center justify-end gap-2 opactiy-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => handleOpenFeatureDialog(user)}
+                                                            className="p-2.5 bg-white border border-purple-200 hover:border-purple-400 rounded-xl text-purple-400 hover:text-purple-600 transition-all shadow-sm"
+                                                            title="Manage Features & Credits"
+                                                        >
+                                                            <Settings2 className="h-4 w-4" />
+                                                        </button>
                                                         <button
                                                             onClick={() => handleCycleRole(user)}
                                                             disabled={updatingId === user.id}
@@ -544,6 +596,14 @@ export default function MasterDashboard() {
                     )}
                 </>
             )}
+
+            {/* User Feature Dialog */}
+            <UserFeatureDialog
+                user={selectedUserForFeatures}
+                open={featureDialogOpen}
+                onOpenChange={setFeatureDialogOpen}
+                onUpdate={handleFeatureUpdate}
+            />
         </div>
     );
 }

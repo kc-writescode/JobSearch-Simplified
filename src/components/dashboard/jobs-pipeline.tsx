@@ -50,9 +50,10 @@ interface JobsPipelineProps {
   jobs: Job[];
   resumes: Resume[];
   onUpdate?: () => void;
+  credits?: number;
 }
 
-export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
+export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0 }: JobsPipelineProps) {
   const [activeTab, setActiveTab] = useState<TabType>('applying');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showImportForm, setShowImportForm] = useState(false);
@@ -382,6 +383,20 @@ export function JobsPipeline({ jobs, resumes, onUpdate }: JobsPipelineProps) {
           <div className="hidden sm:flex flex-col">
             <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider leading-none mb-1.5">Total Tracked</span>
             <span className="text-2xl font-bold text-slate-900 leading-none">{jobs.length}</span>
+          </div>
+          <div className="h-10 w-[1px] bg-slate-100 hidden sm:block"></div>
+          <div className={`hidden sm:flex flex-col px-5 py-3 rounded-2xl border-2 shadow-sm ${
+            credits === 0 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200' :
+            credits < 50 ? 'bg-gradient-to-br from-amber-50 to-orange-100 border-amber-200' :
+            'bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200'
+          }`}>
+            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider leading-none mb-1">Credits</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">{credits === 0 ? '⛔' : credits < 50 ? '⚠️' : '✅'}</span>
+              <span className={`text-3xl font-black leading-none ${credits === 0 ? 'text-red-600' : credits < 50 ? 'text-amber-600' : 'text-emerald-600'}`}>{credits}</span>
+            </div>
+            {credits === 0 && <span className="text-[9px] font-bold text-red-500 mt-1">No credits remaining</span>}
+            {credits > 0 && credits < 50 && <span className="text-[9px] font-bold text-amber-600 mt-1">Low balance</span>}
           </div>
           <div className="h-10 w-[1px] bg-slate-100 hidden sm:block"></div>
           <div>

@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// GET: Fetch current user's profile including feature access
+export async function GET() {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, role, plan, feature_access, credits, is_verified')
+            .eq('id', user.id)
+            .single();
+
+        if (error) throw error;
+
+        return NextResponse.json({ data });
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
 export async function PATCH(request: NextRequest) {
     try {
         const supabase = await createClient();

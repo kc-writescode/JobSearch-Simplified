@@ -33,6 +33,12 @@ export type JobType = 'full_time' | 'part_time' | 'contract' | 'freelance' | 'in
 // Work mode enum
 export type WorkMode = 'remote' | 'onsite' | 'hybrid';
 
+// Feature access control type
+export type FeatureAccess = {
+  cover_letter_enabled: boolean;
+  resume_tailor_enabled: boolean;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -51,6 +57,8 @@ export type Database = {
           resume_data: Json | null;
           personal_details: Json;
           is_verified: boolean;
+          feature_access: FeatureAccess;
+          credits: number;
           created_at: string;
           updated_at: string;
         };
@@ -68,6 +76,8 @@ export type Database = {
           resume_data?: Json | null;
           personal_details?: Json;
           is_verified?: boolean;
+          feature_access?: FeatureAccess;
+          credits?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -85,6 +95,8 @@ export type Database = {
           resume_data?: Json | null;
           personal_details?: Json;
           is_verified?: boolean;
+          feature_access?: FeatureAccess;
+          credits?: number;
           created_at?: string;
           updated_at?: string;
         };

@@ -49,6 +49,11 @@ interface TailoredResume {
   };
 }
 
+interface FeatureAccess {
+  cover_letter_enabled: boolean;
+  resume_tailor_enabled: boolean;
+}
+
 interface TailoringReviewProps {
   job: Job;
   originalResume: OriginalResume | null;
@@ -70,6 +75,26 @@ export function TailoringReview({
   const [editedExperience, setEditedExperience] = useState<Experience[]>([]);
   const [saving, setSaving] = useState(false);
   const [triggering, setTriggering] = useState(false);
+  const [featureAccess, setFeatureAccess] = useState<FeatureAccess | null>(null);
+  const [loadingFeatures, setLoadingFeatures] = useState(true);
+
+  // Fetch user's feature access on mount
+  useEffect(() => {
+    const fetchFeatureAccess = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        if (response.ok) {
+          const data = await response.json();
+          setFeatureAccess(data.data?.feature_access || { cover_letter_enabled: false, resume_tailor_enabled: false });
+        }
+      } catch (error) {
+        console.error('Error fetching feature access:', error);
+      } finally {
+        setLoadingFeatures(false);
+      }
+    };
+    fetchFeatureAccess();
+  }, []);
 
   // Keywords from job description for highlighting
   const keywords = tailoredResume?.full_tailored_data?.keywords_matched || [];
@@ -282,8 +307,35 @@ export function TailoringReview({
     );
   }
 
-  // No tailored resume yet - offer to start
+  // No tailored resume yet - offer to start (if feature is enabled)
   if (!tailoredResume) {
+    // Check if feature is enabled
+    if (!loadingFeatures && !featureAccess?.resume_tailor_enabled) {
+      return (
+        <div className="space-y-6">
+          <JobHeader job={job} />
+          <Card>
+            <CardContent className="py-12 text-center">
+              <div className="mx-auto h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
+                <SparklesIcon className="h-6 w-6 text-slate-400" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold text-slate-700">Resume Tailoring Not Available</h3>
+              <p className="mt-2 text-gray-500 max-w-md mx-auto">
+                The AI Resume Tailoring feature is not enabled for your account. Please contact support to enable this feature.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-6"
+                onClick={() => router.push('/dashboard')}
+              >
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
         <JobHeader job={job} />
@@ -297,7 +349,7 @@ export function TailoringReview({
             <Button
               className="mt-6"
               onClick={handleTriggerTailoring}
-              disabled={triggering}
+              disabled={triggering || loadingFeatures}
             >
               {triggering ? 'Starting...' : 'Start AI Tailoring'}
             </Button>

@@ -23,10 +23,10 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Fetch profile
+  // Fetch profile (including feature_access and credits for gating)
   const { data: profileData } = await (supabase
     .from('profiles') as any)
-    .select('full_name, phone, linkedin_url, github_url, personal_details, certifications, global_notes')
+    .select('full_name, phone, linkedin_url, github_url, personal_details, certifications, global_notes, feature_access, credits')
     .eq('id', user.id)
     .single();
 
@@ -77,6 +77,8 @@ export default async function DashboardPage() {
         personal_details: (profileData as any)?.personal_details || null,
         certifications: (profileData as any)?.certifications || [],
         global_notes: (profileData as any)?.global_notes || '',
+        feature_access: (profileData as any)?.feature_access || { cover_letter_enabled: false, resume_tailor_enabled: false },
+        credits: (profileData as any)?.credits || 0,
       }}
       resumes={resumes || []}
       jobs={jobsWithTailoredStatus}

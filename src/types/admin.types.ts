@@ -23,6 +23,11 @@ export interface ResumeInfo {
   content?: string;
 }
 
+export interface FeatureAccess {
+  cover_letter_enabled: boolean;
+  resume_tailor_enabled: boolean;
+}
+
 export interface VACoreTask {
   id: string;
   jobId: string;
@@ -37,6 +42,10 @@ export interface VACoreTask {
   status: TaskStatus;
   priority: ClientPriority;
   aiStatus: AIStatus;
+
+  // Feature access control (set by master)
+  featureAccess?: FeatureAccess;
+  credits?: number;
 
   // Personal details (Legacy/Current)
   personalDetails?: PersonalDetails;

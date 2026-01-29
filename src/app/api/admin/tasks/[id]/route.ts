@@ -55,6 +55,37 @@ export async function PATCH(
         // Fallback to link
         updateData.submission_proof = proofOfWork.submissionLink;
       }
+
+      // Deduct credit from user when job is marked as applied
+      // First, get the job to find the user_id
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .select('user_id')
+        .eq('id', taskId)
+        .single();
+
+      if (!jobError && jobData?.user_id) {
+        // Get current credits
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('credits')
+          .eq('id', jobData.user_id)
+          .single();
+
+        if (!profileError && profileData) {
+          const currentCredits = profileData.credits || 0;
+          if (currentCredits > 0) {
+            // Deduct one credit
+            await supabase
+              .from('profiles')
+              .update({
+                credits: currentCredits - 1,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', jobData.user_id);
+          }
+        }
+      }
     }
 
     // Add cannot_apply_reason when marking as trashed

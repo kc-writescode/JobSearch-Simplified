@@ -9,6 +9,11 @@ import { JobsPipeline } from '@/components/dashboard/jobs-pipeline';
 import { VaultSection } from '@/components/dashboard/vault-section';
 import { cn } from '@/lib/utils/cn';
 
+interface FeatureAccess {
+  cover_letter_enabled: boolean;
+  resume_tailor_enabled: boolean;
+}
+
 interface ProfileData {
   full_name: string | null;
   email: string;
@@ -18,6 +23,8 @@ interface ProfileData {
   personal_details?: any;
   certifications?: any[];
   global_notes?: string;
+  feature_access?: FeatureAccess;
+  credits?: number;
 }
 
 interface Resume {
@@ -237,6 +244,7 @@ export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps
                   file_path: r.file_path,
                 }))}
                 onUpdate={handleRefresh}
+                credits={profile.credits}
               />
             )}
 
