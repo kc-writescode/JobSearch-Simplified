@@ -205,19 +205,26 @@ export async function POST(request: NextRequest) {
             job: { id: job.id, title: job.title, company: job.company },
           },
         });
-      } catch (tailorError) {
+      } catch (tailorError: any) {
         // Mark as failed
+        const errorMessage = tailorError?.message || 'Tailoring failed';
+        const isApiKeyError = errorMessage.includes('API key') || errorMessage.includes('400');
+
         await (supabase.from('tailored_resumes') as any)
           .update({
             status: 'failed',
-            error_message: tailorError instanceof Error ? tailorError.message : 'Tailoring failed',
+            error_message: isApiKeyError ? 'AI Service Error: Invalid API Key. Please check Vercel settings.' : errorMessage,
             updated_at: new Date().toISOString(),
           })
           .eq('id', tailoredResumeId);
 
         console.error('Direct tailoring error:', tailorError);
+
         return NextResponse.json(
-          { error: 'Failed to tailor resume', details: tailorError instanceof Error ? tailorError.message : 'Unknown error' },
+          {
+            error: isApiKeyError ? 'AI Configuration Error: Invalid API Key' : 'Failed to tailor resume',
+            details: errorMessage
+          },
           { status: 500 }
         );
       }
