@@ -908,7 +908,7 @@ function JobRow({ job, tab, resumeName, onClick, onUntrash, selected, onSelect, 
   return (
     <div
       className="group bg-white px-4 py-3 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all duration-200 flex items-center gap-3 cursor-pointer"
-      onClick={tab !== 'trashed' ? onClick : undefined}
+      onClick={onClick}
     >
       {showSelection && (
         <div
