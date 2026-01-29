@@ -246,6 +246,7 @@ export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps
                 }))}
                 onUpdate={handleRefresh}
                 credits={profile.credits}
+                featureAccess={profile.feature_access}
               />
             )}
 

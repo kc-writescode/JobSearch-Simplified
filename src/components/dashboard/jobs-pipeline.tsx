@@ -7,6 +7,7 @@ import { JobImportForm } from '@/components/jobs/job-import-form';
 import { BulkJobImport } from '@/components/jobs/bulk-job-import';
 import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Ban } from 'lucide-react';
 import { PRESET_LABELS, getLabelClasses } from '@/lib/constants/labels';
+import { jsPDF } from 'jspdf';
 
 type TabType = 'saved' | 'applying' | 'applied' | 'trashed';
 
@@ -47,14 +48,20 @@ interface Job {
   created_at: string;
 }
 
+interface FeatureAccess {
+  cover_letter_enabled: boolean;
+  resume_tailor_enabled: boolean;
+}
+
 interface JobsPipelineProps {
   jobs: Job[];
   resumes: Resume[];
   onUpdate?: () => void;
   credits?: number;
+  featureAccess?: FeatureAccess;
 }
 
-export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0 }: JobsPipelineProps) {
+export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAccess }: JobsPipelineProps) {
   const [activeTab, setActiveTab] = useState<TabType>('applying');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showImportForm, setShowImportForm] = useState(false);
@@ -845,6 +852,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0 }: JobsPipel
           onTrash={() => handleTrashJob(selectedJob.id)}
           onMarkApplied={() => handleMarkApplied(selectedJob.id)}
           onUpdate={onUpdate}
+          featureAccess={featureAccess}
         />
       )}
 
@@ -1018,9 +1026,10 @@ interface JobDetailModalProps {
   onTrash: () => void;
   onMarkApplied: () => void;
   onUpdate?: () => void;
+  featureAccess?: FeatureAccess;
 }
 
-function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMarkApplied, onUpdate }: JobDetailModalProps) {
+function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMarkApplied, onUpdate, featureAccess }: JobDetailModalProps) {
   const supabase = createClient();
   const [isTailoring, setIsTailoring] = useState(false);
   const [isGeneratingCL, setIsGeneratingCL] = useState(false);
@@ -1154,15 +1163,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
 
   const handleDownloadTailoredResume = async () => {
     try {
-      const response = await fetch(`/api/tailor/download?job_id=${job.id}`);
-      if (!response.ok) throw new Error('Download conflict');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Tailored_${job.company}_${job.title}.pdf`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      window.open(`/api/resume/download?taskId=${job.id}&type=tailored`, '_blank');
     } catch (e) {
       toast.error('Operation failed');
     }
@@ -1202,6 +1203,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
           tailored_summary: editableTailoredData.summary,
           tailored_experience: editableTailoredData.experience,
           tailored_skills: editableTailoredData.skills,
+          cover_letter: coverLetter,
         }),
       });
 
@@ -1224,18 +1226,43 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
   };
 
   const handleDownloadCoverLetter = async (format: 'pdf' | 'docx') => {
-    try {
-      const response = await fetch(`/api/cover-letter/download?job_id=${job.id}&format=${format}`);
-      if (!response.ok) throw new Error('Download conflict');
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+    if (!coverLetter) {
+      toast.error('No cover letter content to download');
+      return;
+    }
+
+    const safeCompanyName = job.company.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+
+    if (format === 'pdf') {
+      try {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const maxLineWidth = pageWidth - margin * 2;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+
+        const lines = doc.splitTextToSize(coverLetter, maxLineWidth);
+        doc.text(lines, margin, 25);
+
+        doc.save(`Cover_Letter_${safeCompanyName}.pdf`);
+        toast.success('Cover letter PDF generated!');
+      } catch (err) {
+        console.error('PDF Generation Error:', err);
+        toast.error('Failed to generate PDF');
+      }
+    } else {
+      const blob = new Blob([coverLetter], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Cover_Letter_${job.company}.${format === 'docx' ? 'docx' : 'pdf'}`;
+      a.download = `Cover_Letter_${safeCompanyName}.txt`;
+      document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      toast.error('Operation failed');
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Cover letter downloaded as .txt');
     }
   };
 
@@ -1515,213 +1542,163 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
               Job Application Kit
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 ${featureAccess?.resume_tailor_enabled && featureAccess?.cover_letter_enabled ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-3`}>
               {/* Original Resume Section */}
-              <div className="p-6 bg-slate-50 border border-slate-200 rounded-[2rem] hover:bg-white transition-all">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><FileTextIcon className="h-4 w-4" /></div>
-                  <span className="text-sm font-black text-slate-900 tracking-tight italic">Master Resume</span>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-3xl hover:bg-white transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><FileTextIcon className="h-3.5 w-3.5" /></div>
+                    <span className="text-[11px] font-black text-slate-800 uppercase tracking-tighter italic">Master Resume</span>
+                  </div>
                 </div>
                 <button
                   onClick={handleDownloadOriginalResume}
-                  className="w-full py-3 bg-white border border-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                 >
-                  <RadarIcon className="h-3 w-3" /> Download Original
+                  <RadarIcon className="h-3 w-3" /> Download
                 </button>
               </div>
 
               {/* Tailored Section */}
-              <div className="p-6 bg-white border border-slate-200 rounded-[2rem] hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><PdfIcon className="h-4 w-4" /></div>
-                    <span className="text-sm font-black text-slate-900 tracking-tight italic">Tailored Resume</span>
-                  </div>
-                  {tailoredStatus === 'completed' && <span className="text-[10px] font-black text-emerald-600 uppercase">Ready</span>}
-                </div>
-                {tailoredStatus === 'completed' ? (
-                  <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <button onClick={handleViewTailoredResume} className="flex-1 py-3 bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-slate-200">Review</button>
-                      <button onClick={handleDownloadTailoredResume} className="flex-1 py-3 bg-emerald-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-100 hover:bg-emerald-700">Download PDF</button>
+              {featureAccess?.resume_tailor_enabled && (
+                <div className="p-4 bg-white border border-slate-200 rounded-3xl hover:shadow-md transition-shadow flex flex-col justify-between">
+                  <div className="flex items-center justify-between gap-4 mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><PdfIcon className="h-3.5 w-3.5" /></div>
+                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-tighter italic">Tailored Resume</span>
                     </div>
-
-                    {/* Match Analytics View */}
-                    {matchAnalytics && (
-                      <div className="bg-slate-50 border border-slate-200 rounded-3xl p-5 space-y-5">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Match Analytics</h4>
-                          <div className="flex items-center gap-2">
-                            <div className={`h-2 w-2 rounded-full ${matchAnalytics.score > 80 ? 'bg-emerald-500' : matchAnalytics.score > 60 ? 'bg-amber-500' : 'bg-red-500'}`}></div>
-                            <span className="text-lg font-black text-slate-900">{matchAnalytics.score}% Score</span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Keyword Matches</p>
-                            <div className="flex flex-wrap gap-1">
-                              {matchAnalytics.matched_keywords.length > 0 ? (
-                                matchAnalytics.matched_keywords.slice(0, 6).map((kw, i) => (
-                                  <span key={i} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[9px] font-bold rounded border border-emerald-100">{kw}</span>
-                                ))
-                              ) : (
-                                <span className="text-[9px] text-slate-400 italic">No matches</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-[9px] font-black text-red-500 uppercase tracking-tight">Keyword Gaps</p>
-                            <div className="flex flex-wrap gap-1">
-                              {matchAnalytics.missing_keywords.length > 0 ? (
-                                matchAnalytics.missing_keywords.slice(0, 6).map((kw, i) => (
-                                  <span key={i} className="px-1.5 py-0.5 bg-red-50 text-red-700 text-[9px] font-bold rounded border border-red-100">{kw}</span>
-                                ))
-                              ) : (
-                                <span className="text-[9px] text-slate-400 italic">No gaps</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Interactive Tweak Mode for User */}
-                    {editableTailoredData && (
-                      <div className="bg-white border-2 border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-50/50 space-y-6">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
-                            <FileTextIcon className="h-3 w-3" />
-                            Refine Your Resume
-                          </h4>
-                          <button
-                            onClick={handleSaveTweaks}
-                            disabled={isSavingTweaks}
-                            className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
-                          >
-                            {isSavingTweaks ? 'Saving...' : 'Save Changes'}
-                          </button>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-tight ml-1">Professional Summary</label>
-                            <textarea
-                              value={editableTailoredData.summary}
-                              onChange={(e) => setEditableTailoredData({ ...editableTailoredData, summary: e.target.value })}
-                              className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-100 min-h-[100px]"
-                            />
-                          </div>
-
-                          <div className="space-y-3">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-tight ml-1">Key Skills (Comma Separated)</label>
-                            <textarea
-                              value={(editableTailoredData.skills || []).join(', ')}
-                              onChange={(e) => updateSkillsStr(e.target.value)}
-                              className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-100 min-h-[60px]"
-                            />
-                          </div>
-
-                          <div className="space-y-4 pt-2">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-tight ml-1">Experience History</p>
-                            {editableTailoredData.experience.slice(0, 3).map((exp, expIdx) => (
-                              <div key={expIdx} className="space-y-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-                                <div className="grid grid-cols-2 gap-2 mb-2">
-                                  <input
-                                    type="text"
-                                    value={exp.company}
-                                    onChange={(e) => updateExperienceField(expIdx, 'company', e.target.value)}
-                                    placeholder="Company"
-                                    className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={exp.role || exp.title}
-                                    onChange={(e) => updateExperienceField(expIdx, exp.role ? 'role' : 'title', e.target.value)}
-                                    placeholder="Role"
-                                    className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={exp.startDate || exp.start_date}
-                                    onChange={(e) => updateExperienceField(expIdx, exp.startDate ? 'startDate' : 'start_date', e.target.value)}
-                                    placeholder="Start Date"
-                                    className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={exp.endDate || exp.end_date}
-                                    onChange={(e) => updateExperienceField(expIdx, exp.endDate ? 'endDate' : 'end_date', e.target.value)}
-                                    placeholder="End Date"
-                                    className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  {exp.tailored_bullets?.map((bullet: string, bIdx: number) => (
-                                    <div key={bIdx} className="flex gap-2">
-                                      <span className="text-slate-300 mt-2 text-xs font-black">•</span>
-                                      <textarea
-                                        value={bullet}
-                                        onChange={(e) => updateExperienceBullet(expIdx, bIdx, e.target.value)}
-                                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-blue-50 resize-none min-h-[50px]"
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {tailoredStatus === 'completed' && <span className="text-[9px] font-black text-emerald-600 uppercase">Ready</span>}
                   </div>
-                ) : (
-                  <button onClick={handleTailorResume} disabled={isTailoring} className="w-full py-3 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 disabled:opacity-50">
-                    {isTailoring ? 'Processing...' : 'Generate Tailored Resume'}
-                  </button>
-                )}
-              </div>
+                  {tailoredStatus === 'completed' ? (
+                    <div className="flex gap-2">
+                      <button onClick={handleViewTailoredResume} className="flex-1 py-2 bg-slate-100 text-slate-700 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-200">Review</button>
+                      <button onClick={handleDownloadTailoredResume} className="flex-1 py-2 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg shadow-sm hover:bg-emerald-700">PDF</button>
+                    </div>
+                  ) : (
+                    <button onClick={handleTailorResume} disabled={isTailoring} className="w-full py-2.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-blue-50 hover:bg-blue-700 disabled:opacity-50">
+                      {isTailoring ? '...' : 'Generate'}
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Cover Letter Section */}
-              <div className="p-6 bg-white border border-slate-200 rounded-[2rem] hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><FileTextIcon className="h-4 w-4" /></div>
-                    <span className="text-sm font-black text-slate-900 tracking-tight italic">Cover Letter</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {coverLetter && (
-                      <button
-                        onClick={handleCopyCoverLetter}
-                        className={`text-[9px] font-black uppercase px-2 py-1 rounded-md border transition-all ${copiedCL ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'}`}
-                      >
-                        {copiedCL ? 'Copied!' : 'Copy Text'}
-                      </button>
-                    )}
-                    {coverLetter && <span className="text-[10px] font-black text-blue-600 uppercase">Generated</span>}
-                  </div>
-                </div>
-                {coverLetter ? (
-                  <div className="space-y-4">
-                    <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 max-h-32 overflow-y-auto scrollbar-hide">
-                      <p className="text-[13px] text-slate-600 font-medium whitespace-pre-wrap leading-relaxed">{coverLetter}</p>
+              {featureAccess?.cover_letter_enabled && (
+                <div className="p-4 bg-white border border-slate-200 rounded-3xl hover:shadow-md transition-shadow flex flex-col justify-between">
+                  <div className="flex items-center justify-between gap-4 mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><FileTextIcon className="h-3.5 w-3.5" /></div>
+                      <span className="text-[11px] font-black text-slate-800 uppercase tracking-tighter italic">Cover Letter</span>
                     </div>
+                    {coverLetter && <span className="text-[9px] font-black text-blue-600 uppercase">Done</span>}
+                  </div>
+                  {coverLetter ? (
                     <div className="flex gap-2">
-                      <button onClick={() => handleDownloadCoverLetter('pdf')} className="flex-1 py-3 bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-900 shadow-lg shadow-slate-100 flex items-center justify-center gap-2">
-                        <PdfIcon className="h-3 w-3" /> PDF
+                      <button onClick={() => handleDownloadCoverLetter('pdf')} className="flex-1 py-2 bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-900 shadow-sm flex items-center justify-center gap-1.5">
+                        PDF
                       </button>
-                      <button onClick={() => handleDownloadCoverLetter('docx')} className="flex-1 py-3 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 flex items-center justify-center gap-2">
-                        <FileWordIcon className="h-3 w-3" /> Word
+                      <button onClick={() => handleDownloadCoverLetter('docx')} className="flex-1 py-2 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-700 shadow-sm flex items-center justify-center gap-1.5">
+                        DOCX
                       </button>
                     </div>
+                  ) : (
+                    <button onClick={handleGenerateCoverLetter} disabled={isGeneratingCL} className="w-full py-2.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-blue-50 hover:bg-blue-700 disabled:opacity-50">
+                      {isGeneratingCL ? '...' : 'Generate'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Expanded Analytics/Edit Section */}
+            {featureAccess?.resume_tailor_enabled && tailoredStatus === 'completed' && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                {matchAnalytics && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-3xl p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Match Analytics</h4>
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${matchAnalytics.score > 80 ? 'bg-emerald-500' : matchAnalytics.score > 60 ? 'bg-amber-500' : 'bg-red-500'}`}></div>
+                        <span className="text-base font-black text-slate-900">{matchAnalytics.score}% Match</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <p className="text-[9px] font-black text-emerald-600 uppercase tracking-tight">Keyword Matches</p>
+                        <div className="flex flex-wrap gap-1">
+                          {matchAnalytics.matched_keywords.length > 0 ? (
+                            matchAnalytics.matched_keywords.slice(0, 6).map((kw, i) => (
+                              <span key={i} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[9px] font-bold rounded border border-emerald-100">{kw}</span>
+                            ))
+                          ) : (
+                            <span className="text-[9px] text-slate-400 italic">No matches</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[9px] font-black text-red-500 uppercase tracking-tight">Keyword Gaps</p>
+                        <div className="flex flex-wrap gap-1">
+                          {matchAnalytics.missing_keywords.length > 0 ? (
+                            matchAnalytics.missing_keywords.slice(0, 6).map((kw, i) => (
+                              <span key={i} className="px-1.5 py-0.5 bg-red-50 text-red-700 text-[9px] font-bold rounded border border-red-100">{kw}</span>
+                            ))
+                          ) : (
+                            <span className="text-[9px] text-slate-400 italic">No gaps</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <button onClick={handleGenerateCoverLetter} disabled={isGeneratingCL} className="w-full py-3 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 disabled:opacity-50">
-                    {isGeneratingCL ? 'Generating...' : 'Generate Cover Letter'}
-                  </button>
+                )}
+
+                {editableTailoredData && (
+                  <div className="bg-white border-2 border-blue-50 rounded-3xl p-6 shadow-xl shadow-blue-50/20 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
+                        <FileTextIcon className="h-3 w-3" />
+                        Refine Resume
+                      </h4>
+                      <button
+                        onClick={handleSaveTweaks}
+                        disabled={isSavingTweaks}
+                        className="px-4 py-1.5 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+                      >
+                        {isSavingTweaks ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-tight ml-1">Professional Summary</label>
+                        <textarea
+                          value={editableTailoredData.summary}
+                          onChange={(e) => setEditableTailoredData({ ...editableTailoredData, summary: e.target.value })}
+                          className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-100 min-h-[80px] resize-none"
+                        />
+                      </div>
+
+                      <div className="pt-2">
+                        <div className="flex items-center justify-between gap-4 mb-1">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-tight ml-1">Cover Letter Content</label>
+                          <button
+                            onClick={handleCopyCoverLetter}
+                            className={`text-[9px] font-black uppercase px-2 py-1 rounded-md border transition-all ${copiedCL ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-500 border-slate-100'}`}
+                          >
+                            {copiedCL ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                        <textarea
+                          value={coverLetter || ''}
+                          onChange={(e) => setCoverLetter(e.target.value)}
+                          className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-100 min-h-[120px] resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -1741,6 +1718,7 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
     </div>
   );
 }
+
 
 // Tactical Icons
 function PlusIcon({ className }: { className?: string }) {
