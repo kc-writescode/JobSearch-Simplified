@@ -13,6 +13,7 @@
     "worker:dev": "tsx watch workers/start.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.1",
@@ -26,12 +27,14 @@
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
     "@tanstack/react-query": "^5.56.2",
+    "@types/file-saver": "^2.0.7",
     "bullmq": "^5.13.0",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "docx": "^9.5.1",
     "dotenv": "^17.2.3",
+    "file-saver": "^2.0.5",
     "ioredis": "^5.4.1",
     "jspdf": "^4.0.0",
     "lucide-react": "^0.441.0",

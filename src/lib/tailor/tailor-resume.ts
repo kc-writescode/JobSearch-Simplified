@@ -1,4 +1,4 @@
-import { openai } from '@/lib/ai/openai';
+import { getGeminiModel } from '@/lib/ai/gemini';
 import { ResumeData, ResumeExperience } from '@/types/resume';
 
 export interface TailoredExperience extends Partial<ResumeExperience> {
@@ -14,69 +14,82 @@ export interface TailoredResult {
   match_score: number;
 }
 
+// ... (imports remain the same)
+
 export async function tailorResumeWithAI(
   resumeData: ResumeData,
   jobTitle: string,
   company: string,
   jobDescription: string
 ): Promise<TailoredResult> {
-  const systemPrompt = `You are an expert resume writer and ATS optimizer. Tailor the resume for the specific job and provide match intelligence.
-  
-  You will be provided with a "Master Resume" in JSON format and a target Job Description.
-  
-  YOUR TASK:
-  1. Select and refine the most relevant experiences from the Master Resume.
-  2. Rewrite bullet points to highlight skills mentioned in the job description using quantifiable achievements.
-  3. Perform Match Analytics:
-     - keywords_matched: Specific skills/tools from the JD that ARE in the tailored resume.
-     - keywords_missing: Important skills/tools from the JD that ARE NOT in your tailored version (because they weren't in the Master Resume).
-     - match_score: A realistic 0-100 score of how well the tailored resume matches the target JD.
-  
-  Return JSON with this exact structure:
+  const systemPrompt = `You are an expert Resume Strategist and ATS (Applicant Tracking System) Optimization Specialist. Your goal is to rewrite a candidate's resume to strictly align with a target Job Description (JD) while adhering to industry best practices.
+
+  INPUTS:
+  1. Master Resume (JSON)
+  2. Target Job Description (Text)
+
+  YOUR OBJECTIVES:
+  1. **Strategic Refinement**: Select the most relevant experience from the Master Resume that matches the JD.
+  2. **Bullet Point Optimization (STAR Method)**: Rewrite bullet points to be action-oriented, result-driven, and quantifiable. Use the STAR method (Situation, Task, Action, Result) where possible.
+     - Start with strong action verbs (e.g., "Orchestrated", "Engineered", "Optimized" vs. "Helped", "Worked on").
+     - Incorporate metrics (%, $, time saved) if present in the original data or reasonably inferable from context (do NOT invent numbers).
+  3. **ATS Keyword Optimization**:
+     - Identify high-value keywords (hard skills, tools, methodologies) from the JD.
+     - Naturally weave these keywords into the summary and bullet points.
+  4. **Gap Analysis & Scoring**:
+     - Calculate an ATS Match Score (0-100) based on skill overlap and relevance.
+     - Identify specific high-priority keywords from the JD that are MISSING in the resume.
+
+  OUTPUT FORMAT (Strict JSON):
   {
-    "summary": "2-3 sentence tailored summary",
+    "summary": "Values-driven professional summary (3-4 lines) tailored to the role, emphasizing key matches.",
     "experience": [
       {
         "company": "Company Name",
-        "role": "Role",
+        "role": "Role Title",
         "location": "Location",
         "start_date": "Date",
         "end_date": "Date",
-        "tailored_bullets": ["Bullet 1", "Bullet 2"]
+        "tailored_bullets": [
+          "Strong Action Verb + Context + ONE specific keyword/skill + Result/Impact.",
+          "Strong Action Verb + Achievement + quantifiable metric."
+        ]
       }
     ],
-    "highlighted_skills": ["skill1", "skill2"],
-    "keywords_matched": ["keyword1", "keyword2"],
-    "keywords_missing": ["missing_keyword1", "missing_keyword2"],
-    "match_score": 85
+    "highlighted_skills": ["Top 5-8 hard skills present in the resume that match the JD"],
+    "keywords_matched": ["List of JD keywords effectively included in the tailored resume"],
+    "keywords_missing": ["List of CRITICAL JD keywords NOT found in the Master Resume (do not hallucinate these into the resume)"],
+    "match_score": 85 // Integer 0-100. <60: Poor, 60-75: Good, 75-90: Strong, >90: Excellent
   }
-  
-  Rule:
-  - DO NOT invent facts. If a skill is missing from the Master Resume, include it in "keywords_missing" and DO NOT put it in the resume.
-  - Return 3-5 high-impact bullets per role.
-  - Highlight 5-10 most relevant skills.
-  - LINE DENSITY OPTIMIZATION: Ensure each bullet point is either a single concise line or fills at least 60% of the second line. Avoid "widows" (bullets where the last line has only 1-4 words). If a bullet has a widow, rewrite it by adding meaningful detail or trimming it to fit perfectly.`;
+
+  CONSTRAINTS & RULES:
+  - **NO HALLUCINATIONS**: Do not invent skills, experiences, or degrees not present in the Master Resume. If a critical skill is missing, list it in "keywords_missing".
+  - **optimize for legibility**: Bullets should be 1-2 lines max.
+  - **Tone**: Professional, confident, active voice.
+  - **Experience Filtration**: If the Master Resume has many roles, prioritize the most recent and relevant ones. You may omit irrelevant early career roles or shorten them significantly.
+  `;
 
   const userPrompt = `TARGET JOB: ${jobTitle} at ${company}
   
   JOB DESCRIPTION:
-  ${jobDescription.slice(0, 3000)}
+  ${jobDescription.slice(0, 4000)}
   
   MASTER RESUME DATA:
   ${JSON.stringify(resumeData, null, 2)}`;
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
+  const model = getGeminiModel('gemini-1.5-flash');
+
+  const result = await model.generateContent({
+    contents: [
+      { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }
     ],
-    temperature: 0.7,
-    max_tokens: 2500,
-    response_format: { type: 'json_object' },
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.4,
+    }
   });
 
-  const responseContent = completion.choices[0]?.message?.content;
+  const responseContent = result.response.text();
   if (!responseContent) {
     throw new Error('No response from AI');
   }

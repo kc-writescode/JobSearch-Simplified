@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { openai } from '@/lib/ai/openai';
+import { getGeminiModel } from '@/lib/ai/gemini';
 
 // POST /api/cover-letter - Generate cover letter for a job
 export async function POST(request: NextRequest) {
@@ -98,13 +98,16 @@ Write a compelling, professional cover letter that:
 
 Output only the body of the cover letter starting from the salutation.`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1024,
+    const model = getGeminiModel('gemini-1.5-flash');
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        maxOutputTokens: 1024,
+      }
     });
 
-    const coverLetter = completion.choices[0]?.message?.content || '';
+    const coverLetter = result.response.text() || '';
 
     // Save cover letter to job
     const { error: updateError } = await (supabase
