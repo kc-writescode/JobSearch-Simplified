@@ -17,7 +17,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://jobhuntsimplified.com'),
+  metadataBase: new URL('https://job-search-simplified.vercel.app'),
   title: {
     default: 'JobHuntSimplified | AI-Powered Job Application Service',
     template: '%s | JobHuntSimplified',
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://jobhuntsimplified.com',
+    url: 'https://job-search-simplified.vercel.app',
     siteName: 'JobHuntSimplified',
     title: 'JobHuntSimplified | Your Automated Job Search Partner',
     description: 'AI-powered job application service with 24-hour turnaround. We handle resume tailoring, cover letters, and applications while you focus on landing the offer.',
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
     creator: '@jobhuntsimplified',
   },
   alternates: {
-    canonical: 'https://jobhuntsimplified.com',
+    canonical: 'https://job-search-simplified.vercel.app',
   },
   category: 'Career Services',
 };
@@ -88,8 +88,8 @@ export default function RootLayout({
     '@type': 'ProfessionalService',
     name: 'JobHuntSimplified',
     description: 'AI-powered job application service with human oversight. We handle resume tailoring, cover letters, and job applications.',
-    url: 'https://jobhuntsimplified.com',
-    logo: 'https://jobhuntsimplified.com/logo.png',
+    url: 'https://job-search-simplified.vercel.app',
+    logo: 'https://job-search-simplified.vercel.app/logo.png',
     priceRange: '$199/month',
     serviceType: 'Job Application Service',
     areaServed: {
