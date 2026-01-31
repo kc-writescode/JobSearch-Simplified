@@ -21,6 +21,266 @@ const CrossIcon = () => (
   </div>
 );
 
+function PricingSection() {
+  const [showCustomResume, setShowCustomResume] = useState(false);
+
+  const noCustomResumePlans = [
+    {
+      name: "Starter",
+      price: 99,
+      duration: "1 month",
+      jobsTotal: "500",
+      savings: null,
+      popular: false,
+      clientDelegated: true,
+      bestFor: "Testing our service",
+      whyBest: "Low commitment, see results fast",
+      features: ["AI Cover Letters", "Real-Time Dashboard", "WhatsApp/Slack Support", "Application Proof"],
+    },
+    {
+      name: "Growth",
+      price: 249,
+      duration: "3 months",
+      jobsTotal: "1,500",
+      savings: "16% off",
+      popular: true,
+      bestFor: "Active job seekers",
+      whyBest: "Best value for serious searches",
+      features: ["AI Cover Letters", "Daily Job Scouting", "Priority Support", "Real-Time Dashboard", "Application Proof", "Credits Roll Over"],
+    },
+    {
+      name: "Scale",
+      price: 449,
+      duration: "6 months",
+      jobsTotal: "3,000",
+      savings: "24% off",
+      popular: false,
+      bestFor: "Long-term career moves",
+      whyBest: "Maximum coverage & savings",
+      features: ["AI Cover Letters", "Dedicated Job Scout", "Priority Support", "Real-Time Dashboard", "Application Proof", "Credits Roll Over"],
+    }
+  ];
+
+  const customResumePlans = [
+    {
+      name: "Sprint",
+      price: 199,
+      duration: "1 month",
+      jobsTotal: "500",
+      savings: null,
+      popular: false,
+      bestFor: "Quick job search boost",
+      whyBest: "Full service, short commitment",
+      features: ["AI-Tailored Resumes", "AI Cover Letters", "Real-Time Dashboard", "WhatsApp/Slack Support", "Application Proof"],
+    },
+    {
+      name: "Standard",
+      price: 349,
+      duration: "3 months",
+      jobsTotal: "1,500",
+      savings: "42% off",
+      popular: true,
+      clientDelegated: true,
+      bestFor: "Serious job seekers",
+      whyBest: "Best ROI for your career",
+      features: ["AI-Tailored Resumes", "AI Cover Letters", "Daily Job Scouting", "Priority Support", "Real-Time Dashboard", "Application Proof", "Credits Roll Over"],
+    },
+    {
+      name: "Extended",
+      price: 649,
+      duration: "6 months",
+      jobsTotal: "3,000",
+      savings: "46% off",
+      popular: false,
+      bestFor: "Executive & senior roles",
+      whyBest: "White-glove service",
+      features: ["AI-Tailored Resumes", "AI Cover Letters", "Dedicated Account Manager", "Priority Support", "Real-Time Dashboard", "Application Proof", "Credits Roll Over"],
+    }
+  ];
+
+  const plans = showCustomResume ? customResumePlans : noCustomResumePlans;
+
+  return (
+    <section id="pricing" className="py-20 md:py-28 px-6 bg-gradient-to-b from-slate-50 to-white" aria-labelledby="pricing-heading">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <header className="text-center mb-12">
+          <span className="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider rounded-full mb-4 animate-pulse">
+            Pricing
+          </span>
+          <h2 id="pricing-heading" className="text-3xl md:text-5xl font-bold text-neutral-900 tracking-tight mb-4">
+            Invest in Your Career
+          </h2>
+          <p className="text-lg text-neutral-600 max-w-xl mx-auto mb-8">
+            No hidden fees. No commission on your salary. Cancel anytime.
+          </p>
+
+          {/* Toggle */}
+          <div className="inline-flex items-center p-1.5 bg-neutral-200 rounded-xl shadow-inner">
+            <button
+              onClick={() => setShowCustomResume(false)}
+              className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                !showCustomResume
+                  ? 'bg-white text-neutral-900 shadow-md'
+                  : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              Cover Letter Only
+            </button>
+            <button
+              onClick={() => setShowCustomResume(true)}
+              className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
+                showCustomResume
+                  ? 'bg-white text-neutral-900 shadow-md'
+                  : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              Resume + Cover Letter
+              <span className="px-1.5 py-0.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] font-bold rounded">PRO</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Plans */}
+        <div className="grid md:grid-cols-3 gap-5 md:gap-6">
+          {plans.map((plan, index) => (
+            <div
+              key={plan.name}
+              className={`group relative rounded-2xl transition-all duration-500 hover:scale-[1.02] ${
+                plan.popular
+                  ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white shadow-2xl shadow-blue-500/30 md:-my-4 md:py-2 ring-4 ring-blue-400/30'
+                  : 'bg-white border border-neutral-200 hover:border-blue-200 hover:shadow-xl shadow-lg'
+              }`}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              {/* Popular badge */}
+              {plan.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <span className="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold rounded-full shadow-lg animate-bounce">
+                    Best Value
+                  </span>
+                </div>
+              )}
+
+              <div className={`p-6 ${plan.popular ? 'pt-8' : ''}`}>
+                {/* Client delegated badge */}
+                {'clientDelegated' in plan && plan.clientDelegated && (
+                  <div className={`mb-4 px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                    plan.popular
+                      ? 'bg-white/15 text-white border border-white/20 backdrop-blur-sm'
+                      : 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 border border-amber-200'
+                  }`}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    You send links, we handle the rest
+                  </div>
+                )}
+
+                {/* Duration */}
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 ${
+                  plan.popular
+                    ? 'bg-white/20 text-white border border-white/30'
+                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200'
+                }`}>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {plan.duration}
+                </div>
+
+                {/* Name & Jobs */}
+                <h3 className={`text-2xl font-bold mb-1 ${plan.popular ? 'text-white' : 'text-neutral-900'}`}>
+                  {plan.name}
+                </h3>
+                <p className={`text-sm mb-5 ${plan.popular ? 'text-blue-200' : 'text-neutral-500'}`}>
+                  {plan.jobsTotal} applications
+                </p>
+
+                {/* Price */}
+                <div className="mb-5">
+                  <div className="flex items-baseline gap-1">
+                    <span className={`text-5xl font-extrabold tracking-tight ${plan.popular ? 'text-white' : 'text-neutral-900'}`}>
+                      ${plan.price}
+                    </span>
+                  </div>
+                  {plan.savings && (
+                    <span className={`inline-block mt-2 px-2.5 py-1 rounded-full text-xs font-bold ${
+                      plan.popular ? 'bg-green-400/20 text-green-300' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {plan.savings}
+                    </span>
+                  )}
+                </div>
+
+                {/* Features */}
+                <ul className={`space-y-2.5 mb-6 text-sm ${plan.popular ? 'text-blue-100' : 'text-neutral-600'}`}>
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2.5">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        plan.popular ? 'bg-green-400/20' : 'bg-green-100'
+                      }`}>
+                        <svg className={`w-3 h-3 ${plan.popular ? 'text-green-300' : 'text-green-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Hover info */}
+                <div className={`mb-5 p-3.5 rounded-xl text-sm transition-all duration-300 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 ${
+                  plan.popular ? 'bg-white/10 backdrop-blur-sm' : 'bg-blue-50 border border-blue-100'
+                }`}>
+                  <p className={`font-bold mb-1 ${plan.popular ? 'text-white' : 'text-neutral-900'}`}>
+                    Best for: {plan.bestFor}
+                  </p>
+                  <p className={plan.popular ? 'text-blue-200' : 'text-neutral-600'}>
+                    {plan.whyBest}
+                  </p>
+                </div>
+
+                {/* CTA */}
+                <a
+                  href="https://cal.id/krishna-chaitanya/connect-with-founder"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`block w-full py-3.5 rounded-xl font-bold text-sm text-center transition-all duration-300 ${
+                    plan.popular
+                      ? 'bg-white text-blue-700 hover:bg-blue-50 shadow-lg hover:shadow-xl'
+                      : 'bg-gradient-to-r from-neutral-900 to-neutral-800 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  Get Started →
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Trust badges */}
+        <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm">
+          {[
+            { text: "Zero commission", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
+            { text: "Cancel anytime", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+            { text: "Credits roll over", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
+          ].map((badge, i) => (
+            <div key={i} className="flex items-center gap-2 text-neutral-600">
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d={badge.icon} />
+                </svg>
+              </div>
+              <span className="font-medium">{badge.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ROICalculator() {
   const [timeValue, setTimeValue] = useState(25);
   const [appsPerMonth, setAppsPerMonth] = useState(100);
@@ -137,7 +397,7 @@ function ROICalculator() {
                   The Hidden Costs of Job Searching
                 </h3>
                 <p className="text-neutral-500 max-w-xl mx-auto">
-                  Think $199 is expensive? Consider what you're already paying.
+                  Think our plans are expensive? Consider what you're already paying.
                 </p>
               </div>
 
@@ -160,9 +420,9 @@ function ROICalculator() {
               {/* CTA Banner */}
               <div className="mt-12 p-8 md:p-10 bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl md:rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-teal-900/10">
                 <div>
-                  <p className="text-teal-100 text-sm font-medium mb-2">Limited Time Offer</p>
+                  <p className="text-teal-100 text-sm font-medium mb-2">Plans Starting At</p>
                   <h4 className="text-white text-xl md:text-2xl font-bold">
-                    Get started for just <span className="line-through opacity-60 mr-2">$499</span><span className="underline decoration-teal-300">$199/month</span>
+                    Get started for just <span className="underline decoration-teal-300">$99/month</span>
                   </h4>
                 </div>
                 <a
@@ -186,7 +446,7 @@ export default function LandingPage() {
   return (
     <div className="landing-container min-h-screen bg-white text-neutral-900 selection:bg-blue-100 selection:text-blue-900">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-neutral-100" role="navigation" aria-label="Main navigation">
+      <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-xl border-b border-neutral-100 shadow-sm" role="navigation" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group" aria-label="JobHuntSimplified Home">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50 group-hover:shadow-blue-300/50 transition-shadow">
@@ -196,10 +456,16 @@ export default function LandingPage() {
               JobHunt<span className="text-blue-600">Simplified</span>
             </span>
           </Link>
-          <div className="hidden md:flex gap-8 items-center">
-            <a href="#how-it-works" className="text-sm font-medium text-neutral-600 hover:text-blue-600 transition-colors">How it Works</a>
-            <a href="#pricing" className="text-sm font-medium text-neutral-600 hover:text-blue-600 transition-colors">Pricing</a>
-            <Link href="/login" className="px-6 py-2.5 rounded-lg bg-neutral-900 text-white text-sm font-semibold hover:bg-blue-600 transition-all shadow-lg shadow-neutral-200/50">
+          <div className="hidden md:flex gap-6 items-center">
+            <a href="#how-it-works" className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+              How it Works
+            </a>
+            <a href="#pricing" className="relative px-4 py-2 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-200">
+              Pricing
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full"></span>
+            </a>
+            <Link href="/login" className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-300/30 hover:shadow-blue-400/40">
               Sign In
             </Link>
           </div>
@@ -391,130 +657,7 @@ export default function LandingPage() {
         </section>
 
         {/* Pricing Section */}
-        <section id="pricing" className="py-16 md:py-20 px-6 bg-white" aria-labelledby="pricing-heading">
-          <div className="max-w-6xl mx-auto">
-            <header className="text-center mb-10">
-              <span className="inline-block px-4 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider rounded-full mb-4">
-                Pricing
-              </span>
-              <h2 id="pricing-heading" className="font-display text-2xl md:text-4xl font-extrabold text-neutral-900 tracking-tight mb-4">
-                Simple, Transparent Pricing
-              </h2>
-              <p className="text-base text-neutral-500 max-w-2xl mx-auto">
-                Choose the approach that fits your job search needs.
-              </p>
-            </header>
-
-            <div className="grid lg:grid-cols-3 gap-6 items-stretch">
-              {/* DIY Option */}
-              <article className="p-6 rounded-2xl bg-neutral-50 border border-neutral-100 h-full flex flex-col">
-                <header className="mb-4">
-                  <h3 className="text-base font-bold text-neutral-900 mb-0.5">DIY Approach</h3>
-                  <p className="text-xs text-neutral-500">Do it yourself</p>
-                </header>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-neutral-900">$0</span>
-                    <span className="text-sm text-neutral-400">/month</span>
-                  </div>
-                  <p className="text-xs text-orange-600 font-medium mt-1">Costs 120+ hours/month of your time</p>
-                </div>
-                <ul className="space-y-2 mb-6 flex-grow">
-                  {[
-                    "4+ hours daily of repetitive work",
-                    "Generic resume for every job",
-                    "High burnout and rejection fatigue",
-                    "No strategic insights",
-                    "Endless form filling"
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-neutral-600">
-                      <CrossIcon />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-
-              {/* Featured Plan */}
-              <article className="p-6 md:p-8 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-600/20 transform lg:scale-105 relative border-4 border-blue-500 flex flex-col">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-yellow-400 text-neutral-900 text-xs font-bold uppercase tracking-wide rounded-full shadow-lg">
-                  Most Popular
-                </div>
-                <header className="mb-4">
-                  <h3 className="text-base font-bold text-white mb-0.5">Full Operations</h3>
-                  <p className="text-xs text-blue-100">Fully managed service</p>
-                </header>
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-medium text-blue-200 line-through">$499</span>
-                    <span className="text-4xl font-extrabold text-white">$199</span>
-                    <span className="text-sm text-blue-100">/mo</span>
-                  </div>
-                  <p className="text-xs text-blue-100 mt-1">Limited time — save $300/month</p>
-                </div>
-                <ul className="space-y-2 mb-6 flex-grow">
-                  {[
-                    { title: "Daily Human Job Scouting", desc: "Expert team finds matches daily" },
-                    { title: "24-Hour Turnaround", desc: "Fast, professional submissions" },
-                    { title: "AI-Tailored Cover Letters", desc: "Customized for every application" },
-                    { title: "AI-Tailored Resumes", desc: "ATS-optimized for each role" },
-                    { title: "Real-Time Dashboard", desc: "Track every submission with proof" },
-                    { title: "100+ Hours Saved Monthly", desc: "Focus on what matters" }
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-white">
-                      <div className="w-4 h-4 rounded-full bg-yellow-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg className="w-2.5 h-2.5 text-neutral-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                          <path d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold">{item.title}</div>
-                        <div className="text-xs text-blue-100">{item.desc}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href="https://cal.id/krishna-chaitanya/connect-with-founder"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full py-3 rounded-xl bg-white text-blue-600 font-bold text-sm text-center hover:bg-blue-50 transition-all shadow-lg"
-                >
-                  Get Started — $199/mo
-                </a>
-              </article>
-
-              {/* Agency Comparison */}
-              <article className="p-8 rounded-2xl md:rounded-3xl bg-neutral-50 border border-red-100 h-full flex flex-col">
-                <header className="mb-6">
-                  <h3 className="text-lg font-bold text-neutral-900 mb-1">Staffing Agency</h3>
-                  <p className="text-sm text-neutral-500">Traditional recruiters</p>
-                </header>
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-extrabold text-red-600">20%</span>
-                    <span className="text-neutral-400">commission</span>
-                  </div>
-                  <p className="text-sm text-red-600 font-medium mt-2">$10K-$30K from your first year salary</p>
-                </div>
-                <ul className="space-y-3 mb-8 flex-grow">
-                  {[
-                    "Massive costs: $10K-$30K cut",
-                    "Only jobs they get paid for",
-                    "Generic 'Easy Apply' spam",
-                    "Pressure to take their offers",
-                    "No market transparency"
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-neutral-600">
-                      <CrossIcon />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            </div>
-          </div>
-        </section>
+        <PricingSection />
 
         {/* ROI Calculator */}
         <ROICalculator />
