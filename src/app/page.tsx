@@ -604,7 +604,7 @@ export default function LandingPage() {
         </section>
 
         {/* How It Works */}
-        <section id="how-it-works" className="py-20 md:py-32 px-6 bg-neutral-50" aria-labelledby="how-it-works-heading">
+        <section id="how-it-works" className="py-20 md:py-32 px-6 bg-gradient-to-b from-neutral-50 to-white" aria-labelledby="how-it-works-heading">
           <div className="max-w-7xl mx-auto">
             <header className="text-center mb-16">
               <span className="inline-block px-4 py-2 bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider rounded-full mb-6">
@@ -614,52 +614,90 @@ export default function LandingPage() {
                 How We Simplify Your Job Hunt
               </h2>
               <p className="text-lg text-neutral-500 max-w-2xl mx-auto">
-                A proven 3-step process that gets you more interviews with less effort.
+                A proven 4-step process that gets you more interviews while you focus on what matters.
               </p>
             </header>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
                   step: "01",
                   title: "Strategic Job Scouting",
-                  desc: "Our team identifies high-quality US roles that match your background, targeting positions where you're most likely to get responses.",
+                  desc: "We identify high-quality US roles matching your background, targeting positions where you'll get responses.",
                   icon: (
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                  )
+                  ),
+                  color: "blue"
                 },
                 {
                   step: "02",
                   title: "AI-Tailored Applications",
-                  desc: "We use AI to customize your resume and cover letter for each role, optimizing for ATS systems and highlighting relevant experience.",
+                  desc: "We customize your resume and cover letter for each role, optimizing for ATS systems.",
                   icon: (
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                  )
+                  ),
+                  color: "indigo"
                 },
                 {
                   step: "03",
-                  title: "Real-Time Transparency",
-                  desc: "Track every submission through your dashboard with proof of application. Stay informed and in control of your job search.",
+                  title: "Real-Time Tracking",
+                  desc: "Track every submission through your dashboard with proof of application in real-time.",
                   icon: (
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
-                  )
+                  ),
+                  color: "purple"
+                },
+                {
+                  step: "04",
+                  title: "You Ace Interviews",
+                  desc: "With applications handled, use your saved time to prepare and nail your interviews.",
+                  icon: (
+                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ),
+                  color: "teal"
                 }
               ].map((item, i) => (
-                <article key={i} className="bg-white p-8 md:p-10 rounded-2xl md:rounded-3xl border border-neutral-100 shadow-sm hover:shadow-xl hover:shadow-neutral-100/50 transition-all duration-300 feature-card group">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <article key={i} className="relative bg-white p-6 md:p-8 rounded-2xl border border-neutral-100 shadow-sm hover:shadow-xl hover:shadow-neutral-100/50 hover:-translate-y-1 transition-all duration-300 group">
+                  {/* Connector line */}
+                  {i < 3 && (
+                    <div className="hidden lg:block absolute top-12 -right-3 w-6 h-0.5 bg-gradient-to-r from-neutral-200 to-neutral-100 z-10"></div>
+                  )}
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 ${
+                    item.color === 'blue' ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' :
+                    item.color === 'indigo' ? 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white' :
+                    item.color === 'purple' ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' :
+                    'bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white'
+                  }`}>
                     {item.icon}
                   </div>
-                  <div className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3">Step {item.step}</div>
-                  <h3 className="font-display text-xl font-bold text-neutral-900 mb-4">{item.title}</h3>
-                  <p className="text-neutral-500 leading-relaxed">{item.desc}</p>
+                  <div className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 ${
+                    item.color === 'blue' ? 'bg-blue-100 text-blue-700' :
+                    item.color === 'indigo' ? 'bg-indigo-100 text-indigo-700' :
+                    item.color === 'purple' ? 'bg-purple-100 text-purple-700' :
+                    'bg-teal-100 text-teal-700'
+                  }`}>Step {item.step}</div>
+                  <h3 className="font-display text-lg font-bold text-neutral-900 mb-3">{item.title}</h3>
+                  <p className="text-sm text-neutral-500 leading-relaxed">{item.desc}</p>
                 </article>
               ))}
+            </div>
+
+            {/* Bottom highlight */}
+            <div className="mt-12 text-center">
+              <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-teal-50 to-blue-50 rounded-full border border-teal-100">
+                <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-semibold text-neutral-700">Save 20+ hours per week on applications</span>
+              </div>
             </div>
           </div>
         </section>
