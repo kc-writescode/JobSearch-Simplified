@@ -240,7 +240,7 @@ function PricingSection() {
 
                 {/* CTA */}
                 <a
-                  href="https://cal.id/krishna-chaitanya/connect-with-founder"
+                  href="https://api.whatsapp.com/send/?phone=917993723103&text=Hi+Krishna+I%E2%80%99d+like+to+know+more+information+about+your+services&type=phone_number&app_absent=0"
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`block w-full py-3.5 rounded-xl font-bold text-sm text-center transition-all duration-300 ${
@@ -249,7 +249,7 @@ function PricingSection() {
                       : 'bg-gradient-to-r from-neutral-900 to-neutral-800 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl'
                   }`}
                 >
-                  Get Started →
+                  Proceed to Plan →
                 </a>
               </div>
             </div>
@@ -453,7 +453,7 @@ export default function LandingPage() {
               JobHunt<span className="text-blue-600">Simplified</span>
             </span>
           </Link>
-          <div className="hidden md:flex gap-6 items-center">
+          <div className="hidden md:flex gap-4 items-center">
             <a href="#how-it-works" className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
               How it Works
             </a>
@@ -462,7 +462,18 @@ export default function LandingPage() {
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full"></span>
             </a>
-            <Link href="/login" className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-300/30 hover:shadow-blue-400/40">
+            <a
+              href="https://cal.id/krishna-chaitanya/connect-with-founder"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition-all border border-teal-200"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Book Free Call
+            </a>
+            <Link href="/login" className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-300/30 hover:shadow-blue-400/40">
               Sign In
             </Link>
           </div>
