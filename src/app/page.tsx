@@ -32,7 +32,7 @@ function PricingSection() {
       jobsTotal: "500",
       savings: null,
       popular: false,
-      clientDelegated: true,
+      serviceNote: "You send job links",
       bestFor: "Testing our service",
       whyBest: "Low commitment, see results fast",
       features: ["AI Cover Letters", "Real-Time Dashboard", "WhatsApp/Slack Support", "Application Proof"],
@@ -44,6 +44,7 @@ function PricingSection() {
       jobsTotal: "1,500",
       savings: "16% off",
       popular: true,
+      serviceNote: "We find jobs for you",
       bestFor: "Active job seekers",
       whyBest: "Best value for serious searches",
       features: ["AI Cover Letters", "Daily Job Scouting", "Priority Support", "Real-Time Dashboard", "Application Proof", "Credits Roll Over"],
@@ -55,6 +56,7 @@ function PricingSection() {
       jobsTotal: "3,000",
       savings: "24% off",
       popular: false,
+      serviceNote: "Dedicated job scout",
       bestFor: "Long-term career moves",
       whyBest: "Maximum coverage & savings",
       features: ["AI Cover Letters", "Dedicated Job Scout", "Priority Support", "Real-Time Dashboard", "Application Proof", "Credits Roll Over"],
@@ -63,35 +65,37 @@ function PricingSection() {
 
   const customResumePlans = [
     {
-      name: "Sprint",
+      name: "Kickstart",
       price: 199,
       duration: "1 month",
       jobsTotal: "500",
       savings: null,
       popular: false,
+      serviceNote: "You send job links",
       bestFor: "Quick job search boost",
       whyBest: "Full service, short commitment",
       features: ["AI-Tailored Resumes", "AI Cover Letters", "Real-Time Dashboard", "WhatsApp/Slack Support", "Application Proof"],
     },
     {
-      name: "Standard",
+      name: "Accelerate",
       price: 349,
       duration: "3 months",
       jobsTotal: "1,500",
       savings: "42% off",
       popular: true,
-      clientDelegated: true,
+      serviceNote: "We find jobs for you",
       bestFor: "Serious job seekers",
       whyBest: "Best ROI for your career",
       features: ["AI-Tailored Resumes", "AI Cover Letters", "Daily Job Scouting", "Priority Support", "Real-Time Dashboard", "Application Proof", "Credits Roll Over"],
     },
     {
-      name: "Extended",
+      name: "Elite",
       price: 649,
       duration: "6 months",
       jobsTotal: "3,000",
       savings: "46% off",
       popular: false,
+      serviceNote: "Dedicated account manager",
       bestFor: "Executive & senior roles",
       whyBest: "White-glove service",
       features: ["AI-Tailored Resumes", "AI Cover Letters", "Dedicated Account Manager", "Priority Support", "Real-Time Dashboard", "Application Proof", "Credits Roll Over"],
@@ -163,32 +167,6 @@ function PricingSection() {
               )}
 
               <div className={`p-6 ${plan.popular ? 'pt-8' : ''}`}>
-                {/* Client delegated badge */}
-                {'clientDelegated' in plan && plan.clientDelegated && (
-                  <div className={`mb-4 px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
-                    plan.popular
-                      ? 'bg-white/15 text-white border border-white/20 backdrop-blur-sm'
-                      : 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 border border-amber-200'
-                  }`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    You send links, we handle the rest
-                  </div>
-                )}
-
-                {/* Duration */}
-                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 ${
-                  plan.popular
-                    ? 'bg-white/20 text-white border border-white/30'
-                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200'
-                }`}>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {plan.duration}
-                </div>
-
                 {/* Name & Jobs */}
                 <h3 className={`text-2xl font-bold mb-1 ${plan.popular ? 'text-white' : 'text-neutral-900'}`}>
                   {plan.name}
@@ -197,11 +175,18 @@ function PricingSection() {
                   {plan.jobsTotal} applications
                 </p>
 
-                {/* Price */}
-                <div className="mb-5">
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-5xl font-extrabold tracking-tight ${plan.popular ? 'text-white' : 'text-neutral-900'}`}>
+                {/* Price & Duration */}
+                <div className={`mb-5 p-4 rounded-xl ${
+                  plan.popular
+                    ? 'bg-white/10 border border-white/20'
+                    : 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100'
+                }`}>
+                  <div className="flex items-baseline gap-2">
+                    <span className={`text-4xl font-extrabold tracking-tight ${plan.popular ? 'text-white' : 'text-neutral-900'}`}>
                       ${plan.price}
+                    </span>
+                    <span className={`text-sm font-medium ${plan.popular ? 'text-blue-200' : 'text-neutral-500'}`}>
+                      / {plan.duration}
                     </span>
                   </div>
                   {plan.savings && (
@@ -240,6 +225,18 @@ function PricingSection() {
                     {plan.whyBest}
                   </p>
                 </div>
+
+                {/* Service Note */}
+                {'serviceNote' in plan && (
+                  <div className={`mb-4 flex items-center justify-center gap-2 text-xs font-medium ${
+                    plan.popular ? 'text-blue-200' : 'text-neutral-500'
+                  }`}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {plan.serviceNote}
+                  </div>
+                )}
 
                 {/* CTA */}
                 <a
