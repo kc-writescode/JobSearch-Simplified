@@ -93,6 +93,13 @@ export async function PATCH(
       updateData.cannot_apply_reason = cannotApplyReason;
     }
 
+    // NEW (PART 1): If submitting (marking as Applied), ensure we capture ownership
+    // This repairs cases where assignment was lost and prevents unauthorized submissions
+    if (status === 'Applied' && adminUser) {
+      // Set the assignment to the current user (in case it was null)
+      updateData.assigned_to = adminUser.id;
+    }
+
     // Build the query
     let query = supabase
       .from('jobs')
@@ -122,6 +129,12 @@ export async function PATCH(
       query = query.is('assigned_to', null);
     }
 
+    // NEW (PART 2): Add the security filter for submissions
+    if (status === 'Applied' && adminUser) {
+      // Allow update ONLY if assigned to self OR unassigned
+      query = query.or(`assigned_to.is.null,assigned_to.eq.${adminUser.id}`);
+    }
+
     // Update job status
     const { data, error } = await query.select();
 
@@ -133,11 +146,27 @@ export async function PATCH(
       );
     }
 
-    // If no data was returned but no error, it means the .is('assigned_to', null) condition failed
-    if (assignedTo !== undefined && (!data || data.length === 0)) {
+    // If no data was returned but no error:
+    if (!data || data.length === 0) {
+      // Case 1: Claim attempt failed (race condition)
+      if (assignedTo !== undefined) {
+        return NextResponse.json(
+          { error: 'This mission has already been claimed by another agent.' },
+          { status: 409 }
+        );
+      }
+      // Case 2: Submission attempt failed (assigned to someone else)
+      if (status === 'Applied') {
+        return NextResponse.json(
+          { error: 'You can only submit missions assigned to you.' },
+          { status: 403 }
+        );
+      }
+
+      // Generic case (task not found or other filter mismatch)
       return NextResponse.json(
-        { error: 'This mission has already been claimed by another agent.' },
-        { status: 409 } // Conflict
+        { error: 'Task not found or update failed.' },
+        { status: 404 }
       );
     }
 
