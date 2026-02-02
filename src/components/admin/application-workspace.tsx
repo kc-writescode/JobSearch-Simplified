@@ -336,33 +336,20 @@ export function ApplicationWorkspace({
       return;
     }
 
-    // Helper to extract company name from the cover letter text
-    const extractCompanyName = (text: string): string => {
-      const lines = text.split('\n')
-        .map(l => l.trim())
-        .filter(l => l.length > 0);
-
-      // Look for the line after "Hiring Manager"
-      const managerIdx = lines.findIndex(l => l.toLowerCase().includes('hiring manager'));
-      if (managerIdx !== -1 && lines[managerIdx + 1]) {
-        // Filter out common address components or dates
-        const candidate = lines[managerIdx + 1];
-        if (!candidate.match(/^\d/) && !candidate.toLowerCase().includes('dear')) {
-          return candidate;
-        }
+    const generateFilename = (ext: string) => {
+      const company = task?.company?.trim();
+      // "Unknown" creates generic filenames, so treat it as missing
+      if (company && company.length > 1 && company.toLowerCase() !== 'unknown') {
+        const safeCompany = company.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+        // EXACT FORMAT: coverletter_companyname
+        return `coverletter_${safeCompany}.${ext}`;
+      } else {
+        const clientName = task?.clientName?.trim() || 'Candidate';
+        const safeClient = clientName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+        // EXACT FORMAT: cover_letter_user_name
+        return `cover_letter_${safeClient}.${ext}`;
       }
-
-      // Fallback: look for "at [Company]" pattern in the first paragraph
-      const atMatch = text.match(/at\s+([A-Za-z0-9&.\s]{2,40})(?:\s+for|\s+is|\.|\n)/);
-      if (atMatch && atMatch[1]) {
-        return atMatch[1].trim();
-      }
-
-      return task?.company || 'Job';
     };
-
-    const companyName = extractCompanyName(currentCoverLetter);
-    const safeCompanyName = companyName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
 
     if (format === 'pdf') {
       try {
@@ -377,7 +364,7 @@ export function ApplicationWorkspace({
         const lines = doc.splitTextToSize(currentCoverLetter, maxLineWidth);
         doc.text(lines, margin, 25);
 
-        doc.save(`Cover_Letter_${safeCompanyName}.pdf`);
+        doc.save(generateFilename('pdf'));
         toast.success('Cover letter PDF generated!');
       } catch (err) {
         console.error('PDF Generation Error:', err);
@@ -388,7 +375,7 @@ export function ApplicationWorkspace({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Cover_Letter_${safeCompanyName}.txt`;
+      a.download = generateFilename('txt');
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

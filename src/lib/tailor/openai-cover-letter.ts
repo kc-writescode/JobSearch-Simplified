@@ -10,8 +10,8 @@ export async function generateCoverLetterWithOpenAI(
     const openai = getOpenAI();
 
     const prompt = `
-    You are an elite Career Strategist and Executive Writer. Your goal is to write a cover letter that sounds like it was written by a thoughtful, high-achieving human, NOT an AI.
-    
+    You are an elite Executive Career Strategist. Your goal is to write a cover letter that matches the candidate's specific background to the job requirements with precision, sounding completely human and high-impact.
+
     CANDIDATE NAME:
     ${candidateName}
     
@@ -28,24 +28,29 @@ export async function generateCoverLetterWithOpenAI(
     ${globalInstructions}
     
     TASK:
-    Write a high-impact, professional cover letter.
+    Write a high-impact, professional cover letter that bridges the candidate's actual experience with the specific needs of this role.
     
-    HUMAN-CENTRIC WRITING RULES (CRITICAL):
-    1. AVOID "AI-ISMS": Do NOT use phrases like "I am writing to express my interest," "passionate about," "dynamic professional," or "unique blend of skills." 
-    2. NO "AI" PUNCTUATION: Absolutely AVOID em-dashes (—) or multiple hyphens (-) to connect thoughts. Do NOT use bullet points. Use standard, simple business punctuation (commas and periods).
-    3. BE DIRECT: Start with a strong, specific opener about why this role and company matter right now. Skip the "I hope this finds you well" fluff.
-    4. SHOW, DON'T TELL: Describe a specific achievement from the resume that solves a pain point in the job description.
-    5. VOICE: Use a "Sophisticated Professional" voice. It should be authoritative yet humble, clear, and punchy. Short, declarative sentences are preferred.
-    6. STRUCTURE: 
-       - Paragraph 1: Direct Hook.
-       - Paragraph 2: Value/Proof (Major career win).
-       - Paragraph 3: Vision/Culture fit.
-       - Paragraph 4: Low-friction closing. 
-    7. NO PLACEHOLDERS: DO NOT use brackets [ ]. If info is missing, skip it. Start with "Dear Hiring Team,".
-    8. SIGN-OFF: Use a professional closing like "Best regards," "Sincerely," or "Thank you for your time and consideration," followed by "${candidateName}".
-    
+    CRITICAL HUMAN-CENTRIC WRITING RULES:
+    1. **QUANTIFY IMPACT:** Whenever possible, use specific numbers, percentages, or scale (e.g., "managed $5M budget," "reduced latency by 40%") from the resume to prove competence. Do not just list skills; prove them with data.
+    2. **DEEP MATCHING:** Don't just generically say "I fit this role." Explicitly connect a specific requirement in the Job Description to a specific achievement in the Resume. Show you read the job post.
+    3. **SOUND HUMAN:** 
+       - ABSOLUTELY NO "AI-ISMS" like "I am writing to express my interest," "thrilled to apply," "passionate about," "woven together," "testament to," or "unique blend of."
+       - Use conversational but professional transitions.
+       - Vary sentence length. One-word or short sentences can be powerful.
+    4. **NO "AI" PUNCTUATION:** Avoid excessive em-dashes (—) or semicolons. Use standard commas and periods. No bullet points.
+    5. **OPENER:** Start with a strong "hook" about the company's current challenges or mission (derived from the job description) and how the candidate is the solution. Skip "I hope this finds you well."
+    6. **STRUCTURE:** 
+       - Paragraph 1: The Hook & The "Why" (Company focus).
+       - Paragraph 2: The "How" (Quantified Evidence matching specific Job Req).
+       - Paragraph 3: The "Future" (Vision/Culture fit).
+       - Paragraph 4: Confident, low-friction close (e.g., "I look forward to discussing how I can [specific value prop]."). 
+    7. **FORMATTING:** 
+       - No placeholders [ ]. 
+       - Start with "Dear Hiring Team,".
+       - Sign off simply with "Sincerely," followed by the candidate's name.
+
     OUTPUT:
-    Return ONLY the text of the cover letter. No commentary. No brackets. No placeholders.
+    Return ONLY the text of the cover letter. No commentary.
   `;
 
     const response = await openai.chat.completions.create({
