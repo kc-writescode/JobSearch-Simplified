@@ -32,12 +32,25 @@ export default async function DashboardPage() {
 
   const profile = profileData as Profile | null;
 
-  // Fetch all user's resumes
+  // Fetch all user's resumes (including parsed_data for skills)
   const { data: resumes } = await (supabase
     .from('resumes') as any)
-    .select('id, file_name, file_path, job_role, title, created_at, status, is_default')
+    .select('id, file_name, file_path, job_role, title, created_at, status, is_default, parsed_data')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
+
+  // Get default resume's skills
+  const getDefaultResumeSkills = () => {
+    if (!resumes || resumes.length === 0) return [];
+    // First check for explicitly set default
+    const explicitDefault = resumes.find((r: any) => r.is_default);
+    if (explicitDefault?.parsed_data?.skills) return explicitDefault.parsed_data.skills;
+    // If only one resume, use its skills
+    if (resumes.length === 1 && resumes[0].parsed_data?.skills) return resumes[0].parsed_data.skills;
+    return [];
+  };
+
+  const defaultResumeSkills = getDefaultResumeSkills();
 
   // Fetch jobs
   const { data: jobs } = await (supabase
@@ -79,6 +92,7 @@ export default async function DashboardPage() {
         global_notes: (profileData as any)?.global_notes || '',
         feature_access: (profileData as any)?.feature_access || { cover_letter_enabled: false, resume_tailor_enabled: false, custom_resume_enabled: false },
         credits: (profileData as any)?.credits || 0,
+        resume_skills: defaultResumeSkills,
       }}
       resumes={resumes || []}
       jobs={jobsWithTailoredStatus}

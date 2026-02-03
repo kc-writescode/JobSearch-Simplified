@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
     const [profilesRes, tailoredRes, defaultResumesRes] = await Promise.all([
       supabase.from('profiles').select('*').in('id', allProfileIds),
       supabase.from('tailored_resumes').select('job_id, status, id, full_tailored_data').in('job_id', jobIds),
-      // Fetch default resumes for all users (is_default=true or single resume)
-      supabase.from('resumes').select('id, user_id, file_name, file_path, job_role, title, status, is_default').in('user_id', userIds).eq('status', 'ready'),
+      // Fetch default resumes for all users (is_default=true or single resume) including parsed_data for skills
+      supabase.from('resumes').select('id, user_id, file_name, file_path, job_role, title, status, is_default, parsed_data').in('user_id', userIds).eq('status', 'ready'),
     ]);
 
     const profilesMap = new Map(profilesRes.data?.map(p => [p.id, p]) || []);
@@ -125,6 +125,9 @@ export async function GET(request: NextRequest) {
       const jobResume = job.resume && typeof job.resume === 'object' && job.resume.id ? job.resume : null;
       const resumeInfo = jobResume || defaultResumeMap.get(job.user_id);
       const fullTailoredData = tailored?.full_tailored_data as any;
+      // Extract skills from the default resume's parsed_data
+      const defaultResume = defaultResumeMap.get(job.user_id);
+      const resumeSkills = defaultResume?.parsed_data?.skills || [];
 
       return {
         id: job.id,
@@ -176,6 +179,7 @@ export async function GET(request: NextRequest) {
           submittedAt: job.applied_at,
         } : undefined,
         profileDetails: profile?.personal_details,
+        resumeSkills: resumeSkills,
         assignedTo: job.assigned_to,
         assignedToName: job.assigned_to ? profilesMap.get(job.assigned_to)?.full_name || 'Unknown Admin' : undefined,
         assignmentStatus: job.assignment_status,

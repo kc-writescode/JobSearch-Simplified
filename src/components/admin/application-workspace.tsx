@@ -686,7 +686,7 @@ export function ApplicationWorkspace({
                 </div>
 
                 {task.profileDetails ? (
-                  <ProfileDetailsWithSearch profileDetails={task.profileDetails} profileSearch={profileSearch} setProfileSearch={setProfileSearch} task={task} />
+                  <ProfileDetailsWithSearch profileDetails={task.profileDetails} profileSearch={profileSearch} setProfileSearch={setProfileSearch} task={task} resumeSkills={task.resumeSkills} />
 
                 ) : (
                   <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
@@ -1390,13 +1390,38 @@ function ProfileDetailsWithSearch({
   profileDetails,
   profileSearch,
   setProfileSearch,
-  task
+  task,
+  resumeSkills
 }: {
   profileDetails: any;
   profileSearch: string;
   setProfileSearch: (s: string) => void;
   task: VACoreTask | null;
+  resumeSkills?: { category: string; items: string[] }[];
 }) {
+  const [copiedSkill, setCopiedSkill] = useState<string | null>(null);
+  const [copiedCategory, setCopiedCategory] = useState<string | null>(null);
+
+  const handleCopySkill = (skill: string) => {
+    navigator.clipboard.writeText(skill);
+    setCopiedSkill(skill);
+    toast.success('Skill copied');
+    setTimeout(() => setCopiedSkill(null), 1500);
+  };
+
+  const handleCopyCategory = (category: string, items: string[]) => {
+    navigator.clipboard.writeText(items.join(', '));
+    setCopiedCategory(category);
+    toast.success(`${category} skills copied`);
+    setTimeout(() => setCopiedCategory(null), 1500);
+  };
+
+  const handleCopyAllSkills = () => {
+    if (!resumeSkills) return;
+    const allSkills = resumeSkills.flatMap(cat => cat.items).join(', ');
+    navigator.clipboard.writeText(allSkills);
+    toast.success('All skills copied to clipboard');
+  };
   // Define all sections with their keywords and render functions
   const sections = [
     {
@@ -1497,6 +1522,64 @@ function ProfileDetailsWithSearch({
           ) : (
             <div className="col-span-2 py-6 text-center">
               <p className="text-xs text-gray-400 italic">No work experience added</p>
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'skills',
+      title: 'Skills',
+      keywords: ['skills', 'technical', 'programming', 'languages', 'tools', 'frameworks', 'competencies'],
+      render: () => (
+        <>
+          {resumeSkills && resumeSkills.length > 0 ? (
+            <div className="col-span-2 space-y-4">
+              <div className="flex justify-end">
+                <button
+                  onClick={handleCopyAllSkills}
+                  className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-full bg-slate-50 text-slate-500 border border-slate-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all"
+                >
+                  Copy All Skills
+                </button>
+              </div>
+              {resumeSkills.map((skillGroup, idx) => (
+                <div key={idx} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-wider">{skillGroup.category}</p>
+                    <button
+                      onClick={() => handleCopyCategory(skillGroup.category, skillGroup.items)}
+                      className={`text-[8px] font-bold transition-colors ${
+                        copiedCategory === skillGroup.category
+                          ? 'text-emerald-600'
+                          : 'text-slate-400 hover:text-blue-600'
+                      }`}
+                    >
+                      {copiedCategory === skillGroup.category ? '✓ Copied' : 'Copy category'}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {skillGroup.items.map((skill, skillIdx) => (
+                      <button
+                        key={skillIdx}
+                        onClick={() => handleCopySkill(skill)}
+                        className={`px-2.5 py-1 text-[10px] font-semibold rounded-lg border transition-all cursor-pointer ${
+                          copiedSkill === skill
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
+                        }`}
+                        title="Click to copy"
+                      >
+                        {copiedSkill === skill ? '✓ Copied' : skill}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="col-span-2 py-6 text-center">
+              <p className="text-xs text-gray-400 italic">No skills data available from resume</p>
             </div>
           )}
         </>
@@ -1683,3 +1766,4 @@ function ProfileDetailsWithSearch({
     </div>
   );
 }
+

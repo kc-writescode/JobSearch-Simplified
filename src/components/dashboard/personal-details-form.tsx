@@ -27,8 +27,14 @@ import {
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui/button';
 
+interface SkillCategory {
+  category: string;
+  items: string[];
+}
+
 interface PersonalDetailsFormProps {
   readonly initialData?: any;
+  readonly initialResumeSkills?: SkillCategory[];
   readonly onUpdate?: () => void;
 }
 
@@ -113,6 +119,10 @@ interface FormData {
     currently_working: boolean;
     description: string;
   }>;
+  skills: Array<{
+    category: string;
+    items: string[];
+  }>;
 }
 
 const DEFAULT_FORM_DATA: FormData = {
@@ -125,6 +135,7 @@ const DEFAULT_FORM_DATA: FormData = {
   security_q1: 'What is the name of your first school?', security_a1: '', security_q2: 'What is your favourite vacation spot?', security_a2: '', security_q3: "What is your mother's maiden name?", security_a3: '',
   references: [{ name: '', email: '', position: '', relationship: '', phone: '' }, { name: '', email: '', position: '', relationship: '', phone: '' }, { name: '', email: '', position: '', relationship: '', phone: '' }],
   work_experience: [{ company_name: '', job_title: '', location: '', experience_type: '', start_date: '', end_date: '', currently_working: false, description: '' }],
+  skills: [],
 };
 
 const YES_NO_OPTIONS = [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }];
@@ -269,10 +280,26 @@ const ProfileField = React.memo(({ field, formData, handleInputChange, ...props 
 });
 ProfileField.displayName = 'ProfileField';
 
-export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFormProps) {
-  const [formData, setFormData] = useState<FormData>({ ...DEFAULT_FORM_DATA, ...initialData });
+export function PersonalDetailsForm({ initialData, initialResumeSkills, onUpdate }: PersonalDetailsFormProps) {
+  // Initialize skills from initialData if present, otherwise from resume skills
+  const getInitialSkills = () => {
+    if (initialData?.skills && initialData.skills.length > 0) {
+      return initialData.skills;
+    }
+    if (initialResumeSkills && initialResumeSkills.length > 0) {
+      return initialResumeSkills;
+    }
+    return [];
+  };
+
+  const [formData, setFormData] = useState<FormData>({
+    ...DEFAULT_FORM_DATA,
+    ...initialData,
+    skills: getInitialSkills()
+  });
   const [saving, setSaving] = useState(false);
-  const [expandedSections, setExpandedSections] = useState({ personal: true, jobPreference: false, residential: false, education: false, workExperience: false, jobProfile: false, additional: false, miscellaneous: false, security: false, references: false });
+  const [newSkillInputs, setNewSkillInputs] = useState<Record<number, string>>({});
+  const [expandedSections, setExpandedSections] = useState({ personal: true, jobPreference: false, residential: false, education: false, workExperience: false, skills: false, jobProfile: false, additional: false, miscellaneous: false, security: false, references: false });
   const supabase = createClient();
 
   const toggleSection = useCallback((section: keyof typeof expandedSections) => {
@@ -331,6 +358,54 @@ export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFo
       ...prev,
       work_experience: prev.work_experience.filter((_, i) => i !== index)
     }));
+  }, []);
+
+  // Skills handling functions
+  const addSkillCategory = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      skills: [...prev.skills, { category: 'New Category', items: [] }]
+    }));
+  }, []);
+
+  const removeSkillCategory = useCallback((index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.filter((_, i) => i !== index)
+    }));
+  }, []);
+
+  const updateSkillCategoryName = useCallback((index: number, name: string) => {
+    setFormData(prev => {
+      const newSkills = [...prev.skills];
+      newSkills[index] = { ...newSkills[index], category: name };
+      return { ...prev, skills: newSkills };
+    });
+  }, []);
+
+  const addSkillToCategory = useCallback((categoryIndex: number, skill: string) => {
+    if (!skill.trim()) return;
+    setFormData(prev => {
+      const newSkills = [...prev.skills];
+      if (!newSkills[categoryIndex].items.includes(skill.trim())) {
+        newSkills[categoryIndex] = {
+          ...newSkills[categoryIndex],
+          items: [...newSkills[categoryIndex].items, skill.trim()]
+        };
+      }
+      return { ...prev, skills: newSkills };
+    });
+  }, []);
+
+  const removeSkillFromCategory = useCallback((categoryIndex: number, skillIndex: number) => {
+    setFormData(prev => {
+      const newSkills = [...prev.skills];
+      newSkills[categoryIndex] = {
+        ...newSkills[categoryIndex],
+        items: newSkills[categoryIndex].items.filter((_, i) => i !== skillIndex)
+      };
+      return { ...prev, skills: newSkills };
+    });
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -564,6 +639,110 @@ export function PersonalDetailsForm({ initialData, onUpdate }: PersonalDetailsFo
             <Plus className="h-5 w-5" />
             Add Work Experience
           </button>
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="Skills"
+        icon={<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>}
+        expanded={expandedSections.skills}
+        onToggle={() => toggleSection('skills')}
+        description="Technical skills and competencies from your resume"
+      >
+        <div className="space-y-6">
+          {formData.skills.length === 0 ? (
+            <div className="text-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+              <p className="text-sm text-slate-500 mb-4">No skills added yet. Add a category to get started.</p>
+              <button
+                onClick={addSkillCategory}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                Add Skill Category
+              </button>
+            </div>
+          ) : (
+            <>
+              {formData.skills.map((skillGroup, categoryIndex) => (
+                <div key={`skill-cat-${categoryIndex}`} className="p-6 bg-gray-50/50 rounded-2xl border border-gray-100 relative group transition-all hover:bg-white hover:border-blue-100 hover:shadow-sm">
+                  <button
+                    onClick={() => removeSkillCategory(categoryIndex)}
+                    className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Remove this category"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+
+                  <div className="mb-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Category Name</label>
+                    <input
+                      type="text"
+                      value={skillGroup.category}
+                      onChange={(e) => updateSkillCategoryName(categoryIndex, e.target.value)}
+                      className="w-full max-w-xs px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                      placeholder="e.g., Technical, Languages, Tools"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Skills</label>
+                    <div className="flex flex-wrap gap-2">
+                      {skillGroup.items.map((skill, skillIndex) => (
+                        <span
+                          key={`skill-${categoryIndex}-${skillIndex}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 group/skill hover:border-red-200 hover:bg-red-50 transition-all"
+                        >
+                          {skill}
+                          <button
+                            onClick={() => removeSkillFromCategory(categoryIndex, skillIndex)}
+                            className="p-0.5 text-slate-400 hover:text-red-500 transition-colors"
+                            title="Remove skill"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      <input
+                        type="text"
+                        value={newSkillInputs[categoryIndex] || ''}
+                        onChange={(e) => setNewSkillInputs(prev => ({ ...prev, [categoryIndex]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addSkillToCategory(categoryIndex, newSkillInputs[categoryIndex] || '');
+                            setNewSkillInputs(prev => ({ ...prev, [categoryIndex]: '' }));
+                          }
+                        }}
+                        className="flex-1 max-w-xs px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                        placeholder="Type a skill and press Enter"
+                      />
+                      <button
+                        onClick={() => {
+                          addSkillToCategory(categoryIndex, newSkillInputs[categoryIndex] || '');
+                          setNewSkillInputs(prev => ({ ...prev, [categoryIndex]: '' }));
+                        }}
+                        className="px-4 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all flex items-center gap-1.5"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                onClick={addSkillCategory}
+                className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Add Skill Category
+              </button>
+            </>
+          )}
         </div>
       </FormSection>
 

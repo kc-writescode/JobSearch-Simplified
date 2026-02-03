@@ -29,6 +29,11 @@ export interface FeatureAccess {
   custom_resume_enabled: boolean;
 }
 
+export interface ResumeSkill {
+  category: string;
+  items: string[];
+}
+
 export interface VACoreTask {
   id: string;
   jobId: string;
@@ -53,6 +58,9 @@ export interface VACoreTask {
 
   // Full Profile Details (Full JSON)
   profileDetails?: any;
+
+  // Skills from default resume (parsed_data.skills)
+  resumeSkills?: ResumeSkill[];
 
   // Selected resume info (the original resume)
   selectedResume?: ResumeInfo;

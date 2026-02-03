@@ -15,6 +15,11 @@ interface FeatureAccess {
   custom_resume_enabled: boolean;
 }
 
+interface ResumeSkill {
+  category: string;
+  items: string[];
+}
+
 interface ProfileData {
   full_name: string | null;
   email: string;
@@ -26,6 +31,7 @@ interface ProfileData {
   global_notes?: string;
   feature_access?: FeatureAccess;
   credits?: number;
+  resume_skills?: ResumeSkill[];
 }
 
 interface Resume {
@@ -227,6 +233,7 @@ export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps
             {activeTab === 'profile' && (
               <PersonalDetailsForm
                 initialData={profile.personal_details}
+                initialResumeSkills={profile.resume_skills}
                 onUpdate={handleRefresh}
               />
             )}
@@ -264,3 +271,4 @@ export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps
     </div >
   );
 }
+
