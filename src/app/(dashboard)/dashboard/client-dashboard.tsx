@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils/cn';
 interface FeatureAccess {
   cover_letter_enabled: boolean;
   resume_tailor_enabled: boolean;
+  custom_resume_enabled: boolean;
 }
 
 interface ProfileData {

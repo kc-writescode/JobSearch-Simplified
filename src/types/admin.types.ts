@@ -26,6 +26,7 @@ export interface ResumeInfo {
 export interface FeatureAccess {
   cover_letter_enabled: boolean;
   resume_tailor_enabled: boolean;
+  custom_resume_enabled: boolean;
 }
 
 export interface VACoreTask {
@@ -82,6 +83,7 @@ export interface VACoreTask {
   proofOfWork?: {
     screenshotUrl?: string;
     submissionLink?: string;
+    customResumeUrl?: string;
     submittedAt?: string;
   };
   assignedTo?: string;

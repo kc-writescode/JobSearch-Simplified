@@ -42,6 +42,7 @@ interface Job {
   tailored_status?: string | null;
   cover_letter?: string | null;
   submission_proof?: string | null;
+  custom_resume_proof?: string | null;
   client_notes?: string | null;
   labels?: string[] | null;
   cannot_apply_reason?: string | null;
@@ -51,6 +52,7 @@ interface Job {
 interface FeatureAccess {
   cover_letter_enabled: boolean;
   resume_tailor_enabled: boolean;
+  custom_resume_enabled: boolean;
 }
 
 interface JobsPipelineProps {
@@ -1520,6 +1522,46 @@ function JobDetailModal({ job, tab, resumeName, resumes, onClose, onTrash, onMar
                   </a>
                 </div>
               </div>
+
+              {job.custom_resume_proof && (
+                <div className="mt-4 p-6 bg-blue-50/50 border border-blue-100 rounded-[2rem] hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><PdfIcon className="h-4 w-4" /></div>
+                      <span className="text-sm font-black text-slate-900 tracking-tight italic">Custom Deployment Resume</span>
+                    </div>
+                    <span className="text-[10px] font-black text-blue-600 uppercase">Custom</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const proof = job.custom_resume_proof!;
+                        const url = `/api/resume/view?path=${encodeURIComponent(proof)}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="flex-1 py-3 bg-white border border-blue-100 text-blue-700 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-blue-50 transition-all"
+                    >
+                      Preview Resume
+                    </button>
+                    <a
+                      href={`/api/resume/view?path=${encodeURIComponent(job.custom_resume_proof!)}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const url = `/api/resume/download?path=${encodeURIComponent(job.custom_resume_proof!)}`;
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Custom_Resume_${job.company}.pdf`;
+                        a.click();
+                      }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-3 bg-blue-600 text-white text-xs font-black text-center uppercase tracking-widest rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center"
+                    >
+                      Download PDF
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

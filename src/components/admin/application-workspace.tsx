@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 interface ApplicationWorkspaceProps {
   task: VACoreTask | null;
   onClose: () => void;
-  onSubmit: (proofOfWork: { screenshotUrl?: string; submissionLink?: string; proofPath?: string }) => Promise<void>;
+  onSubmit: (proofOfWork: { screenshotUrl?: string; submissionLink?: string; proofPath?: string; customResumePath?: string }) => Promise<void>;
   isSubmitting: boolean;
   currentAdminId?: string;
   onClaim?: (task: VACoreTask) => Promise<void>;
@@ -37,7 +37,11 @@ export function ApplicationWorkspace({
 
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofUploadStatus, setProofUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [proofPath, setProofPath] = useState<string>(task?.proofOfWork?.screenshotUrl || ''); // Reusing screenshotUrl field for storage path if needed, or mapping it.
+  const [proofPath, setProofPath] = useState<string>(task?.proofOfWork?.screenshotUrl || '');
+
+  const [customResumeFile, setCustomResumeFile] = useState<File | null>(null);
+  const [customResumeUploadStatus, setCustomResumeUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [customResumePath, setCustomResumePath] = useState<string>(task?.proofOfWork?.customResumeUrl || ''); // Reusing screenshotUrl field for storage path if needed, or mapping it.
 
   const [activeTab, setActiveTab] = useState<'applicant' | 'documents' | 'inputs'>('applicant');
 
@@ -69,6 +73,10 @@ export function ApplicationWorkspace({
       setProofFile(null);
       setProofPath(task.proofOfWork?.screenshotUrl || '');
       setProofUploadStatus(task.proofOfWork?.screenshotUrl ? 'success' : 'idle');
+
+      setCustomResumeFile(null);
+      setCustomResumePath(task.proofOfWork?.customResumeUrl || '');
+      setCustomResumeUploadStatus(task.proofOfWork?.customResumeUrl ? 'success' : 'idle');
 
       // Sync AI states
       setCurrentAiStatus(task.aiStatus || 'Pending');
@@ -388,17 +396,14 @@ export function ApplicationWorkspace({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type (PDF only as requested)
     if (file.type !== 'application/pdf') {
       toast.warning('Please upload a PDF file.');
       return;
     }
 
-    // Validate file size - Vercel has ~4.5MB limit for API routes
-    // Use 3MB as safe limit to account for FormData overhead
     const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
     if (file.size > MAX_FILE_SIZE) {
-      toast.warning(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds 3MB limit. Please compress the PDF or use a smaller file.`);
+      toast.warning(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds 3MB limit.`);
       return;
     }
 
@@ -418,32 +423,65 @@ export function ApplicationWorkspace({
       });
 
       if (!response.ok) {
-        // Handle specific error codes - 413 often returns plain text, not JSON
-        if (response.status === 413) {
-          throw new Error('File too large. Please compress the PDF to under 3MB.');
-        }
-        // Try to parse JSON, but handle plain text responses gracefully
-        const contentType = response.headers.get('content-type');
-        if (contentType?.includes('application/json')) {
-          const result = await response.json().catch(() => ({ error: 'Upload failed' }));
-          throw new Error(result.error || 'Upload failed');
-        } else {
-          const text = await response.text().catch(() => 'Upload failed');
-          throw new Error(text.includes('too large') ? 'File too large. Please compress the PDF to under 3MB.' : 'Upload failed');
-        }
+        throw new Error('Upload failed');
       }
 
       const { path } = await response.json();
-
-      // Store the path. We will use /api/resume/view?path=... to view it later.
       setProofPath(path);
       setProofUploadStatus('success');
       toast.success('Proof uploaded successfully!');
     } catch (error) {
       console.error('Error uploading proof:', error);
       setProofUploadStatus('error');
-      toast.error('Failed to upload proof: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Failed to upload proof');
       setProofFile(null);
+    }
+  };
+
+  const handleCustomResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast.warning('Please upload a PDF file.');
+      return;
+    }
+
+    const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast.warning(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds 3MB limit.`);
+      return;
+    }
+
+    setCustomResumeFile(file);
+    setCustomResumeUploadStatus('uploading');
+
+    try {
+      if (!task) throw new Error('No task selected');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('jobId', task.jobId);
+      formData.append('type', 'custom_resume');
+
+      const response = await fetch('/api/admin/upload-proof', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const { path } = await response.json();
+      setCustomResumePath(path);
+      setCustomResumeUploadStatus('success');
+      toast.success('Custom resume uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading custom resume:', error);
+      setCustomResumeUploadStatus('error');
+      toast.error('Failed to upload custom resume');
+      setCustomResumeFile(null);
     }
   };
 
@@ -452,7 +490,8 @@ export function ApplicationWorkspace({
     try {
       await onSubmit({
         screenshotUrl: proofPath, // Legacy field name for compatibility, storing path
-        proofPath: proofPath // New explicit field
+        proofPath: proofPath, // New explicit field
+        customResumePath: customResumePath // NEW
       });
     } catch (error) {
       console.error('Error submitting task:', error);
@@ -1041,6 +1080,81 @@ export function ApplicationWorkspace({
                   </div>
                 )}
 
+                {/* Custom Resume Upload Section */}
+                {task.featureAccess?.custom_resume_enabled && (
+                  <div className="space-y-4 pt-6 border-t border-gray-100">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Custom Resume</h3>
+                    <div className="bg-white border border-gray-200 rounded-3xl p-6">
+                      {!customResumePath ? (
+                        <div className="text-center">
+                          <label className={`block border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-colors ${customResumeUploadStatus === 'error' ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50'}`}>
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              onChange={handleCustomResumeUpload}
+                              className="hidden"
+                              disabled={customResumeUploadStatus === 'uploading'}
+                            />
+                            <div className="flex flex-col items-center gap-3">
+                              <div className={`p-3 rounded-full ${customResumeUploadStatus === 'uploading' ? 'bg-blue-100 animate-pulse' : 'bg-gray-100'}`}>
+                                {customResumeUploadStatus === 'uploading' ? (
+                                  <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+                                ) : (
+                                  <Upload className="h-6 w-6 text-gray-400" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-gray-700">
+                                  {customResumeUploadStatus === 'uploading' ? 'Uploading...' : 'Upload Custom Resume (PDF)'}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">Max 3MB</p>
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-100 rounded-lg">
+                                <FileText className="h-5 w-5 text-blue-700" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-blue-900">Custom Resume Uploaded</p>
+                                <a href={`/api/resume/view?path=${encodeURIComponent(customResumePath)}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1">
+                                  View file <Eye className="h-3 w-3" />
+                                </a>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="h-5 w-5 text-blue-600" />
+                            </div>
+                          </div>
+                          <label className="block border border-dashed border-gray-200 rounded-xl p-3 cursor-pointer transition-colors hover:border-blue-400 hover:bg-blue-50">
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              onChange={handleCustomResumeUpload}
+                              className="hidden"
+                              disabled={customResumeUploadStatus === 'uploading'}
+                            />
+                            <div className="flex items-center justify-center gap-2">
+                              {customResumeUploadStatus === 'uploading' ? (
+                                <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                              ) : (
+                                <Upload className="h-4 w-4 text-gray-400" />
+                              )}
+                              <p className="text-xs font-semibold text-gray-600">
+                                {customResumeUploadStatus === 'uploading' ? 'Uploading...' : 'Replace custom resume'}
+                              </p>
+                            </div>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Proof of Application Section */}
                 <div className="space-y-4 pt-6 border-t border-gray-100">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Proof of Application</h3>
@@ -1133,7 +1247,7 @@ export function ApplicationWorkspace({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !proofPath || (task.assignedTo !== currentAdminId && !!task.assignedTo) || (task.credits ?? 0) <= 0}
+              disabled={isSubmitting || !proofPath || (task.featureAccess?.custom_resume_enabled && !customResumePath) || (task.assignedTo !== currentAdminId && !!task.assignedTo) || (task.credits ?? 0) <= 0}
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Submitting...' : 'Mark as Applied'}

@@ -36,6 +36,7 @@ interface Profile {
     feature_access?: {
         cover_letter_enabled: boolean;
         resume_tailor_enabled: boolean;
+        custom_resume_enabled: boolean;
     };
     credits?: number;
     created_at: string;
@@ -305,7 +306,13 @@ export default function MasterDashboard() {
                                                                 CL
                                                             </span>
                                                         )}
-                                                        {!user.feature_access?.resume_tailor_enabled && !user.feature_access?.cover_letter_enabled && (
+                                                        {user.feature_access?.custom_resume_enabled && (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold bg-purple-50 text-purple-600 border border-purple-100" title="Custom Resume">
+                                                                <FileText className="h-2.5 w-2.5" />
+                                                                CR
+                                                            </span>
+                                                        )}
+                                                        {!user.feature_access?.resume_tailor_enabled && !user.feature_access?.cover_letter_enabled && !user.feature_access?.custom_resume_enabled && (
                                                             <span className="text-[10px] text-slate-400 italic">None</span>
                                                         )}
                                                     </div>

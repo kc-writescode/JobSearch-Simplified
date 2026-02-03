@@ -37,6 +37,7 @@ export type WorkMode = 'remote' | 'onsite' | 'hybrid';
 export type FeatureAccess = {
   cover_letter_enabled: boolean;
   resume_tailor_enabled: boolean;
+  custom_resume_enabled: boolean;
 };
 
 export type Database = {
@@ -182,6 +183,8 @@ export type Database = {
           labels: string[] | null;
           deadline: string | null;
           applied_at: string | null;
+          submission_proof: string | null;
+          custom_resume_proof: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -209,6 +212,8 @@ export type Database = {
           labels?: string[] | null;
           deadline?: string | null;
           applied_at?: string | null;
+          submission_proof?: string | null;
+          custom_resume_proof?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -236,6 +241,8 @@ export type Database = {
           labels?: string[] | null;
           deadline?: string | null;
           applied_at?: string | null;
+          submission_proof?: string | null;
+          custom_resume_proof?: string | null;
           created_at?: string;
           updated_at?: string;
         };

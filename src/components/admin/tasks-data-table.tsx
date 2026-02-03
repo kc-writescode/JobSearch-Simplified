@@ -219,20 +219,35 @@ export function TasksDataTable({
                   </td>
                   {showProofColumn && (
                     <td className="px-3 py-2">
-                      {task.proofOfWork?.screenshotUrl ? (
-                        <a
-                          href={`/api/resume/view?path=${encodeURIComponent(task.proofOfWork.screenshotUrl)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 transition-colors"
-                        >
-                          <FileText className="h-3 w-3" />
-                          <ExternalLink className="h-2.5 w-2.5" />
-                        </a>
-                      ) : (
-                        <span className="text-[9px] text-slate-300">-</span>
-                      )}
+                      <div className="flex flex-col gap-1">
+                        {task.proofOfWork?.screenshotUrl ? (
+                          <a
+                            href={`/api/resume/view?path=${encodeURIComponent(task.proofOfWork.screenshotUrl)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 rounded hover:bg-blue-100 transition-colors"
+                          >
+                            <FileText className="h-3 w-3" />
+                            Proof <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        ) : null}
+                        {task.proofOfWork?.customResumeUrl && (
+                          <a
+                            href={`/api/resume/view?path=${encodeURIComponent(task.proofOfWork.customResumeUrl)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded hover:bg-emerald-100 transition-colors"
+                          >
+                            <FileText className="h-3 w-3" />
+                            Resume <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        )}
+                        {!task.proofOfWork?.screenshotUrl && !task.proofOfWork?.customResumeUrl && (
+                          <span className="text-[9px] text-slate-300">-</span>
+                        )}
+                      </div>
                     </td>
                   )}
                   {showCannotApplyReason && (
@@ -252,11 +267,10 @@ export function TasksDataTable({
                               if (!claimDisabled) onClaimTask(task);
                             }}
                             disabled={claimDisabled}
-                            className={`inline-flex items-center px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${
-                              claimDisabled
+                            className={`inline-flex items-center px-2 py-1 text-[9px] font-bold uppercase rounded transition-colors ${claimDisabled
                                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                                 : 'text-white bg-blue-600 hover:bg-blue-700'
-                            }`}
+                              }`}
                             title={claimDisabled ? `Limit: ${activeClaimCount}/${maxClaims}` : 'Claim'}
                           >
                             Claim

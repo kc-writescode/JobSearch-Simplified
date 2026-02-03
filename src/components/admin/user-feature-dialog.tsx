@@ -32,6 +32,7 @@ interface UserProfile {
   feature_access?: {
     cover_letter_enabled: boolean;
     resume_tailor_enabled: boolean;
+    custom_resume_enabled: boolean;
   };
   credits?: number;
 }
@@ -51,6 +52,7 @@ export function UserFeatureDialog({
 }: UserFeatureDialogProps) {
   const [coverLetterEnabled, setCoverLetterEnabled] = useState(false);
   const [resumeTailorEnabled, setResumeTailorEnabled] = useState(false);
+  const [customResumeEnabled, setCustomResumeEnabled] = useState(false);
   const [credits, setCredits] = useState(0);
   const [creditsToAdd, setCreditsToAdd] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -60,6 +62,7 @@ export function UserFeatureDialog({
     if (user) {
       setCoverLetterEnabled(user.feature_access?.cover_letter_enabled ?? false);
       setResumeTailorEnabled(user.feature_access?.resume_tailor_enabled ?? false);
+      setCustomResumeEnabled(user.feature_access?.custom_resume_enabled ?? false);
       setCredits(user.credits ?? 0);
       setCreditsToAdd('');
     }
@@ -77,6 +80,7 @@ export function UserFeatureDialog({
           feature_access: {
             cover_letter_enabled: coverLetterEnabled,
             resume_tailor_enabled: resumeTailorEnabled,
+            custom_resume_enabled: customResumeEnabled,
           },
           credits,
         }),
@@ -90,6 +94,7 @@ export function UserFeatureDialog({
         feature_access: {
           cover_letter_enabled: coverLetterEnabled,
           resume_tailor_enabled: resumeTailorEnabled,
+          custom_resume_enabled: customResumeEnabled,
         },
         credits,
       });
@@ -158,14 +163,12 @@ export function UserFeatureDialog({
               </div>
               <button
                 onClick={() => setCoverLetterEnabled(!coverLetterEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  coverLetterEnabled ? 'bg-emerald-500' : 'bg-slate-300'
-                }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${coverLetterEnabled ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                    coverLetterEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${coverLetterEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                 />
               </button>
             </div>
@@ -183,14 +186,34 @@ export function UserFeatureDialog({
               </div>
               <button
                 onClick={() => setResumeTailorEnabled(!resumeTailorEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  resumeTailorEnabled ? 'bg-blue-500' : 'bg-slate-300'
-                }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${resumeTailorEnabled ? 'bg-blue-500' : 'bg-slate-300'
+                  }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
-                    resumeTailorEnabled ? 'translate-x-6' : 'translate-x-1'
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${resumeTailorEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                />
+              </button>
+            </div>
+            {/* Custom Resume Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${customResumeEnabled ? 'bg-purple-100' : 'bg-slate-200'}`}>
+                  <FileText className={`h-5 w-5 ${customResumeEnabled ? 'text-purple-600' : 'text-slate-400'}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Custom Resume Upload</p>
+                  <p className="text-[10px] text-slate-500">Enable custom resume per application</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCustomResumeEnabled(!customResumeEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${customResumeEnabled ? 'bg-purple-500' : 'bg-slate-300'
                   }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${customResumeEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                 />
               </button>
             </div>

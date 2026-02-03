@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
         const formData = await request.formData();
         const file = formData.get('file') as File;
         const jobId = formData.get('jobId') as string;
+        const type = formData.get('type') as string || 'proof';
 
         if (!file || !jobId) {
             return NextResponse.json({ error: 'Missing file or jobId' }, { status: 400 });
@@ -32,9 +33,9 @@ export async function POST(request: NextRequest) {
         // Sanitize filename
         const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
 
-        // Create path: proofs/{jobId}/{timestamp}_{filename}
-        // We use 'resumes' bucket as established convention in ApplicationWorkspace
-        const filePath = `proofs/${jobId}/${Date.now()}_${sanitizedName}`;
+        // Create path: {type}s/{jobId}/{timestamp}_{filename}
+        const folder = type === 'custom_resume' ? 'custom_resumes' : 'proofs';
+        const filePath = `${folder}/${jobId}/${Date.now()}_${sanitizedName}`;
 
         const { error } = await supabase.storage
             .from('resumes')

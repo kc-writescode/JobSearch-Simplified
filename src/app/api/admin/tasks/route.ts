@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
         status: mapJobStatusToTaskStatus(job.status),
         priority: (isPremium ? 'Premium' : 'Standard') as ClientPriority,
         aiStatus: mapAIStatus(tailored?.status),
-        featureAccess: profile?.feature_access || { cover_letter_enabled: false, resume_tailor_enabled: false },
+        featureAccess: profile?.feature_access || { cover_letter_enabled: false, resume_tailor_enabled: false, custom_resume_enabled: false },
         credits: profile?.credits || 0,
         personalDetails: {
           full_name: profile?.full_name || '',
@@ -172,6 +172,7 @@ export async function GET(request: NextRequest) {
         cannotApplyReason: job.cannot_apply_reason,
         proofOfWork: job.submission_proof ? {
           screenshotUrl: job.submission_proof,
+          customResumeUrl: job.custom_resume_proof,
           submittedAt: job.applied_at,
         } : undefined,
         profileDetails: profile?.personal_details,
