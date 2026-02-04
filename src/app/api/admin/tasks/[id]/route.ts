@@ -63,9 +63,12 @@ export async function PATCH(
 
     }
 
-    // Add cannot_apply_reason when marking as trashed
-    if (status === 'Trashed' && cannotApplyReason) {
-      updateData.cannot_apply_reason = cannotApplyReason;
+    // Add cannot_apply_reason and trashed_at when marking as trashed
+    if (status === 'Trashed') {
+      updateData.trashed_at = new Date().toISOString();
+      if (cannotApplyReason) {
+        updateData.cannot_apply_reason = cannotApplyReason;
+      }
     }
 
     // NEW (PART 1): If submitting (marking as Applied), ensure we capture ownership

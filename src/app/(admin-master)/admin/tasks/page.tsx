@@ -8,7 +8,7 @@ import { VACoreTask, TaskFilters, TaskStatus } from '@/types/admin.types';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { LogOut, Trash2, BarChart3, Users, LayoutDashboard, Calendar, Tag, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { LogOut, Trash2, BarChart3, Users, LayoutDashboard, Calendar, Tag, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, AlertTriangle } from 'lucide-react';
 import { getLabelClasses } from '@/lib/constants/labels';
 import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
 
@@ -19,7 +19,8 @@ export default function VATasksPage() {
   const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<VACoreTask[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<VACoreTask[]>([]);
-  const [dashboardTab, setDashboardTab] = useState<'Applying' | 'Applied' | 'Trashed' | 'Reports'>('Applying');
+  const [dashboardTab, setDashboardTab] = useState<'Applying' | 'Applied' | 'Trashed' | 'Reports' | 'Overdue'>('Applying');
+  const [overdueCount, setOverdueCount] = useState(0);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -31,6 +32,9 @@ export default function VATasksPage() {
     } else if (tab === 'trashed') {
       setDashboardTab('Trashed');
       setFilters(prev => ({ ...prev, status: ['Trashed'] }));
+    } else if (tab === 'overdue') {
+      setDashboardTab('Overdue');
+      setFilters(prev => ({ ...prev, status: ['Overdue'] }));
     } else {
       setDashboardTab('Applying');
       setFilters(prev => ({ ...prev, status: ['Applying'] }));
@@ -112,6 +116,16 @@ export default function VATasksPage() {
     return () => clearInterval(interval);
   }, [hasInitialized, filters]);
 
+  // Redirect to Overdue tab if there are overdue tasks and currently on Active tab
+  // This handles the case where page is refreshed while on Active tab
+  useEffect(() => {
+    if (hasInitialized && overdueCount > 0 && dashboardTab === 'Applying') {
+      toast.warning('Priority tasks detected. Redirecting to 24hrs+ tab.');
+      setDashboardTab('Overdue');
+      setFilters(prev => ({ ...prev, status: ['Overdue'] }));
+    }
+  }, [overdueCount, hasInitialized]);
+
   const fetchTasks = async (page = currentPage, limit = pageSize) => {
     try {
       setLoading(true);
@@ -139,6 +153,7 @@ export default function VATasksPage() {
       setFilteredTasks(result.data || []);
       setTotalItems(result.total || 0);
       setTotalPages(result.totalPages || 0);
+      setOverdueCount(result.overdueCount || 0);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -151,7 +166,15 @@ export default function VATasksPage() {
     }
   };
 
-  const handleTabChange = (tab: 'Applying' | 'Applied' | 'Trashed' | 'Reports') => {
+  const handleTabChange = (tab: 'Applying' | 'Applied' | 'Trashed' | 'Reports' | 'Overdue') => {
+    // Block Active tab if there are overdue tasks globally
+    if (tab === 'Applying' && overdueCount > 0) {
+      toast.warning('Complete priority tasks (24hrs+) first before accessing Active missions.');
+      setDashboardTab('Overdue');
+      setFilters({ ...filters, status: ['Overdue'] });
+      return;
+    }
+
     setDashboardTab(tab);
     if (tab === 'Reports') {
       fetchAdminContext();
@@ -335,6 +358,23 @@ export default function VATasksPage() {
                 Done
               </button>
               <button
+                onClick={() => handleTabChange('Overdue')}
+                className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${dashboardTab === 'Overdue'
+                  ? 'bg-white text-orange-600 shadow-sm border border-slate-100'
+                  : overdueCount > 0
+                    ? 'text-orange-600 bg-orange-50 animate-pulse'
+                    : 'text-slate-500 hover:text-slate-900'
+                  }`}
+              >
+                <Clock className="h-3 w-3" />
+                24hrs+
+                {overdueCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-orange-500 text-white text-[8px] font-black rounded-full">
+                    {overdueCount}
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => handleTabChange('Trashed')}
                 className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${dashboardTab === 'Trashed'
                   ? 'bg-white text-red-600 shadow-sm border border-slate-100'
@@ -446,6 +486,31 @@ export default function VATasksPage() {
         </div>
       </header>
 
+      {/* Priority Tasks Blocking Banner */}
+      {overdueCount > 0 && dashboardTab !== 'Overdue' && dashboardTab !== 'Reports' && (
+        <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 px-6">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5" />
+              <div>
+                <p className="font-bold text-sm">
+                  {overdueCount} priority {overdueCount === 1 ? 'task' : 'tasks'} need attention
+                </p>
+                <p className="text-xs text-white/80">
+                  These tasks were claimed 24+ hours ago. Complete them first.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleTabChange('Overdue')}
+              className="px-4 py-2 bg-white text-orange-600 text-xs font-black uppercase rounded-lg hover:bg-orange-50 transition-all"
+            >
+              View Priority Tasks
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <main className="px-6 py-4 animate-in fade-in duration-500">
         {dashboardTab === 'Reports' ? (
@@ -489,11 +554,13 @@ export default function VATasksPage() {
             <div className="flex items-center justify-between mb-3" suppressHydrationWarning>
               <div className="flex items-center gap-2" suppressHydrationWarning>
                 <div className={`h-5 w-1 rounded-full ${dashboardTab === 'Applying' ? 'bg-blue-600' :
-                  dashboardTab === 'Applied' ? 'bg-emerald-600' : 'bg-red-600'
+                  dashboardTab === 'Applied' ? 'bg-emerald-600' :
+                  dashboardTab === 'Overdue' ? 'bg-orange-500' : 'bg-red-600'
                   }`} suppressHydrationWarning></div>
                 <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider">
                   {dashboardTab === 'Applying' ? 'Active' :
-                    dashboardTab === 'Applied' ? 'Submitted' : 'Trash'}
+                    dashboardTab === 'Applied' ? 'Submitted' :
+                    dashboardTab === 'Overdue' ? 'Priority (24hrs+)' : 'Trash'}
                 </h2>
                 <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-bold rounded border border-slate-200">
                   {totalItems}

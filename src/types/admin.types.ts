@@ -1,4 +1,4 @@
-export type TaskStatus = 'Applying' | 'Applied' | 'Trashed';
+export type TaskStatus = 'Applying' | 'Applied' | 'Trashed' | 'Overdue';
 export type ClientPriority = 'Standard' | 'Premium';
 export type AIStatus = 'Pending' | 'In Progress' | 'Completed' | 'Error';
 
@@ -98,6 +98,11 @@ export interface VACoreTask {
   assignedToName?: string;
   assignmentStatus?: 'unassigned' | 'assigned' | 'in_progress' | 'completed';
   assignedAt?: string;
+  // Overdue tracking fields
+  isOverdue?: boolean;           // true if was claimed > 24hrs and auto-released
+  overdueReleasedAt?: string;    // When the claim was auto-released
+  previousAssignee?: string;     // Who originally had the claim (for tracking)
+  previousAssigneeName?: string; // Name of original claimer
   clientNotes?: string;
   globalNotes?: string;
   certifications?: any[];

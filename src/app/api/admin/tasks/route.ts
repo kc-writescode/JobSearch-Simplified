@@ -17,11 +17,50 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const offset = (page - 1) * limit;
 
+    // Auto-release overdue claims (claimed > 24 hours ago without completion)
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    // Find all overdue claims
+    const { data: overdueJobs } = await supabase
+      .from('jobs')
+      .select('id, assigned_to')
+      .not('assigned_to', 'is', null)
+      .lt('assigned_at', twentyFourHoursAgo)
+      .not('status', 'in', '("applied","trashed")');
+
+    // Release overdue claims and mark them with overdue_released_at
+    if (overdueJobs && overdueJobs.length > 0) {
+      // Update each job individually to preserve previous_assignee before clearing assigned_to
+      await Promise.all(overdueJobs.map(job =>
+        supabase
+          .from('jobs')
+          .update({
+            previous_assignee: job.assigned_to,
+            assigned_to: null,
+            assignment_status: 'unassigned',
+            overdue_released_at: new Date().toISOString(),
+          })
+          .eq('id', job.id)
+      ));
+    }
+
+    // Auto-delete trashed jobs older than 3 days
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    await supabase
+      .from('jobs')
+      .delete()
+      .eq('status', 'trashed')
+      .not('trashed_at', 'is', null)
+      .lt('trashed_at', threeDaysAgo);
+
     // Fetch all jobs with resume relationship
     let query = supabase
       .from('jobs')
       .select('*, resume:resumes(id, file_name, file_path, job_role, title, status), client_notes', { count: 'exact' })
       .order('created_at', { ascending: false });
+
+    // Check if filtering for Overdue tab
+    const filteringOverdue = statusFilters.includes('Overdue');
 
     // If no status filter includes Trashed, exclude trashed jobs
     const includesTrashed = statusFilters.includes('Trashed');
@@ -35,6 +74,11 @@ export async function GET(request: NextRequest) {
       query = query.in('status', jobStatuses);
     }
 
+    // For Overdue tab, only show tasks with overdue_released_at set
+    if (filteringOverdue) {
+      query = query.not('overdue_released_at', 'is', null);
+    }
+
     const { data: jobs, error: jobsError } = await query;
 
     if (jobsError) throw jobsError;
@@ -46,7 +90,8 @@ export async function GET(request: NextRequest) {
     // Fetch related data
     const userIds = [...new Set(jobs.map(job => job.user_id))];
     const assignedAdminIds = [...new Set(jobs.map(job => job.assigned_to).filter(Boolean))];
-    const allProfileIds = [...new Set([...userIds, ...assignedAdminIds])];
+    const previousAssigneeIds = [...new Set(jobs.map(job => job.previous_assignee).filter(Boolean))];
+    const allProfileIds = [...new Set([...userIds, ...assignedAdminIds, ...previousAssigneeIds])];
     const jobIds = jobs.map(job => job.id);
 
     const [profilesRes, tailoredRes, defaultResumesRes] = await Promise.all([
@@ -184,6 +229,11 @@ export async function GET(request: NextRequest) {
         assignedToName: job.assigned_to ? profilesMap.get(job.assigned_to)?.full_name || 'Unknown Admin' : undefined,
         assignmentStatus: job.assignment_status,
         assignedAt: job.assigned_at,
+        // Overdue tracking
+        isOverdue: !!job.overdue_released_at,
+        overdueReleasedAt: job.overdue_released_at,
+        previousAssignee: job.previous_assignee,
+        previousAssigneeName: job.previous_assignee ? profilesMap.get(job.previous_assignee)?.full_name || 'Unknown Admin' : undefined,
         clientNotes: job.client_notes,
         globalNotes: profile?.global_notes,
         certifications: profile?.certifications || [],
@@ -218,12 +268,20 @@ export async function GET(request: NextRequest) {
     // Apply pagination
     const paginatedTasks = tasks.slice(offset, offset + limit);
 
+    // Count total overdue tasks (for blocking UI) - fetch separately to always have accurate count
+    const { count: overdueCount } = await supabase
+      .from('jobs')
+      .select('id', { count: 'exact', head: true })
+      .not('overdue_released_at', 'is', null)
+      .not('status', 'in', '("applied","trashed")');
+
     return NextResponse.json({
       data: paginatedTasks,
       total,
       page,
       limit,
       totalPages,
+      overdueCount: overdueCount || 0,
     }, { status: 200 });
   } catch (error) {
     console.error('API Error:', error);
@@ -270,6 +328,7 @@ function mapTaskStatusToJobStatuses(taskStatus: string): string[] {
     case 'Applying': return ['saved', 'tailored', 'delegate_to_va'];
     case 'Applied': return ['applied'];
     case 'Trashed': return ['trashed'];
+    case 'Overdue': return ['saved', 'tailored', 'delegate_to_va']; // Same base statuses, filtered by overdue_released_at
     default: return ['saved', 'tailored', 'delegate_to_va'];
   }
 }

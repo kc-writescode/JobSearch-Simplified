@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { VACoreTask, TaskStatus } from '@/types/admin.types';
-import { Ban, FileText, ExternalLink } from 'lucide-react';
+import { Ban, FileText, ExternalLink, Clock } from 'lucide-react';
 import { getLabelClasses } from '@/lib/constants/labels';
 
 interface TasksDataTableProps {
@@ -28,6 +28,8 @@ const getStatusColor = (status: TaskStatus) => {
       return 'bg-emerald-50 text-emerald-700 border-emerald-100';
     case 'Trashed':
       return 'bg-red-50 text-red-700 border-red-100';
+    case 'Overdue':
+      return 'bg-orange-50 text-orange-700 border-orange-100';
     default:
       return 'bg-slate-50 text-slate-600 border-slate-100';
   }
@@ -195,13 +197,27 @@ export function TasksDataTable({
                     </div>
                   </td>
                   <td className="px-3 py-2">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${getStatusColor(
-                        task.status
-                      )}`}
-                    >
-                      {task.status}
-                    </span>
+                    <div className="flex flex-col gap-0.5">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${getStatusColor(
+                          task.status
+                        )}`}
+                      >
+                        {task.isOverdue ? (
+                          <>
+                            <Clock className="h-2.5 w-2.5 mr-1" />
+                            Priority
+                          </>
+                        ) : (
+                          task.status
+                        )}
+                      </span>
+                      {task.isOverdue && task.previousAssigneeName && (
+                        <span className="text-[8px] text-slate-400 italic">
+                          Was: {task.previousAssigneeName.split(' ')[0]}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     {getAIStatusBadge(task.aiStatus)}
@@ -260,7 +276,7 @@ export function TasksDataTable({
                   {(onCannotApply || (onClaimTask && !task.assignedTo)) && (
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1">
-                        {onClaimTask && !task.assignedTo && task.status === 'Applying' && (
+                        {onClaimTask && !task.assignedTo && (task.status === 'Applying' || task.isOverdue) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -276,7 +292,7 @@ export function TasksDataTable({
                             Claim
                           </button>
                         )}
-                        {onCannotApply && task.status === 'Applying' && (
+                        {onCannotApply && (task.status === 'Applying' || task.isOverdue) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

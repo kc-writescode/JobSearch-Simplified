@@ -181,7 +181,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
   const handleTrashJob = async (jobId: string) => {
     try {
       const { error } = await (supabase.from('jobs') as any)
-        .update({ status: 'trashed', updated_at: new Date().toISOString() })
+        .update({ status: 'trashed', trashed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq('id', jobId);
 
       if (error) throw error;
@@ -195,7 +195,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
   const handleUntrashJob = async (jobId: string) => {
     try {
       const { error } = await (supabase.from('jobs') as any)
-        .update({ status: 'saved', updated_at: new Date().toISOString() })
+        .update({ status: 'saved', trashed_at: null, updated_at: new Date().toISOString() })
         .eq('id', jobId);
 
       if (error) throw error;
@@ -247,7 +247,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
 
     try {
       const { error } = await (supabase.from('jobs') as any)
-        .update({ status: 'trashed', updated_at: new Date().toISOString() })
+        .update({ status: 'trashed', trashed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .in('id', selectedJobIds);
 
       if (error) throw error;
@@ -280,7 +280,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
     if (selectedJobIds.length === 0) return;
     try {
       const { error } = await (supabase.from('jobs') as any)
-        .update({ status: 'saved', updated_at: new Date().toISOString() })
+        .update({ status: 'saved', trashed_at: null, updated_at: new Date().toISOString() })
         .in('id', selectedJobIds);
 
       if (error) throw error;

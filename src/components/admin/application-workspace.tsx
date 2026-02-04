@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { VACoreTask, AIStatus, TaskStatus } from '@/types/admin.types';
 import { jsPDF } from 'jspdf';
-import { Upload, FileText, Check, Eye, Loader2, AlertCircle, ChevronDown, Search, ClipboardList } from 'lucide-react';
+import { Upload, FileText, Check, Eye, Loader2, AlertCircle, ChevronDown, Search, ClipboardList, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -556,6 +556,21 @@ export function ApplicationWorkspace({
             </button>
           )}
 
+          {/* Priority Task Indicator */}
+          {task.isOverdue && (
+            <div className="px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-full flex items-center gap-2">
+              <Clock className="h-3 w-3 text-orange-600" />
+              <span className="text-[10px] font-black text-orange-700 uppercase tracking-widest">
+                Priority Task
+              </span>
+              {task.previousAssigneeName && (
+                <span className="text-[9px] text-orange-500 italic">
+                  (Was: {task.previousAssigneeName})
+                </span>
+              )}
+            </div>
+          )}
+
           {/* AI Status Badge with Refresh */}
           <div className="flex items-center gap-2 ml-auto">
             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${currentAiStatus === 'Completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
@@ -1085,7 +1100,20 @@ export function ApplicationWorkspace({
                   <div className="space-y-4 pt-6 border-t border-gray-100">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Custom Resume</h3>
                     <div className="bg-white border border-gray-200 rounded-3xl p-6">
-                      {!customResumePath ? (
+                      {/* Check if task is claimed by current admin */}
+                      {task.assignedTo !== currentAdminId ? (
+                        <div className="text-center p-6 bg-amber-50 border-2 border-dashed border-amber-200 rounded-2xl">
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="p-3 rounded-full bg-amber-100">
+                              <AlertCircle className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-amber-800">Claim Required</p>
+                              <p className="text-xs text-amber-600 mt-1">You must claim this task before uploading a custom resume</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : !customResumePath ? (
                         <div className="text-center">
                           <label className={`block border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-colors ${customResumeUploadStatus === 'error' ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50'}`}>
                             <input
@@ -1160,7 +1188,33 @@ export function ApplicationWorkspace({
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Proof of Application</h3>
 
                   <div className="bg-white border border-gray-200 rounded-3xl p-6">
-                    {!proofPath ? (
+                    {/* Check if task is claimed by current admin */}
+                    {task.assignedTo !== currentAdminId ? (
+                      <div className="text-center p-6 bg-amber-50 border-2 border-dashed border-amber-200 rounded-2xl">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="p-3 rounded-full bg-amber-100">
+                            <AlertCircle className="h-6 w-6 text-amber-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-amber-800">Claim Required</p>
+                            <p className="text-xs text-amber-600 mt-1">You must claim this task before uploading proof</p>
+                          </div>
+                          {!task.assignedTo && onClaim && (
+                            <button
+                              onClick={() => onClaim(task)}
+                              className="mt-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all"
+                            >
+                              Claim Task
+                            </button>
+                          )}
+                          {task.assignedTo && task.assignedTo !== currentAdminId && (
+                            <p className="text-xs text-amber-500 italic mt-1">
+                              Currently assigned to: {task.assignedToName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : !proofPath ? (
                       <div className="text-center">
                         <label className={`block border-2 border-dashed rounded-2xl p-8 cursor-pointer transition-colors ${proofUploadStatus === 'error' ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50'}`}>
                           <input
