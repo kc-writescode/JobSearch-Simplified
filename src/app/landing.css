@@ -334,3 +334,117 @@ table tr:last-child td {
     outline: 2px solid var(--primary-500);
     outline-offset: 2px;
 }
+
+/* Hero Visual Animations */
+@keyframes hero-float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-12px) rotate(1deg);
+    }
+}
+
+@keyframes hero-float-reverse {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-8px) rotate(-1deg);
+    }
+}
+
+@keyframes hero-progress {
+    0% {
+        width: 0%;
+    }
+    100% {
+        width: 92%;
+    }
+}
+
+@keyframes hero-score-count {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes hero-keyword-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.hero-float-animate {
+    animation: hero-float 4s ease-in-out infinite;
+}
+
+.hero-float-reverse-animate {
+    animation: hero-float-reverse 3.5s ease-in-out infinite;
+    animation-delay: 0.5s;
+}
+
+.hero-progress-animate {
+    animation: hero-progress 2s ease-out forwards;
+    animation-delay: 0.5s;
+    width: 0%;
+    background-size: 200% 100%;
+    background-image: linear-gradient(
+        90deg,
+        var(--primary-500) 0%,
+        #818cf8 25%,
+        var(--primary-500) 50%,
+        #818cf8 75%,
+        var(--primary-500) 100%
+    );
+    animation: hero-progress 2s ease-out forwards, shimmer 2s linear infinite;
+    animation-delay: 0.5s, 2.5s;
+}
+
+.hero-score-animate {
+    animation: hero-score-count 1s ease-out forwards;
+    animation-delay: 1.5s;
+    opacity: 0;
+}
+
+.hero-keyword-animate {
+    animation: hero-keyword-pop 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+/* Additional subtle glow effect for the hero card */
+@keyframes subtle-glow {
+    0%, 100% {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+    50% {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 30px 0 rgba(59, 130, 246, 0.1);
+    }
+}
+
+.hero-card-glow {
+    animation: subtle-glow 4s ease-in-out infinite;
+}

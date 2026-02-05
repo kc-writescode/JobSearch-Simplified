@@ -560,46 +560,96 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Hero Visual */}
+              {/* Hero Visual - ATS Optimization Preview */}
               <div className="flex-1 w-full max-w-lg lg:max-w-none animate-fade-in-up stagger-3">
                 <div className="relative">
+                  {/* Main Card - Resume Tailoring */}
                   <div className="bg-white border border-neutral-200 rounded-3xl p-6 shadow-2xl shadow-neutral-200/50">
-                    <div className="bg-neutral-50 rounded-2xl p-6">
-                      <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-100">
-                        <span className="font-bold text-sm text-neutral-700">Dashboard Overview</span>
-                        <span className="flex items-center gap-2 text-xs font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                          <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                          Live
-                        </span>
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50">
+                          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-neutral-900">Resume Tailoring</p>
+                          <p className="text-xs text-neutral-400">Senior Software Engineer @ Meta</p>
+                        </div>
                       </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between py-3 border-b border-neutral-100">
-                          <span className="text-sm text-neutral-500">Applications This Week</span>
-                          <span className="font-bold text-neutral-900">47</span>
-                        </div>
-                        <div className="flex items-center justify-between py-3 border-b border-neutral-100">
-                          <span className="text-sm text-neutral-500">Interview Requests</span>
-                          <span className="font-bold text-blue-600">8</span>
-                        </div>
-                        <div className="flex items-center justify-between py-3">
-                          <span className="text-sm text-neutral-500">Response Rate</span>
-                          <span className="font-bold text-green-600">17%</span>
-                        </div>
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-100 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Processing
+                      </span>
+                    </div>
+
+                    {/* ATS Score Meter */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 mb-5 border border-blue-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-semibold text-neutral-700">ATS Match Score</span>
+                        <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 hero-score-animate">92%</span>
+                      </div>
+                      <div className="w-full h-3 bg-white rounded-full overflow-hidden shadow-inner">
+                        <div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 rounded-full hero-progress-animate" style={{width: '92%'}}></div>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-2 font-medium">+34% improvement from original resume</p>
+                    </div>
+
+                    {/* Keywords Matched */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Keywords Matched</span>
+                        <span className="text-xs font-semibold text-green-600">12/14 found</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {['React', 'TypeScript', 'Node.js', 'AWS', 'CI/CD', 'Agile'].map((keyword, i) => (
+                          <span
+                            key={keyword}
+                            className="px-3 py-1.5 bg-green-50 text-green-700 text-xs font-semibold rounded-lg border border-green-200 hero-keyword-animate"
+                            style={{animationDelay: `${i * 0.1}s`}}
+                          >
+                            <span className="inline-flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                              {keyword}
+                            </span>
+                          </span>
+                        ))}
+                        <span className="px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-semibold rounded-lg border border-amber-200 animate-pulse">
+                          +6 more
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Floating notification */}
-                  <div className="absolute -bottom-6 -left-6 p-4 bg-white border border-neutral-100 rounded-2xl shadow-xl animate-bounce-slow">
+                  {/* Floating Card - Cover Letter */}
+                  <div className="absolute -bottom-4 -left-4 p-4 bg-white border border-green-200 rounded-2xl shadow-xl hero-float-animate">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200/50">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                       </div>
                       <div>
-                        <p className="text-xs font-medium text-neutral-400">Just Applied</p>
-                        <p className="text-sm font-semibold text-neutral-900">Google SWE III</p>
+                        <p className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Free Included</p>
+                        <p className="text-sm font-bold text-neutral-900">Cover Letter Ready</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating Card - Application Submitted */}
+                  <div className="absolute -top-3 -right-3 p-3 bg-white border border-blue-200 rounded-xl shadow-lg hero-float-reverse-animate">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-neutral-400 font-medium">Applied Today</p>
+                        <p className="text-xs font-bold text-neutral-900">47 Jobs</p>
                       </div>
                     </div>
                   </div>
