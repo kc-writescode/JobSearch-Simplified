@@ -508,7 +508,7 @@ export default function LandingPage() {
                 </h1>
 
                 <p className="text-lg md:text-xl text-neutral-600 mb-10 leading-relaxed animate-fade-in-up stagger-1">
-                  We handle the entire application process — from finding jobs to tailoring resumes to submitting applications. <span className="text-neutral-900 font-medium">You focus on interview prep.</span>
+                  Every resume custom-tailored to match job descriptions, boosting your ATS score with high-impact keywords. <span className="text-neutral-900 font-medium">Plus FREE cover letters with every plan.</span>
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in-up stagger-2">
@@ -532,24 +532,30 @@ export default function LandingPage() {
                 </div>
 
                 {/* Trust Indicators */}
-                <div className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full border border-green-100">
+                <div className="mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-sm">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-full border border-green-200">
                     <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    <span className="text-green-700 font-medium">Zero Commission</span>
+                    <span className="text-green-700 font-semibold">Free Cover Letters</span>
                   </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full border border-blue-100">
                     <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
-                    <span className="text-blue-700 font-medium">24-Hour Turnaround</span>
+                    <span className="text-blue-700 font-medium">ATS-Optimized</span>
                   </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-full border border-purple-100">
                     <svg className="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span className="text-purple-700 font-medium">Real-Time Tracking</span>
+                    <span className="text-purple-700 font-medium">24hr Turnaround</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-full border border-amber-100">
+                    <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-amber-700 font-medium">Zero Commission</span>
                   </div>
                 </div>
               </div>
@@ -603,6 +609,139 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ATS Optimization Section */}
+        <section className="py-20 md:py-28 px-6 bg-gradient-to-b from-white to-blue-50/30" aria-labelledby="ats-heading">
+          <div className="max-w-7xl mx-auto">
+            <header className="text-center mb-16">
+              <span className="inline-block px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 text-xs font-bold uppercase tracking-wider rounded-full mb-6 border border-green-200">
+                ATS-Optimized Applications
+              </span>
+              <h2 id="ats-heading" className="font-display text-3xl md:text-5xl font-extrabold text-neutral-900 tracking-tight mb-6">
+                Beat the ATS. <span className="text-gradient-primary">Land More Interviews.</span>
+              </h2>
+              <p className="text-lg text-neutral-500 max-w-3xl mx-auto">
+                75% of resumes get rejected by ATS systems before a human sees them. We ensure yours gets through by matching your skills with job requirements.
+              </p>
+            </header>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {/* Feature 1 - Resume Tailoring */}
+              <article className="relative bg-white p-8 rounded-2xl border border-neutral-100 shadow-lg hover:shadow-xl transition-all duration-300 group overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-transparent rounded-full blur-2xl opacity-50 -z-10"></div>
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-200/50 group-hover:scale-110 transition-transform">
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="font-display text-xl font-bold text-neutral-900 mb-3">Custom-Tailored Resumes</h3>
+                <p className="text-neutral-500 leading-relaxed mb-4">
+                  Every resume is uniquely crafted to match the specific job description, highlighting your most relevant experience and skills.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-sm text-neutral-600">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Job-specific keyword optimization
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-neutral-600">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Skills aligned with requirements
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-neutral-600">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    ATS-friendly formatting
+                  </li>
+                </ul>
+              </article>
+
+              {/* Feature 2 - ATS Score */}
+              <article className="relative bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 group overflow-hidden text-white">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-2xl -z-10"></div>
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform border border-white/30">
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 className="font-display text-xl font-bold mb-3">Maximize ATS Score</h3>
+                <p className="text-blue-100 leading-relaxed mb-4">
+                  Our AI analyzes job descriptions to extract high-impact keywords and seamlessly integrates them into your resume.
+                </p>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-100">Average Match Score</span>
+                    <span className="text-2xl font-bold text-white">85%+</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                    <div className="w-[85%] h-full bg-gradient-to-r from-green-400 to-emerald-400 rounded-full"></div>
+                  </div>
+                </div>
+              </article>
+
+              {/* Feature 3 - Free Cover Letters */}
+              <article className="relative bg-white p-8 rounded-2xl border-2 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 group overflow-hidden">
+                <div className="absolute -top-2 -right-2">
+                  <span className="inline-block px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full shadow-lg">
+                    FREE
+                  </span>
+                </div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-transparent rounded-full blur-2xl opacity-50 -z-10"></div>
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-green-200/50 group-hover:scale-110 transition-transform">
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="font-display text-xl font-bold text-neutral-900 mb-3">Free Custom Cover Letters</h3>
+                <p className="text-neutral-500 leading-relaxed mb-4">
+                  Every application includes a personalized cover letter tailored to the role — at no extra cost, with all plans.
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-sm text-neutral-600">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Company-specific messaging
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-neutral-600">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Highlights your best qualifications
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-neutral-600">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Professional tone & formatting
+                  </li>
+                </ul>
+              </article>
+            </div>
+
+            {/* Additional Benefits Row */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { icon: "🎯", title: "Keyword Matching", desc: "Extract & match critical job keywords" },
+                { icon: "⚡", title: "24hr Turnaround", desc: "Fast delivery without compromising quality" },
+                { icon: "👁️", title: "Human Review", desc: "Every application reviewed by experts" },
+                { icon: "📊", title: "Track Everything", desc: "Real-time dashboard with proof" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-4 p-5 bg-white/80 rounded-xl border border-neutral-100 hover:bg-white hover:shadow-md transition-all">
+                  <span className="text-2xl" aria-hidden="true">{item.icon}</span>
+                  <div>
+                    <h4 className="font-bold text-neutral-900 text-sm mb-1">{item.title}</h4>
+                    <p className="text-xs text-neutral-500">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* How It Works */}
         <section id="how-it-works" className="py-20 md:py-32 px-6 bg-gradient-to-b from-neutral-50 to-white" aria-labelledby="how-it-works-heading">
           <div className="max-w-7xl mx-auto">
@@ -633,8 +772,8 @@ export default function LandingPage() {
                 },
                 {
                   step: "02",
-                  title: "AI-Tailored Applications",
-                  desc: "We customize your resume and cover letter for each role, optimizing for ATS systems.",
+                  title: "ATS-Optimized Resume + Free Cover Letter",
+                  desc: "We tailor your resume with high-impact keywords from the job description, maximizing ATS scores. Free cover letter included.",
                   icon: (
                     <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -732,11 +871,11 @@ export default function LandingPage() {
                 </thead>
                 <tbody>
                   {[
-                    { label: "AI-Tailored Resumes", solo: false, ai: false, jhs: true },
-                    { label: "Custom Cover Letters", solo: false, ai: true, jhs: true },
+                    { label: "ATS-Optimized Resume Tailoring", solo: false, ai: false, jhs: true },
+                    { label: "FREE Custom Cover Letters", solo: false, ai: true, jhs: true, highlight: true },
+                    { label: "Keyword Matching & Optimization", solo: false, ai: false, jhs: true },
                     { label: "Proof of Application", solo: false, ai: false, jhs: true },
                     { label: "Human Job Scouting", solo: false, ai: false, jhs: true },
-                    { label: "Daily Execution", solo: false, ai: true, jhs: true },
                     { label: "Real Human Support", solo: false, ai: false, jhs: true },
                   ].map((row, i) => (
                     <tr key={i} className="border-b border-neutral-100 hover:bg-neutral-50/50 transition-colors">
