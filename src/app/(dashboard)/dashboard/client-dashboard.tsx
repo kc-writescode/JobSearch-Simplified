@@ -207,7 +207,7 @@ export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps
               {/* Quick Info Box */}
               <div className="p-5 bg-slate-900 rounded-[2rem] text-white overflow-hidden relative group hidden lg:block">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/20 rounded-full blur-2xl -mr-8 -mt-8"></div>
-                <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2 relative z-10">JobSearch Simplified</p>
+                <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2 relative z-10">ResumeToJobs (RTJ)</p>
                 <p className="text-[11px] font-bold text-slate-400 leading-relaxed relative z-10 uppercase tracking-tighter">Your career assistant is active.</p>
               </div>
 

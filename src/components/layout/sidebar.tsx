@@ -36,12 +36,12 @@ export function Sidebar({ user, profile }: SidebarProps) {
           <div className="relative">
             <div className="absolute -inset-1.5 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
             <div className="relative p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20 text-white text-[11px] font-black italic transform transition-transform group-hover:scale-105 active:scale-95">
-              JS
+              RTJ
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="text-[15px] font-black text-slate-900 tracking-tight leading-none mb-1">JobSearch</span>
-            <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest leading-none">Simplified</span>
+            <span className="text-[15px] font-black text-slate-900 tracking-tight leading-none mb-1">ResumeTo</span>
+            <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest leading-none">Jobs</span>
           </div>
         </Link>
       </div>

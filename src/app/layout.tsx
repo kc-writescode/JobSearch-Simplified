@@ -17,10 +17,10 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://job-search-simplified.vercel.app'),
+  metadataBase: new URL('https://resumetojobs.com'),
   title: {
-    default: 'JobHuntSimplified | AI-Powered Job Application Service',
-    template: '%s | JobHuntSimplified',
+    default: 'ResumeToJobs | AI-Powered Job Application Service',
+    template: '%s | ResumeToJobs',
   },
   description: 'Stop spending 4+ hours daily on job applications. Our AI-powered service handles resume tailoring, cover letters, and applications while you focus on interview prep. 24-hour turnaround, real-time tracking, zero commission.',
   keywords: [
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
     'employment services',
     'ATS optimization',
   ],
-  authors: [{ name: 'JobHuntSimplified' }],
-  creator: 'JobHuntSimplified',
-  publisher: 'JobHuntSimplified',
+  authors: [{ name: 'ResumeToJobs' }],
+  creator: 'ResumeToJobs',
+  publisher: 'ResumeToJobs',
   robots: {
     index: true,
     follow: true,
@@ -52,28 +52,28 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://job-search-simplified.vercel.app',
-    siteName: 'JobHuntSimplified',
-    title: 'JobHuntSimplified | Your Automated Job Search Partner',
+    url: 'https://resumetojobs.com',
+    siteName: 'ResumeToJobs',
+    title: 'ResumeToJobs | Your Automated Job Search Partner',
     description: 'AI-powered job application service with 24-hour turnaround. We handle resume tailoring, cover letters, and applications while you focus on landing the offer.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'JobHuntSimplified - AI-Powered Job Application Service',
+        alt: 'ResumeToJobs - AI-Powered Job Application Service',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'JobHuntSimplified | AI-Powered Job Application Service',
+    title: 'ResumeToJobs | AI-Powered Job Application Service',
     description: 'Stop the manual job search grind. Our AI + human team handles applications in 24 hours with real-time tracking and zero commission.',
     images: ['/og-image.png'],
-    creator: '@jobhuntsimplified',
+    creator: '@resumetojobs',
   },
   alternates: {
-    canonical: 'https://job-search-simplified.vercel.app',
+    canonical: 'https://resumetojobs.com',
   },
   category: 'Career Services',
 };
@@ -86,10 +86,10 @@ export default function RootLayout({
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
-    name: 'JobHuntSimplified',
+    name: 'ResumeToJobs',
     description: 'AI-powered job application service with human oversight. We handle resume tailoring, cover letters, and job applications.',
-    url: 'https://job-search-simplified.vercel.app',
-    logo: 'https://job-search-simplified.vercel.app/logo.png',
+    url: 'https://resumetojobs.com',
+    logo: 'https://resumetojobs.com/logo.png',
     priceRange: '$199/month',
     serviceType: 'Job Application Service',
     areaServed: {
