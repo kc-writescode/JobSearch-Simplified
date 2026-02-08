@@ -3,7 +3,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import {
     ArrowLeft,
     ArrowRight,
@@ -178,70 +177,44 @@ export default function ToolPage() {
     const handleDownload = async () => {
         if (!reportRef.current) return;
 
-        const toastId = toast.loading('Generating PDF report...');
+        const toastId = toast.loading('Generating high-quality report...');
 
         try {
-            // Clone the element to avoid modifying the original
-            const element = reportRef.current;
-
-            const canvas = await html2canvas(element, {
+            const canvas = await html2canvas(reportRef.current, {
                 scale: 2,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: null, // Preserve original backgrounds
+                backgroundColor: '#ffffff',
                 logging: false,
+                imageTimeout: 15000,
                 onclone: (clonedDoc) => {
-                    // Ensure backgrounds are preserved in the cloned document
-                    const clonedElement = clonedDoc.body.querySelector('[data-report-container]');
-                    if (clonedElement) {
-                        (clonedElement as HTMLElement).style.backgroundColor = '#ffffff';
+                    const el = clonedDoc.body.querySelector('.animate-in') as HTMLElement;
+                    if (el) {
+                        el.style.opacity = '1';
+                        el.style.animation = 'none';
+                        el.style.transition = 'none';
+                        el.style.transform = 'none';
                     }
                 }
             });
 
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgProps = pdf.getImageProperties(imgData);
-            const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            // Convert to high-quality JPEG
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
 
-            // Add some padding
-            const margin = 5;
-            const contentWidth = pdfWidth - (margin * 2);
-            const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
+            const link = document.createElement('a');
+            link.download = `${config.title.toLowerCase().replace(/\s+/g, '-')}-report.jpg`;
+            link.href = imgData;
+            link.click();
 
-            let heightLeft = contentHeight;
-            let position = margin;
-
-            pdf.addImage(imgData, 'PNG', margin, position, contentWidth, contentHeight);
-            heightLeft -= (pdfHeight - margin * 2);
-
-            while (heightLeft > 0) {
-                position = heightLeft - contentHeight + margin;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', margin, position, contentWidth, contentHeight);
-                heightLeft -= (pdfHeight - margin * 2);
-            }
-
-            pdf.save(`${toolId}-report.pdf`);
             toast.dismiss(toastId);
-            toast.success('PDF downloaded!');
+            toast.success('Report saved as high-quality image!');
         } catch (error) {
-            console.error('PDF Generation Error:', error);
+            console.error('Image Generation Error:', error);
             toast.dismiss(toastId);
-            toast.error('Failed to generate PDF. Reverting to text...');
-
-            // Fallback to text download
-            const text = JSON.stringify(resultData, null, 2);
-            const blob = new Blob([text], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${toolId}-report.txt`;
-            a.click();
+            toast.error('Failed to generate image report.');
         }
     };
+
 
     const handleShare = async () => {
         try {
@@ -400,11 +373,10 @@ export default function ToolPage() {
                             {/* Submit button */}
                             <button
                                 type="submit"
-                                className={`w-full py-5 rounded-xl font-bold text-base shadow-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                    file && email
-                                        ? `bg-gradient-to-r ${config.gradient} text-white hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]`
-                                        : 'bg-slate-200 text-slate-400'
-                                }`}
+                                className={`w-full py-5 rounded-xl font-bold text-base shadow-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${file && email
+                                    ? `bg-gradient-to-r ${config.gradient} text-white hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]`
+                                    : 'bg-slate-200 text-slate-400'
+                                    }`}
                                 disabled={!file || !email}
                             >
                                 <Sparkles className="h-5 w-5" />
