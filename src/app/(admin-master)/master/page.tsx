@@ -19,10 +19,20 @@ import {
     Crown,
     Settings2,
     CreditCard,
-    Sparkles
+    Sparkles,
+    Download,
+    Mail,
+    Target,
+    RefreshCcw,
+    MessageSquare,
+    Phone,
+    Trash2,
+    StickyNote,
+    Save
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
 import { UserFeatureDialog } from '@/components/admin/user-feature-dialog';
 
@@ -48,6 +58,7 @@ interface Stats {
     totalTailoredResumes: number;
     totalApplied: number;
     totalVerified: number;
+    totalLeads: number;
 }
 
 interface AdminStat {
@@ -70,15 +81,16 @@ interface UserBreakdown {
 
 export default function MasterDashboard() {
     const searchParams = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'performance' | 'analytics'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'leads' | 'performance' | 'analytics'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'performance' || tab === 'analytics' || tab === 'users' || tab === 'overview') {
-            setActiveTab(tab);
+        if (tab === 'performance' || tab === 'analytics' || tab === 'users' || tab === 'overview' || tab === 'leads') {
+            setActiveTab(tab as any);
         }
     }, [searchParams]);
     const [users, setUsers] = useState<Profile[]>([]);
+    const [leads, setLeads] = useState<any[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
     const [performanceData, setPerformanceData] = useState<{
         adminStats: AdminStat[],
@@ -87,6 +99,9 @@ export default function MasterDashboard() {
     } | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+    const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+    const [noteValue, setNoteValue] = useState('');
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
     const [selectedUserForFeatures, setSelectedUserForFeatures] = useState<Profile | null>(null);
@@ -99,19 +114,22 @@ export default function MasterDashboard() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [usersRes, statsRes, perfRes] = await Promise.all([
+            const [usersRes, statsRes, perfRes, leadsRes] = await Promise.all([
                 fetch('/api/admin/users', { cache: 'no-store' }),
                 fetch('/api/admin/stats', { cache: 'no-store' }),
-                fetch('/api/admin/reports/performance', { cache: 'no-store' })
+                fetch('/api/admin/reports/performance', { cache: 'no-store' }),
+                fetch('/api/admin/leads', { cache: 'no-store' })
             ]);
 
             const usersData = await usersRes.json();
             const statsData = await statsRes.json();
             const perfData = await perfRes.json();
+            const leadsData = await leadsRes.json();
 
             if (usersData.data) setUsers(usersData.data);
             if (statsData.stats) setStats(statsData.stats);
             if (perfData) setPerformanceData(perfData);
+            if (leadsData.data) setLeads(leadsData.data);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
             toast.error('Failed to load dashboard data');
@@ -162,6 +180,53 @@ export default function MasterDashboard() {
         (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
+    const deleteLead = async (id: string) => {
+        if (!confirm('Are you sure you want to purge this intelligence record?')) return;
+        const supabase = createClient();
+        const { error } = await supabase.from('leads').delete().eq('id', id);
+        if (error) {
+            toast.error('Purge failed');
+        } else {
+            setLeads(prev => prev.filter(l => l.id !== id));
+            toast.success('Intelligence purged successfully');
+        }
+    };
+
+    const deleteSelectedLeads = async () => {
+        if (selectedLeads.length === 0) return;
+        if (!confirm(`Purge ${selectedLeads.length} selected records?`)) return;
+
+        const supabase = createClient();
+        const { error } = await supabase.from('leads').delete().in('id', selectedLeads);
+
+        if (error) {
+            toast.error('Bulk purge failed');
+        } else {
+            setLeads(prev => prev.filter(l => !selectedLeads.includes(l.id)));
+            setSelectedLeads([]);
+            toast.success('Records purged successfully');
+        }
+    };
+
+    const saveNote = async (id: string) => {
+        const supabase = createClient();
+        const { error } = await supabase.from('leads').update({ notes: noteValue }).eq('id', id);
+
+        if (error) {
+            toast.error('Strategic note failed to save');
+        } else {
+            setLeads(prev => prev.map(l => l.id === id ? { ...l, notes: noteValue } : l));
+            setEditingNoteId(null);
+            toast.success('Note archived');
+        }
+    };
+
+    const toggleSelectLead = (id: string) => {
+        setSelectedLeads(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
     const selectedAdmin = performanceData?.adminStats.find(a => a.id === selectedAdminId);
 
     return (
@@ -188,6 +253,12 @@ export default function MasterDashboard() {
                     >
                         Gating & Roles
                     </button>
+                    <button
+                        onClick={() => setActiveTab('leads')}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'leads' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Cold Leads
+                    </button>
                 </div>
             </div>
 
@@ -198,7 +269,7 @@ export default function MasterDashboard() {
             ) : (
                 <>
                     {activeTab === 'overview' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 animate-in slide-in-from-bottom-4 duration-500">
                             <StatCard
                                 title="Intelligence Units"
                                 value={stats?.totalUsers || 0}
@@ -221,12 +292,228 @@ export default function MasterDashboard() {
                                 color="purple"
                             />
                             <StatCard
+                                title="Lead Intel"
+                                value={stats?.totalLeads ?? leads.length}
+                                icon={<Target className="h-6 w-6" />}
+                                description="Acquired via Free Tools"
+                                color="rose"
+                            />
+                            <StatCard
                                 title="Verified Gate"
                                 value={`${Math.round(((stats?.totalVerified || 0) / (stats?.totalUsers || 1)) * 100)}%`}
                                 icon={<ShieldCheck className="h-6 w-6" />}
                                 description="Verified access rate"
                                 color="emerald"
                             />
+                        </div>
+                    )}
+
+                    {activeTab === 'leads' && (
+                        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden border-b-8 border-b-slate-200 animate-in slide-in-from-bottom-4 duration-500">
+                            <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="relative flex-1 max-w-md">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search cold leads..."
+                                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all placeholder:italic"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {selectedLeads.length > 0 && (
+                                        <button
+                                            onClick={deleteSelectedLeads}
+                                            className="px-6 py-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-all flex items-center gap-2"
+                                        >
+                                            <Trash2 className="h-4 w-4" /> Purge {selectedLeads.length}
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={fetchData}
+                                        className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 transition-all hover:bg-slate-100"
+                                        title="Refresh Intelligence"
+                                    >
+                                        <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                                    </button>
+                                    <div className="flex items-center gap-2 px-6 py-4 bg-emerald-50 text-emerald-700 rounded-2xl text-[10px] font-black uppercase border border-emerald-100 italic">
+                                        <Users className="h-3 w-3" />
+                                        {leads.length} Cold Leads
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-50/50">
+                                            <th className="px-8 py-5 w-10 border-b border-slate-100">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-slate-300"
+                                                    checked={selectedLeads.length === leads.length && leads.length > 0}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSelectedLeads(leads.map(l => l.id));
+                                                        else setSelectedLeads([]);
+                                                    }}
+                                                />
+                                            </th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Identity & Notes</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Current Role</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Contact</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Tool Used</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">Acquisition Date</th>
+                                            <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {leads.filter(l => l.email.toLowerCase().includes(searchQuery.toLowerCase()) || l.full_name?.toLowerCase().includes(searchQuery.toLowerCase())).map((lead) => (
+                                            <tr key={lead.id} className={`group hover:bg-slate-50/70 transition-all border-b border-slate-50 ${selectedLeads.includes(lead.id) ? 'bg-blue-50/30' : ''}`}>
+                                                <td className="px-8 py-6">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded border-slate-300"
+                                                        checked={selectedLeads.includes(lead.id)}
+                                                        onChange={() => toggleSelectLead(lead.id)}
+                                                    />
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="h-12 w-12 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-900 font-black text-xs shrink-0">
+                                                            {lead.full_name?.[0]?.toUpperCase() || lead.email[0].toUpperCase()}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <p className="font-black text-slate-900 leading-tight truncate">{lead.full_name || 'Anonymous'}</p>
+                                                                <div className="mt-1 space-y-0.5">
+                                                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight flex items-center gap-1">
+                                                                        <span className="text-slate-300">Typed:</span> {lead.email}
+                                                                    </p>
+                                                                    {lead.extraction_data?.user_email && (
+                                                                        <p className={`text-[9px] font-bold uppercase tracking-tight flex items-center gap-1 ${lead.extraction_data.user_email !== lead.email ? 'text-blue-500 italic' : 'text-slate-400'}`}>
+                                                                            <span className="text-slate-300">Resume:</span> {lead.extraction_data.user_email}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            {/* Notes Section */}
+                                                            <div className="mt-3 group/note relative">
+                                                                {editingNoteId === lead.id ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <input
+                                                                            className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-bold outline-none ring-2 ring-slate-100"
+                                                                            value={noteValue}
+                                                                            onChange={(e) => setNoteValue(e.target.value)}
+                                                                            autoFocus
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter') saveNote(lead.id);
+                                                                                if (e.key === 'Escape') setEditingNoteId(null);
+                                                                            }}
+                                                                        />
+                                                                        <button onClick={() => saveNote(lead.id)} className="p-1.5 bg-slate-900 text-white rounded-lg hover:scale-110 transition-transform">
+                                                                            <Save className="h-3 w-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div
+                                                                        onClick={() => {
+                                                                            setEditingNoteId(lead.id);
+                                                                            setNoteValue(lead.notes || '');
+                                                                        }}
+                                                                        className="flex items-center gap-2 cursor-text"
+                                                                    >
+                                                                        <StickyNote className={`h-3 w-3 ${lead.notes ? 'text-blue-400' : 'text-slate-300'}`} />
+                                                                        <p className={`text-[10px] font-medium leading-tight truncate ${lead.notes ? 'text-slate-600' : 'text-slate-300 italic'}`}>
+                                                                            {lead.notes || 'Add sticky note...'}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className="text-xs font-bold text-slate-600 italic">
+                                                        {lead.user_current_title || lead.extraction_data?.user_current_title || 'Undetected'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <Phone className="h-3 w-3 text-slate-300" />
+                                                            <span className="text-xs font-bold text-slate-600">
+                                                                {lead.user_phone || lead.extraction_data?.user_phone || 'N/A'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Mail className="h-3 w-3 text-slate-300" />
+                                                            <span className="text-[10px] font-bold text-slate-400 truncate max-w-[120px]">
+                                                                {lead.email}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors bg-blue-50 text-blue-700 border-blue-100`}>
+                                                        {lead.tool_used}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className="text-xs font-bold text-slate-500">
+                                                        {new Date(lead.created_at).toLocaleDateString()}
+                                                    </span>
+                                                    <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
+                                                        {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                </td>
+                                                <td className="px-8 py-6 text-right">
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <button
+                                                            onClick={() => toast.info('Intelligence context: ' + JSON.stringify(lead.extraction_data || lead.parsed_data))}
+                                                            className="p-2 bg-white border border-slate-100 hover:border-slate-900 rounded-xl text-slate-400 hover:text-slate-900 transition-all shadow-sm"
+                                                            title="View Intelligence"
+                                                        >
+                                                            <Search className="h-3.5 w-3.5" />
+                                                        </button>
+                                                        {(lead.user_phone || lead.extraction_data?.user_phone) && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    let phone = (lead.user_phone || lead.extraction_data?.user_phone).replace(/\D/g, '');
+                                                                    // Add +1 if not present and length is 10 (standard US)
+                                                                    if (phone.length === 10) phone = '1' + phone;
+                                                                    window.open(`https://wa.me/${phone}`, '_blank');
+                                                                }}
+                                                                className="p-2 bg-white border border-emerald-50 hover:border-emerald-400 rounded-xl text-emerald-400 hover:text-emerald-600 transition-all shadow-sm"
+                                                                title="WhatsApp Lead"
+                                                            >
+                                                                <MessageSquare className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => deleteLead(lead.id)}
+                                                            className="p-2 bg-white border border-rose-50 hover:border-rose-400 rounded-xl text-rose-300 hover:text-rose-600 transition-all shadow-sm"
+                                                            title="Purge Intel"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {leads.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="px-8 py-20 text-center">
+                                                    <div className="flex flex-col items-center justify-center space-y-3 opacity-40">
+                                                        <Users className="h-12 w-12 text-slate-300" />
+                                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No cold leads acquired yet</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
 
@@ -621,6 +908,7 @@ function StatCard({ title, value, icon, description, color }: any) {
         blue: 'bg-blue-600 text-blue-600 border-blue-100',
         purple: 'bg-purple-600 text-purple-600 border-purple-100',
         emerald: 'bg-emerald-600 text-emerald-600 border-emerald-100',
+        rose: 'bg-rose-600 text-rose-600 border-rose-100',
     };
 
     return (
@@ -644,6 +932,7 @@ function ReportBar({ label, value, color }: any) {
         blue: 'bg-blue-600',
         purple: 'bg-purple-600',
         emerald: 'bg-emerald-600',
+        rose: 'bg-rose-600',
     };
 
     return (

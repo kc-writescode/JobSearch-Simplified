@@ -448,6 +448,9 @@ export default function LandingPage() {
             <a href="#how-it-works" className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
               How it Works
             </a>
+            <Link href="/tools" className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
+              Free Tools
+            </Link>
             <a href="#pricing" className="relative px-4 py-2 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-200">
               Pricing
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>
@@ -959,30 +962,6 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="py-12 border-t border-neutral-100 px-6 bg-white" role="contentinfo">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-[10px]">RTJ</span>
-              </div>
-              <span className="font-bold text-neutral-900">
-                ResumeTo<span className="text-blue-600">Jobs</span>
-              </span>
-            </div>
-            <nav className="flex gap-6 text-sm text-neutral-500" aria-label="Footer navigation">
-              <Link href="/login" className="hover:text-blue-600 transition-colors">Sign In</Link>
-              <a href="#how-it-works" className="hover:text-blue-600 transition-colors">How It Works</a>
-              <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>
-            </nav>
-            <p className="text-sm text-neutral-400">
-              © {new Date().getFullYear()} ResumeToJobs. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
 
       {/* Floating WhatsApp Button */}
       <a

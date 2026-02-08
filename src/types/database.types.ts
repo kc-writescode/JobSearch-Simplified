@@ -332,6 +332,38 @@ export type Database = {
           updated_at?: string;
         };
       };
+      leads: {
+        Row: {
+          id: string;
+          email: string;
+          full_name: string | null;
+          resume_url: string | null;
+          parsed_data: Json | null;
+          tool_used: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          full_name?: string | null;
+          resume_url?: string | null;
+          parsed_data?: Json | null;
+          tool_used: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          full_name?: string | null;
+          resume_url?: string | null;
+          parsed_data?: Json | null;
+          tool_used?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: {};
     Functions: {};

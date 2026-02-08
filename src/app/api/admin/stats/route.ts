@@ -20,12 +20,13 @@ export async function GET(request: NextRequest) {
         }
 
         // Analytics: Total Users, Total Jobs, Total Tailored Resumes, Total Applied
-        const [usersCount, jobsCount, tailoredCount, appliedCount, verifiedCount] = await Promise.all([
+        const [usersCount, jobsCount, tailoredCount, appliedCount, verifiedCount, leadsCount] = await Promise.all([
             supabase.from('profiles').select('*', { count: 'exact', head: true }),
             supabase.from('jobs').select('*', { count: 'exact', head: true }),
             supabase.from('tailored_resumes').select('*', { count: 'exact', head: true }),
             supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'applied'),
             supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_verified', true),
+            supabase.from('leads').select('*', { count: 'exact', head: true }),
         ]);
 
         // Role Distribution
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
                 totalTailoredResumes: tailoredCount.count || 0,
                 totalApplied: appliedCount.count || 0,
                 totalVerified: verifiedCount.count || 0,
+                totalLeads: leadsCount.count || 0,
             },
             roles
         });
