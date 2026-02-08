@@ -337,9 +337,11 @@ export type Database = {
           id: string;
           email: string;
           full_name: string | null;
+          phone: string | null;
           resume_url: string | null;
           parsed_data: Json | null;
           tool_used: string;
+          notes: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -347,9 +349,11 @@ export type Database = {
           id?: string;
           email: string;
           full_name?: string | null;
+          phone?: string | null;
           resume_url?: string | null;
           parsed_data?: Json | null;
           tool_used: string;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -357,9 +361,11 @@ export type Database = {
           id?: string;
           email?: string;
           full_name?: string | null;
+          phone?: string | null;
           resume_url?: string | null;
           parsed_data?: Json | null;
           tool_used?: string;
+          notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };

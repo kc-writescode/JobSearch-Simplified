@@ -10,7 +10,9 @@ import {
     Loader2,
     CheckCircle2,
     AlertCircle,
-    Download
+    Download,
+    Globe,
+    Flame
 } from 'lucide-react';
 import {
     Dialog,

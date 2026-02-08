@@ -210,6 +210,7 @@ export default function MasterDashboard() {
 
     const saveNote = async (id: string) => {
         const supabase = createClient();
+        // @ts-ignore - leads table notes column exists but types need regeneration
         const { error } = await supabase.from('leads').update({ notes: noteValue }).eq('id', id);
 
         if (error) {
