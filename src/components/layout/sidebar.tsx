@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { createClient } from '@/lib/supabase/client';
+import { Logo } from '@/components/Logo';
 import type { User } from '@supabase/supabase-js';
 
 interface SidebarProps {
@@ -32,18 +33,7 @@ export function Sidebar({ user, profile }: SidebarProps) {
     <aside className="hidden w-72 flex-shrink-0 border-r border-slate-200/60 bg-white/80 backdrop-blur-xl lg:flex lg:flex-col sticky top-0 h-screen shadow-[1px_0_0_0_rgba(0,0,0,0.05)]" suppressHydrationWarning>
       {/* Brand Header */}
       <div className="flex h-24 items-center px-8 border-b border-slate-100">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="relative">
-            <div className="absolute -inset-1.5 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
-            <div className="relative p-2.5 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20 text-white text-[11px] font-black italic transform transition-transform group-hover:scale-105 active:scale-95">
-              RTJ
-            </div>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[15px] font-black text-slate-900 tracking-tight leading-none mb-1">ResumeTo</span>
-            <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest leading-none">Jobs</span>
-          </div>
-        </Link>
+        <Logo />
       </div>
 
       {/* Main Navigation */}

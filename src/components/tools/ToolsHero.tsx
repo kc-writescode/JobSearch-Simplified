@@ -1,4 +1,5 @@
 import { Sparkles, Zap, Gift } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 export function ToolsHero() {
     return (
@@ -13,14 +14,7 @@ export function ToolsHero() {
             {/* Unified Navigation Bar */}
             <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-xl border-b border-neutral-100 shadow-sm">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <a href="/" className="flex items-center gap-3 group" aria-label="ResumeToJobs Home">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50 group-hover:shadow-blue-300/50 transition-shadow">
-                            <span className="text-white font-extrabold text-sm">RTJ</span>
-                        </div>
-                        <span className="text-xl font-bold text-neutral-900 tracking-tight">
-                            ResumeTo<span className="text-blue-600">Jobs</span>
-                        </span>
-                    </a>
+                    <Logo />
                     <div className="hidden md:flex gap-2 items-center">
                         <a href="/#how-it-works" className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
                             How it Works
