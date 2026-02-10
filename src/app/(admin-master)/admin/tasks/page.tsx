@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { LogOut, Trash2, BarChart3, Users, LayoutDashboard, Calendar, Tag, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Clock, AlertTriangle } from 'lucide-react';
 import { getLabelClasses } from '@/lib/constants/labels';
 import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
+import { AdminNavMenu } from '@/components/admin/admin-nav-menu';
 
 const statuses: TaskStatus[] = ['Applying', 'Applied'];
 
@@ -333,6 +334,7 @@ export default function VATasksPage() {
                   {adminProfile?.role === 'master' ? 'Master' : 'Agent'}
                 </p>
               </div>
+              <AdminNavMenu userRole={adminProfile?.role || 'admin'} />
             </div>
 
             {/* Tab Switcher */}

@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
 import { UserFeatureDialog } from '@/components/admin/user-feature-dialog';
+import { AdminNavMenu } from '@/components/admin/admin-nav-menu';
 
 interface Profile {
     id: string;
@@ -234,11 +235,14 @@ export default function MasterDashboard() {
         <div className="px-8 py-8">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 text-shadow-sm">
-                        Master Intelligence hub
-                    </h1>
-                    <p className="text-slate-500 font-medium italic">High-level administrative oversight and strategic gating</p>
+                <div className="flex items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 text-shadow-sm">
+                            Master Intelligence hub
+                        </h1>
+                        <p className="text-slate-500 font-medium italic">High-level administrative oversight and strategic gating</p>
+                    </div>
+                    <AdminNavMenu userRole="master" />
                 </div>
 
                 <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 shadow-sm border-b-4 border-b-slate-200">
