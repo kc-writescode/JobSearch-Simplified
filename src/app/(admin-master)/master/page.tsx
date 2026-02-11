@@ -31,7 +31,8 @@ import {
     Save,
     ClipboardList,
     Calendar,
-    Clock
+    Clock,
+    LogOut
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -111,6 +112,12 @@ export default function MasterDashboard() {
     const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
     const [selectedUserForFeatures, setSelectedUserForFeatures] = useState<Profile | null>(null);
     const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
+
+    const handleSignOut = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        window.location.href = '/login';
+    };
 
     useEffect(() => {
         fetchData();
@@ -250,33 +257,44 @@ export default function MasterDashboard() {
                     <AdminNavMenu userRole="master" />
                 </div>
 
-                <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 shadow-sm border-b-4 border-b-slate-200">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 shadow-sm border-b-4 border-b-slate-200">
+                        <button
+                            onClick={() => setActiveTab('overview')}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'overview' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Overview
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('users')}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'users' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Gating & Roles
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('leads')}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'leads' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Cold Leads
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('tasks')}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'tasks' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Tasks
+                        </button>
+                    </div>
+
                     <button
-                        onClick={() => setActiveTab('overview')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'overview' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                        onClick={handleSignOut}
+                        className="p-2.5 bg-red-50 border border-red-100 text-red-600 rounded-xl hover:bg-red-100 transition-all"
+                        title="Sign Out"
                     >
-                        Overview
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('users')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'users' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                        Gating & Roles
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('leads')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'leads' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                        Cold Leads
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('tasks')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'tasks' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                        Tasks
+                        <LogOut className="h-5 w-5" />
                     </button>
                 </div>
             </div>
+
 
             {loading ? (
                 <div className="flex items-center justify-center py-24">

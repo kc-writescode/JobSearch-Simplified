@@ -39,7 +39,7 @@ export function ToolsHero() {
                         </a>
                         <button
                             className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 ml-1"
-                            onClick={() => window.open('https://app.resumetojobs.com', '_blank')}
+                            onClick={() => window.location.href = '/login'}
                         >
                             Sign In
                         </button>
