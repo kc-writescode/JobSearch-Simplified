@@ -113,7 +113,29 @@ export async function GET(request: NextRequest) {
             };
         }).sort((a: any, b: any) => b.appliedCount - a.appliedCount);
 
-        return NextResponse.json({ adminStats, userBreakdown, globalDailyStats });
+        // 3. Client Daily Stats — per-client daily application counts
+        const clientDailyStats = (clients || []).map((client: any) => {
+            const clientJobs = jobs.filter((j: any) => j.user_id === client.id);
+            const dailyCounts: Record<string, number> = {};
+            clientJobs.forEach((j: any) => {
+                if (j.applied_at) {
+                    const dateKey = new Date(j.applied_at).toISOString().split('T')[0];
+                    dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
+                }
+            });
+            return {
+                id: client.id,
+                name: client.full_name || client.email,
+                dailyStats: dailyCounts,
+            };
+        }).filter((c: any) => Object.keys(c.dailyStats).length > 0)
+          .sort((a: any, b: any) => {
+            const totalA = Object.values(a.dailyStats).reduce((s: number, n: any) => s + n, 0);
+            const totalB = Object.values(b.dailyStats).reduce((s: number, n: any) => s + n, 0);
+            return (totalB as number) - (totalA as number);
+          });
+
+        return NextResponse.json({ adminStats, userBreakdown, globalDailyStats, clientDailyStats });
     } catch (error) {
         console.error('Strategic Performance Report Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

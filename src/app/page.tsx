@@ -445,6 +445,9 @@ export default function LandingPage() {
             <Link href="/tools" className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">
               Free Tools
             </Link>
+            <Link href="/blog" className="px-4 py-2 text-sm font-medium text-neutral-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all">
+              Blog
+            </Link>
             <a href="#pricing" className="relative px-4 py-2 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-200">
               Pricing
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>

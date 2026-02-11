@@ -87,11 +87,11 @@ interface UserBreakdown {
 
 export default function MasterDashboard() {
     const searchParams = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'leads' | 'tasks' | 'performance' | 'analytics'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'leads' | 'tasks' | 'reports' | 'performance' | 'analytics'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'performance' || tab === 'analytics' || tab === 'users' || tab === 'overview' || tab === 'leads' || tab === 'tasks') {
+        if (tab === 'performance' || tab === 'analytics' || tab === 'users' || tab === 'overview' || tab === 'leads' || tab === 'tasks' || tab === 'reports') {
             setActiveTab(tab as any);
         }
     }, [searchParams]);
@@ -101,9 +101,23 @@ export default function MasterDashboard() {
     const [performanceData, setPerformanceData] = useState<{
         adminStats: AdminStat[],
         userBreakdown: UserBreakdown[],
-        globalDailyStats: Record<string, number>
+        globalDailyStats: Record<string, number>,
+        clientDailyStats?: Array<{
+            id: string;
+            name: string;
+            dailyStats: Record<string, number>;
+        }>
     } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [reportDateRange, setReportDateRange] = useState<{ start: string; end: string }>(() => {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 6);
+        return {
+            start: start.toISOString().split('T')[0],
+            end: end.toISOString().split('T')[0],
+        };
+    });
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -194,13 +208,17 @@ export default function MasterDashboard() {
 
     const deleteLead = async (id: string) => {
         if (!confirm('Are you sure you want to purge this intelligence record?')) return;
-        const supabase = createClient();
-        const { error } = await supabase.from('leads').delete().eq('id', id);
-        if (error) {
-            toast.error('Purge failed');
-        } else {
+        try {
+            const res = await fetch('/api/admin/leads', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: [id] }),
+            });
+            if (!res.ok) throw new Error('Delete failed');
             setLeads(prev => prev.filter(l => l.id !== id));
             toast.success('Intelligence purged successfully');
+        } catch {
+            toast.error('Purge failed');
         }
     };
 
@@ -208,15 +226,18 @@ export default function MasterDashboard() {
         if (selectedLeads.length === 0) return;
         if (!confirm(`Purge ${selectedLeads.length} selected records?`)) return;
 
-        const supabase = createClient();
-        const { error } = await supabase.from('leads').delete().in('id', selectedLeads);
-
-        if (error) {
-            toast.error('Bulk purge failed');
-        } else {
+        try {
+            const res = await fetch('/api/admin/leads', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedLeads }),
+            });
+            if (!res.ok) throw new Error('Delete failed');
             setLeads(prev => prev.filter(l => !selectedLeads.includes(l.id)));
             setSelectedLeads([]);
             toast.success('Records purged successfully');
+        } catch {
+            toast.error('Bulk purge failed');
         }
     };
 
@@ -282,6 +303,12 @@ export default function MasterDashboard() {
                             className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'tasks' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
                             Tasks
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('reports')}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'reports' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Reports
                         </button>
                     </div>
 
@@ -685,6 +712,234 @@ export default function MasterDashboard() {
                         <TasksTab refreshTasks={fetchData} />
                     )}
 
+                    {activeTab === 'reports' && performanceData && (
+                        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                            {/* Header + Date Range Picker */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-slate-900 rounded-xl text-white">
+                                        <BarChart3 className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-slate-900 tracking-tight">Day-to-Day Progress Reports</h3>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Admin &amp; Client daily application counts</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="date"
+                                        value={reportDateRange.start}
+                                        onChange={(e) => setReportDateRange(prev => ({ ...prev, start: e.target.value }))}
+                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-slate-100"
+                                    />
+                                    <span className="text-[10px] font-black text-slate-400 uppercase">to</span>
+                                    <input
+                                        type="date"
+                                        value={reportDateRange.end}
+                                        onChange={(e) => setReportDateRange(prev => ({ ...prev, end: e.target.value }))}
+                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-slate-100"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            const end = new Date();
+                                            const start = new Date();
+                                            start.setDate(start.getDate() - 6);
+                                            setReportDateRange({ start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] });
+                                        }}
+                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+                                    >
+                                        7D
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const end = new Date();
+                                            const start = new Date();
+                                            start.setDate(start.getDate() - 13);
+                                            setReportDateRange({ start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] });
+                                        }}
+                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+                                    >
+                                        14D
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const end = new Date();
+                                            const start = new Date();
+                                            start.setDate(start.getDate() - 29);
+                                            setReportDateRange({ start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0] });
+                                        }}
+                                        className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+                                    >
+                                        30D
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Admin Daily Output Table */}
+                            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden border-b-8 border-b-slate-200">
+                                <div className="p-8 border-b border-slate-100 flex items-center gap-3">
+                                    <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 border border-blue-100">
+                                        <TrendingUp className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-black text-slate-900 tracking-tight">Admin Daily Output</h3>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Applications per admin per day</p>
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50/50">
+                                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 sticky left-0 bg-slate-50/50 z-10">
+                                                    Admin
+                                                </th>
+                                                {getDateRange(reportDateRange.start, reportDateRange.end).map(date => (
+                                                    <th key={date} className="px-3 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center whitespace-nowrap">
+                                                        {new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                    </th>
+                                                ))}
+                                                <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">
+                                                    Total
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {performanceData.adminStats.map(admin => {
+                                                const dates = getDateRange(reportDateRange.start, reportDateRange.end);
+                                                const rowTotal = dates.reduce((sum, d) => sum + (admin.dailyStats[d] || 0), 0);
+                                                return (
+                                                    <tr key={admin.id} className="group hover:bg-slate-50/70 transition-all border-b border-slate-50">
+                                                        <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50/70 z-10">
+                                                            <p className="font-black text-slate-900 text-sm whitespace-nowrap">{admin.name}</p>
+                                                        </td>
+                                                        {dates.map(date => {
+                                                            const count = admin.dailyStats[date] || 0;
+                                                            return (
+                                                                <td key={date} className="px-3 py-4 text-center">
+                                                                    {count > 0 ? (
+                                                                        <span className="text-sm font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">
+                                                                            {count}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-slate-200">-</span>
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                        <td className="px-4 py-4 text-right">
+                                                            <span className="text-sm font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
+                                                                {rowTotal}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            {/* Totals row */}
+                                            <tr className="bg-slate-50/80 border-t-2 border-slate-200">
+                                                <td className="px-6 py-4 sticky left-0 bg-slate-50/80 z-10">
+                                                    <p className="font-black text-slate-600 text-[10px] uppercase tracking-widest">Daily Total</p>
+                                                </td>
+                                                {getDateRange(reportDateRange.start, reportDateRange.end).map(date => {
+                                                    const dayTotal = performanceData.adminStats.reduce((sum, a) => sum + (a.dailyStats[date] || 0), 0);
+                                                    return (
+                                                        <td key={date} className="px-3 py-4 text-center">
+                                                            <span className="text-xs font-black text-slate-700">{dayTotal || '-'}</span>
+                                                        </td>
+                                                    );
+                                                })}
+                                                <td className="px-4 py-4 text-right">
+                                                    <span className="text-sm font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                                                        {performanceData.adminStats.reduce((sum, a) => {
+                                                            return sum + getDateRange(reportDateRange.start, reportDateRange.end).reduce((s, d) => s + (a.dailyStats[d] || 0), 0);
+                                                        }, 0)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Client Daily Progress Table */}
+                            {performanceData.clientDailyStats && performanceData.clientDailyStats.length > 0 && (
+                                <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden border-b-8 border-b-slate-200">
+                                    <div className="p-8 border-b border-slate-100 flex items-center gap-3">
+                                        <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100">
+                                            <Users className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base font-black text-slate-900 tracking-tight">Client Daily Progress</h3>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Applications per client per day</p>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50/50">
+                                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 sticky left-0 bg-slate-50/50 z-10">
+                                                        Client
+                                                    </th>
+                                                    {getDateRange(reportDateRange.start, reportDateRange.end).map(date => (
+                                                        <th key={date} className="px-3 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-center whitespace-nowrap">
+                                                            {new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        </th>
+                                                    ))}
+                                                    <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 text-right">
+                                                        Total
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {performanceData.clientDailyStats.map(client => {
+                                                    const dates = getDateRange(reportDateRange.start, reportDateRange.end);
+                                                    const rowTotal = dates.reduce((sum, d) => sum + (client.dailyStats[d] || 0), 0);
+                                                    if (rowTotal === 0) return null;
+                                                    return (
+                                                        <tr key={client.id} className="group hover:bg-slate-50/70 transition-all border-b border-slate-50">
+                                                            <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50/70 z-10">
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center text-[10px] font-black text-emerald-600 border border-emerald-100 flex-shrink-0">
+                                                                        {client.name[0]?.toUpperCase() || '?'}
+                                                                    </div>
+                                                                    <p className="font-bold text-slate-900 text-sm whitespace-nowrap">{client.name}</p>
+                                                                </div>
+                                                            </td>
+                                                            {dates.map(date => {
+                                                                const count = client.dailyStats[date] || 0;
+                                                                return (
+                                                                    <td key={date} className="px-3 py-4 text-center">
+                                                                        {count > 0 ? (
+                                                                            <span className="text-sm font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                                                                                {count}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-[10px] text-slate-200">-</span>
+                                                                        )}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                            <td className="px-4 py-4 text-right">
+                                                                <span className="text-sm font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
+                                                                    {rowTotal}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Global Deployment Calendar */}
+                            <DeploymentCalendar
+                                dailyStats={performanceData.globalDailyStats || {}}
+                                title="Global Daily Throughput"
+                            />
+                        </div>
+                    )}
+
                     {activeTab === 'performance' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -962,6 +1217,17 @@ function StatCard({ title, value, icon, description, color }: any) {
             <div className={`absolute top-0 right-0 h-1 w-full bg-opacity-20 ${colorMap[color].split(' ')[0]}`}></div>
         </div>
     );
+}
+
+function getDateRange(start: string, end: string): string[] {
+    const dates: string[] = [];
+    const current = new Date(start + 'T00:00:00');
+    const endDate = new Date(end + 'T00:00:00');
+    while (current <= endDate) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+    }
+    return dates;
 }
 
 function ReportBar({ label, value, color }: any) {

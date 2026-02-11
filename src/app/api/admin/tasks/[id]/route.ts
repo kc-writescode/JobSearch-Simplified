@@ -30,7 +30,14 @@ export async function PATCH(
       updateData.status = mapTaskStatusToJobStatus(status);
     }
 
-    if (assignedTo !== undefined) updateData.assigned_to = assignedTo;
+    if (assignedTo !== undefined) {
+      updateData.assigned_to = assignedTo;
+      // Clear overdue flag when re-claiming a previously overdue job
+      if (assignedTo !== null) {
+        updateData.overdue_released_at = null;
+        updateData.previous_assignee = null;
+      }
+    }
     if (assignmentStatus !== undefined) updateData.assignment_status = assignmentStatus;
     if (labels !== undefined) updateData.labels = labels;
 

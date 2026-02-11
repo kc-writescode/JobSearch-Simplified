@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TasksDataTable } from '@/components/admin/tasks-data-table';
 import { VACoreTask, TaskStatus } from '@/types/admin.types';
-import { LayoutDashboard, Users, Clock, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { LayoutDashboard, Users, Clock, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TasksTabProps {
@@ -29,11 +28,14 @@ export function TasksTab({ refreshTasks }: TasksTabProps) {
     const [overdueCount, setOverdueCount] = useState(0);
     const [trashCount, setTrashCount] = useState(0);
 
+    // Search state
+    const [searchInput, setSearchInput] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
     // Bulk selection for trash
     const [selectedTrashIds, setSelectedTrashIds] = useState<string[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
-
-    const supabase = createClient();
 
     // Fetch counts for all tabs
     const fetchCounts = async () => {
@@ -61,6 +63,17 @@ export function TasksTab({ refreshTasks }: TasksTabProps) {
         }
     };
 
+    const handleSearchChange = (value: string) => {
+        setSearchInput(value);
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        debounceTimerRef.current = setTimeout(() => {
+            setSearchQuery(value);
+            setCurrentPage(1);
+        }, 400);
+    };
+
     // Fetch tasks for current tab with pagination
     const fetchTasks = async () => {
         setLoading(true);
@@ -78,6 +91,10 @@ export function TasksTab({ refreshTasks }: TasksTabProps) {
                 page: currentPage.toString(),
                 limit: pageSize.toString(),
             });
+
+            if (searchQuery) {
+                params.set('search', searchQuery);
+            }
 
             const response = await fetch(`/api/admin/tasks?${params.toString()}`);
             if (!response.ok) throw new Error('Failed to fetch tasks');
@@ -103,15 +120,29 @@ export function TasksTab({ refreshTasks }: TasksTabProps) {
         fetchTasks();
     }, []);
 
-    // Fetch when tab, page, or pageSize changes
+    // Clear search and reset on tab change
     useEffect(() => {
         setCurrentPage(1);
         setSelectedTrashIds([]);
+        setSearchInput('');
+        setSearchQuery('');
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
     }, [currentTab]);
 
     useEffect(() => {
         fetchTasks();
-    }, [currentTab, currentPage, pageSize]);
+    }, [currentTab, currentPage, pageSize, searchQuery]);
+
+    // Cleanup debounce timer on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, []);
 
     // Bulk selection handlers
     const toggleSelectAll = () => {
@@ -138,12 +169,16 @@ export function TasksTab({ refreshTasks }: TasksTabProps) {
 
         setIsDeleting(true);
         try {
-            const { error } = await supabase
-                .from('jobs')
-                .delete()
-                .in('id', selectedTrashIds);
+            const res = await fetch('/api/admin/tasks', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: selectedTrashIds }),
+            });
 
-            if (error) throw error;
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Delete failed');
+            }
 
             toast.success(`${selectedTrashIds.length} job(s) permanently deleted`);
             setSelectedTrashIds([]);
@@ -164,7 +199,7 @@ export function TasksTab({ refreshTasks }: TasksTabProps) {
     return (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             {/* Tab Navigation */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
                 <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
                     <button
                         onClick={() => setCurrentTab('Active')}
@@ -220,17 +255,31 @@ export function TasksTab({ refreshTasks }: TasksTabProps) {
                     </button>
                 </div>
 
-                {/* Bulk Delete Button for Trash Tab */}
-                {currentTab === 'Trash' && selectedTrashIds.length > 0 && (
-                    <button
-                        onClick={handleBulkDelete}
-                        disabled={isDeleting}
-                        className="px-4 py-2 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2"
-                    >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Delete {selectedTrashIds.length} Permanently
-                    </button>
-                )}
+                <div className="flex items-center gap-3 flex-1 justify-end">
+                    {/* Search Input */}
+                    <div className="relative max-w-xs w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search jobs, clients, companies..."
+                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all placeholder:italic"
+                            value={searchInput}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Bulk Delete Button for Trash Tab */}
+                    {currentTab === 'Trash' && selectedTrashIds.length > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            disabled={isDeleting}
+                            className="px-4 py-2 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete {selectedTrashIds.length} Permanently
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Section Header */}

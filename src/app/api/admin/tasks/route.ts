@@ -79,6 +79,12 @@ export async function GET(request: NextRequest) {
       query = query.not('overdue_released_at', 'is', null);
     }
 
+    // For Active tab (Applying), exclude overdue-released jobs so they only appear in the Overdue tab
+    const filteringActive = statusFilters.includes('Applying');
+    if (filteringActive && !filteringOverdue) {
+      query = query.is('overdue_released_at', null);
+    }
+
     const { data: jobs, error: jobsError } = await query;
 
     if (jobsError) throw jobsError;
@@ -319,6 +325,35 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating task:', error);
     return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
+  }
+}
+
+// DELETE: Bulk delete jobs (master only, bypasses RLS via service role)
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const body = await request.json();
+    const { ids } = body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'No job IDs provided' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('jobs')
+      .delete()
+      .in('id', ids);
+
+    if (error) throw error;
+
+    return NextResponse.json({ deleted: ids.length }, { status: 200 });
+  } catch (error) {
+    console.error('Error deleting jobs:', error);
+    return NextResponse.json({ error: 'Failed to delete jobs' }, { status: 500 });
   }
 }
 
