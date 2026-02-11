@@ -233,7 +233,7 @@ function PricingSection() {
 
                 {/* CTA */}
                 <a
-                  href="https://api.whatsapp.com/send/?phone=917993723103&text=Hi+Krishna+I%E2%80%99d+like+to+know+more+information+about+your+services&type=phone_number&app_absent=0"
+                  href={`https://api.whatsapp.com/send/?phone=919493063818&text=Hi+Krishna+I%E2%80%99d+like+to+know+more+about+the+${plan.name}+plan+(${showCustomResume ? 'Resume+%2B+Cover+Letter' : 'Cover+Letter+Only'}).&type=phone_number&app_absent=0`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`block w-full py-3.5 rounded-xl font-bold text-sm text-center transition-all duration-300 ${plan.popular
@@ -959,7 +959,7 @@ export default function LandingPage() {
 
       {/* Floating WhatsApp Button */}
       <a
-        href="https://api.whatsapp.com/send/?phone=917993723103&text=Hi+Krishna+I%E2%80%99d+like+to+know+more+information+about+your+services&type=phone_number&app_absent=0"
+        href="https://api.whatsapp.com/send/?phone=919493063818&text=Hi+Krishna+I%E2%80%99d+like+to+know+more+information+about+your+services&type=phone_number&app_absent=0"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 bg-[#25D366] text-white font-semibold text-sm rounded-full shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-500/40 hover:scale-105 transition-all duration-300 group"

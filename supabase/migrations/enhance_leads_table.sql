@@ -9,3 +9,4 @@ ADD COLUMN IF NOT EXISTS extraction_data JSONB;
 
 COMMENT ON COLUMN public.leads.tool_result_data IS 'Detailed creative output from the AI for the specific tool used';
 COMMENT ON COLUMN public.leads.extraction_data IS 'Structured professional data extracted from the resume';
+
