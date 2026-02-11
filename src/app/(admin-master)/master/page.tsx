@@ -28,7 +28,10 @@ import {
     Phone,
     Trash2,
     StickyNote,
-    Save
+    Save,
+    ClipboardList,
+    Calendar,
+    Clock
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -36,6 +39,7 @@ import { createClient } from '@/lib/supabase/client';
 import { DeploymentCalendar } from '@/components/admin/deployment-calendar';
 import { UserFeatureDialog } from '@/components/admin/user-feature-dialog';
 import { AdminNavMenu } from '@/components/admin/admin-nav-menu';
+import { TasksTab } from '@/components/admin/tasks-tab';
 
 interface Profile {
     id: string;
@@ -82,11 +86,11 @@ interface UserBreakdown {
 
 export default function MasterDashboard() {
     const searchParams = useSearchParams();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'leads' | 'performance' | 'analytics'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'leads' | 'tasks' | 'performance' | 'analytics'>('overview');
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab === 'performance' || tab === 'analytics' || tab === 'users' || tab === 'overview' || tab === 'leads') {
+        if (tab === 'performance' || tab === 'analytics' || tab === 'users' || tab === 'overview' || tab === 'leads' || tab === 'tasks') {
             setActiveTab(tab as any);
         }
     }, [searchParams]);
@@ -231,6 +235,7 @@ export default function MasterDashboard() {
 
     const selectedAdmin = performanceData?.adminStats.find(a => a.id === selectedAdminId);
 
+
     return (
         <div className="px-8 py-8">
             {/* Header Section */}
@@ -263,6 +268,12 @@ export default function MasterDashboard() {
                         className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'leads' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
                         Cold Leads
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('tasks')}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all ${activeTab === 'tasks' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                        Tasks
                     </button>
                 </div>
             </div>
@@ -650,6 +661,10 @@ export default function MasterDashboard() {
                                 </table>
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'tasks' && (
+                        <TasksTab refreshTasks={fetchData} />
                     )}
 
                     {activeTab === 'performance' && (
