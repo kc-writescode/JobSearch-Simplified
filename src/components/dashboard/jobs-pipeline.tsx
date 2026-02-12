@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import useSWR from 'swr';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { JobImportForm } from '@/components/jobs/job-import-form';
@@ -8,6 +9,12 @@ import { BulkJobImport } from '@/components/jobs/bulk-job-import';
 import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Ban, RefreshCw } from 'lucide-react';
 import { PRESET_LABELS, getLabelClasses } from '@/lib/constants/labels';
 import { jsPDF } from 'jspdf';
+
+// SWR fetcher
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch');
+  return res.json();
+});
 
 type TabType = 'saved' | 'applying' | 'applied' | 'trashed';
 
@@ -56,14 +63,14 @@ interface FeatureAccess {
 }
 
 interface JobsPipelineProps {
-  jobs: Job[];
+  initialJobs?: Job[];
   resumes: Resume[];
   onUpdate?: () => void;
   credits?: number;
   featureAccess?: FeatureAccess;
 }
 
-export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAccess }: JobsPipelineProps) {
+export function JobsPipeline({ initialJobs, resumes, onUpdate, credits = 0, featureAccess }: JobsPipelineProps) {
   const [activeTab, setActiveTab] = useState<TabType>('applying');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showImportForm, setShowImportForm] = useState(false);
@@ -83,77 +90,72 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
   const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [selectedLabelFilters, setSelectedLabelFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [refreshing, setRefreshing] = useState(false);
   const supabase = createClient();
 
-  // Fast client-side refresh — only re-fetches jobs instead of full page reload
-  const handleRefreshJobs = async () => {
+  // Debounce search input (300ms delay)
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 300);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [searchQuery]);
+
+  // ── SWR: Fetch jobs from API with DB-level pagination ──
+  const labelsParam = selectedLabelFilters.join(',');
+  const swrKey = `/api/jobs?tab=${activeTab}&page=${currentPage}&pageSize=${pageSize}&search=${encodeURIComponent(debouncedSearch)}&labels=${encodeURIComponent(labelsParam)}`;
+
+  const { data: jobsData, mutate, isValidating } = useSWR(swrKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 2000,
+    keepPreviousData: true,
+  });
+
+  // Derived values from SWR response
+  const activeJobsList: Job[] = jobsData?.jobs || [];
+  const totalItems: number = jobsData?.total || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const tabCounts = jobsData?.counts || { saved: 0, applying: 0, applied: 0, trashed: 0 };
+  const totalTracked = tabCounts.saved + tabCounts.applying + tabCounts.applied + tabCounts.trashed;
+
+  // Refresh handler — triggers SWR revalidation (no full page reload)
+  const handleRefreshJobs = useCallback(async () => {
     setRefreshing(true);
     try {
-      onUpdate?.();
+      await mutate();
       toast.success('Job list refreshed');
     } catch (error) {
       console.error('Refresh error:', error);
       toast.error('Failed to refresh');
     } finally {
-      // Keep spinner for at least 600ms for visual feedback
       setTimeout(() => setRefreshing(false), 600);
     }
-  };
+  }, [mutate]);
+
+  // After any mutation (trash, untrash, etc.), revalidate SWR
+  const revalidateJobs = useCallback(() => {
+    mutate();
+  }, [mutate]);
 
   useEffect(() => {
     setSelectedJobIds([]);
     setCurrentPage(1);
   }, [activeTab]);
 
-  // Reset to page 1 when search/filters change
+  // Reset to page 1 when label filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedLabelFilters]);
+  }, [selectedLabelFilters]);
 
-  // Filter jobs by tab
-  const savedJobs = jobs.filter(job =>
-    job.status === 'saved' || job.status === 'tailored' || job.status === 'tailoring'
-  );
-  const applyingJobs = jobs.filter(job =>
-    job.status === 'delegate_to_va'
-  );
-  const appliedJobs = jobs.filter(job =>
-    job.status === 'applied' || job.status === 'interviewing' || job.status === 'offer'
-  );
-  const trashedJobs = jobs.filter(job => job.status === 'trashed');
-
-  const getJobsForTab = () => {
-    let tabJobs: Job[];
-    switch (activeTab) {
-      case 'saved': tabJobs = savedJobs; break;
-      case 'applying': tabJobs = applyingJobs; break;
-      case 'applied': tabJobs = appliedJobs; break;
-      case 'trashed': tabJobs = trashedJobs; break;
-    }
-    if (selectedLabelFilters.length > 0) {
-      tabJobs = tabJobs.filter(job =>
-        job.labels && job.labels.some(l => selectedLabelFilters.includes(l))
-      );
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      tabJobs = tabJobs.filter(job =>
-        job.title.toLowerCase().includes(q) ||
-        job.company.toLowerCase().includes(q) ||
-        (job.location && job.location.toLowerCase().includes(q))
-      );
-    }
-    return tabJobs;
-  };
-
-  // Derive all unique labels across ALL jobs for filter options
-  const allLabelsForTab = Array.from(new Set(
-    jobs.flatMap(j => j.labels || [])
-  ));
+  // Derive all unique labels from the user's jobs (provided by API)
+  const allLabelsForTab = jobsData?.labels || [];
 
   const getResumeName = (resumeId: string | null | undefined) => {
     if (!resumeId) return null;
@@ -185,7 +187,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
 
       setFormData({ title: '', company: '', description: '', job_url: '', location: '', resume_id: '' });
       setShowAddForm(false);
-      onUpdate?.();
+      revalidateJobs();
     } catch (error) {
       console.error('Error adding job:', error);
       toast.error('Failed to add job');
@@ -202,7 +204,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
 
       if (error) throw error;
       setSelectedJob(null);
-      onUpdate?.();
+      revalidateJobs();
     } catch (error) {
       console.error('Error trashing job:', error);
     }
@@ -215,7 +217,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
         .eq('id', jobId);
 
       if (error) throw error;
-      onUpdate?.();
+      revalidateJobs();
     } catch (error) {
       console.error('Error untrashing job:', error);
     }
@@ -233,27 +235,21 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
 
       if (error) throw error;
       setSelectedJob(null);
-      onUpdate?.();
+      revalidateJobs();
     } catch (error) {
       console.error('Error marking applied:', error);
     }
   };
-
-  const allFilteredJobs = getJobsForTab();
-  const totalItems = allFilteredJobs.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
-  const paginatedJobs = allFilteredJobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const activeJobsList = paginatedJobs;
 
   const toggleSelectJob = (id: string) => {
     setSelectedJobIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const toggleSelectAll = () => {
-    if (selectedJobIds.length === allFilteredJobs.length) {
+    if (selectedJobIds.length === activeJobsList.length) {
       setSelectedJobIds([]);
     } else {
-      setSelectedJobIds(allFilteredJobs.map(j => j.id));
+      setSelectedJobIds(activeJobsList.map(j => j.id));
     }
   };
 
@@ -268,7 +264,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
 
       if (error) throw error;
       setSelectedJobIds([]);
-      onUpdate?.();
+      revalidateJobs();
     } catch (error) {
       console.error('Bulk trash error', error);
       toast.error('Failed to trash items');
@@ -284,7 +280,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
 
       if (error) throw error;
       setSelectedJobIds([]);
-      onUpdate?.();
+      revalidateJobs();
       toast.success('Resumes updated!');
     } catch (error) {
       console.error('Bulk resume error', error);
@@ -301,7 +297,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
 
       if (error) throw error;
       setSelectedJobIds([]);
-      onUpdate?.();
+      revalidateJobs();
     } catch (error) {
       console.error('Bulk restore error', error);
     }
@@ -327,18 +323,13 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
       if (hasError) throw new Error('Some jobs failed to delegate');
 
       setSelectedJobIds([]);
-      onUpdate?.();
+      revalidateJobs();
     } catch (error) {
       console.error('Bulk delegate error', error);
     }
   };
 
-  const tabCounts = {
-    saved: savedJobs.length,
-    applying: applyingJobs.length,
-    applied: appliedJobs.length,
-    trashed: trashedJobs.length,
-  };
+  // tabCounts and totalTracked are now derived from SWR data (above)
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -408,7 +399,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
         <div className="flex items-center gap-6">
           <div className="hidden sm:flex flex-col">
             <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider leading-none mb-1.5">Total Tracked</span>
-            <span className="text-2xl font-bold text-slate-900 leading-none">{jobs.length}</span>
+            <span className="text-2xl font-bold text-slate-900 leading-none">{totalTracked}</span>
           </div>
           <div className="h-10 w-[1px] bg-slate-100 hidden sm:block"></div>
           <div className={`hidden sm:flex flex-col px-5 py-3 rounded-2xl border-2 shadow-sm ${credits === 0 ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200' :
@@ -647,7 +638,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
                   </button>
                 )}
                 {allLabelsForTab.length > 0 ? (
-                  allLabelsForTab.map((label) => {
+                  allLabelsForTab.map((label: string) => {
                     const isActive = selectedLabelFilters.includes(label);
                     return (
                       <button
@@ -755,21 +746,21 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
       )}
 
       {/* Selection Header (only visible when items exist and NOT applied tab) */}
-      {allFilteredJobs.length > 0 && activeTab !== 'applied' && (
+      {activeJobsList.length > 0 && activeTab !== 'applied' && (
         <div className="flex items-center gap-2 px-2">
           <button
             onClick={toggleSelectAll}
             className="text-[9px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-wider flex items-center gap-1.5 transition-colors"
           >
-            {selectedJobIds.length === allFilteredJobs.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
-            Select All {allFilteredJobs.length}
+            {selectedJobIds.length === activeJobsList.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+            Select All {activeJobsList.length}
           </button>
         </div>
       )}
 
       {/* Mission Intelligence List */}
       <div className="space-y-3">
-        {allFilteredJobs.length === 0 ? (
+        {activeJobsList.length === 0 ? (
           <div className="py-16 bg-white rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
             <div className="p-4 bg-slate-50 rounded-full mb-3">
               <RadarIcon className="h-8 w-8 text-slate-300" />
@@ -780,7 +771,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
         ) : (
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
             <div className="divide-y divide-slate-50">
-              {paginatedJobs.map((job) => (
+              {activeJobsList.map((job) => (
                 <JobRow
                   key={job.id}
                   job={job}
@@ -881,7 +872,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
           onClose={() => setSelectedJob(null)}
           onTrash={() => handleTrashJob(selectedJob.id)}
           onMarkApplied={() => handleMarkApplied(selectedJob.id)}
-          onUpdate={onUpdate}
+          onUpdate={revalidateJobs}
           featureAccess={featureAccess}
         />
       )}
@@ -897,7 +888,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
           setAutoSubmitImport(false);
         }}
         onSuccess={() => {
-          onUpdate?.();
+          revalidateJobs();
         }}
       />
 
@@ -906,7 +897,7 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
         open={showBulkImport}
         onClose={() => setShowBulkImport(false)}
         onSuccess={() => {
-          onUpdate?.();
+          revalidateJobs();
         }}
       />
     </div>

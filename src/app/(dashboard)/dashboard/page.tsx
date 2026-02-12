@@ -52,33 +52,6 @@ export default async function DashboardPage() {
 
   const defaultResumeSkills = getDefaultResumeSkills();
 
-  // Fetch jobs
-  const { data: jobs } = await (supabase
-    .from('jobs') as any)
-    .select('id, delegated_job_id, title, company, status, job_url, location, description, resume_id, cover_letter, submission_proof, custom_resume_proof, applied_at, created_at, client_notes, labels, cannot_apply_reason')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  // Fetch tailored resume statuses for all user's jobs
-  const { data: tailoredResumes } = await (supabase
-    .from('tailored_resumes') as any)
-    .select('job_id, status')
-    .eq('user_id', user.id);
-
-  // Create a map of job_id -> tailored resume status
-  const tailoredStatusMap: Record<string, string> = {};
-  if (tailoredResumes) {
-    (tailoredResumes as TailoredResume[]).forEach((tr) => {
-      tailoredStatusMap[tr.job_id] = tr.status;
-    });
-  }
-
-  // Add tailored status to each job
-  const jobsWithTailoredStatus = (jobs || []).map((job: { id: string }) => ({
-    ...job,
-    tailored_status: tailoredStatusMap[job.id] || null,
-  }));
-
   return (
     <ClientDashboard
       profile={{
@@ -95,7 +68,7 @@ export default async function DashboardPage() {
         resume_skills: defaultResumeSkills,
       }}
       resumes={resumes || []}
-      jobs={jobsWithTailoredStatus}
+      initialJobs={[]}
     />
   );
 }

@@ -64,10 +64,10 @@ interface Job {
 interface ClientDashboardProps {
   profile: ProfileData;
   resumes: Resume[];
-  jobs: Job[];
+  initialJobs?: Job[];
 }
 
-export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps) {
+export function ClientDashboard({ profile, resumes, initialJobs }: ClientDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'profile' | 'resumes' | 'jobs' | 'vault'>('profile');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -244,7 +244,7 @@ export function ClientDashboard({ profile, resumes, jobs }: ClientDashboardProps
 
             {activeTab === 'jobs' && (
               <JobsPipeline
-                jobs={jobs}
+                initialJobs={initialJobs}
                 resumes={resumes.map(r => ({
                   id: r.id,
                   job_role: r.job_role,
