@@ -988,7 +988,7 @@ export default function LandingPage() {
                   </svg>
                 </a>
                 <a
-                  href="mailto:support@resumetojobs.com"
+                  href="mailto:krishna@resumetojobs.com"
                   className="w-10 h-10 bg-neutral-800 hover:bg-blue-600 rounded-lg flex items-center justify-center transition-all duration-300 group"
                   aria-label="Email us"
                 >
@@ -1049,8 +1049,8 @@ export default function LandingPage() {
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:support@resumetojobs.com" className="text-sm text-neutral-400 hover:text-white transition-colors">
-                    support@resumetojobs.com
+                  <a href="mailto:krishna@resumetojobs.com" className="text-sm text-neutral-400 hover:text-white transition-colors">
+                    krishna@resumetojobs.com
                   </a>
                 </li>
               </ul>
