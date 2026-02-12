@@ -43,10 +43,10 @@ interface Job {
 interface UnifiedDashboardProps {
   profile: ProfileData;
   resumes: Resume[];
-  jobs: Job[];
+  initialJobs: Job[];
 }
 
-export function UnifiedDashboard({ profile, resumes, jobs }: UnifiedDashboardProps) {
+export function UnifiedDashboard({ profile, resumes, initialJobs }: UnifiedDashboardProps) {
   const router = useRouter();
 
   const handleRefresh = () => {
@@ -79,7 +79,7 @@ export function UnifiedDashboard({ profile, resumes, jobs }: UnifiedDashboardPro
 
         {/* Jobs Pipeline */}
         <JobsPipeline
-          jobs={jobs}
+          initialJobs={initialJobs}
           resumes={resumes.map(r => ({
             id: r.id,
             job_role: r.job_role,
