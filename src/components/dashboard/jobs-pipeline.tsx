@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { JobImportForm } from '@/components/jobs/job-import-form';
 import { BulkJobImport } from '@/components/jobs/bulk-job-import';
-import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Ban } from 'lucide-react';
+import { Trash2, FileText, CheckSquare, Square, X, RotateCcw, UserPlus, Tag, Plus, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Ban, RefreshCw } from 'lucide-react';
 import { PRESET_LABELS, getLabelClasses } from '@/lib/constants/labels';
 import { jsPDF } from 'jspdf';
 
@@ -86,7 +86,23 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [refreshing, setRefreshing] = useState(false);
   const supabase = createClient();
+
+  // Fast client-side refresh — only re-fetches jobs instead of full page reload
+  const handleRefreshJobs = async () => {
+    setRefreshing(true);
+    try {
+      onUpdate?.();
+      toast.success('Job list refreshed');
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh');
+    } finally {
+      // Keep spinner for at least 600ms for visual feedback
+      setTimeout(() => setRefreshing(false), 600);
+    }
+  };
 
   useEffect(() => {
     setSelectedJobIds([]);
@@ -553,25 +569,37 @@ export function JobsPipeline({ jobs, resumes, onUpdate, credits = 0, featureAcce
       )}
 
       {/* Strategic Tab Navigation */}
-      <div className="flex bg-slate-200/50 p-1.5 rounded-[1.25rem] border border-slate-200/60 max-w-2xl shadow-inner overflow-x-auto">
-        {(['saved', 'applying', 'applied', 'trashed'] as TabType[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 flex items-center justify-center gap-3 px-6 py-3 text-[12px] font-bold tracking-tight rounded-[1rem] transition-all duration-300 ${activeTab === tab
-              ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50 border border-slate-100 scale-[1.02]'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/30'
-              }`}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            <span className={`flex items-center justify-center h-5 min-w-[22px] px-1.5 rounded-lg text-[10px] font-bold ${activeTab === tab
-              ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-200'
-              : 'bg-slate-200 text-slate-500'
-              }`}>
-              {tabCounts[tab]}
-            </span>
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="flex bg-slate-200/50 p-1.5 rounded-[1.25rem] border border-slate-200/60 max-w-2xl shadow-inner overflow-x-auto">
+          {(['saved', 'applying', 'applied', 'trashed'] as TabType[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 flex items-center justify-center gap-3 px-6 py-3 text-[12px] font-bold tracking-tight rounded-[1rem] transition-all duration-300 ${activeTab === tab
+                ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50 border border-slate-100 scale-[1.02]'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/30'
+                }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              <span className={`flex items-center justify-center h-5 min-w-[22px] px-1.5 rounded-lg text-[10px] font-bold ${activeTab === tab
+                ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-200'
+                : 'bg-slate-200 text-slate-500'
+                }`}>
+                {tabCounts[tab]}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Refresh Button */}
+        <button
+          onClick={handleRefreshJobs}
+          disabled={refreshing}
+          className="flex items-center justify-center h-10 w-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+          title="Refresh job list"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* Search Bar + Label Filter */}
