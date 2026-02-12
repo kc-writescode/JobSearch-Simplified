@@ -7,6 +7,20 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
     try {
+        // Geo-restriction: Only allow US users
+        const vercelCountry = request.headers.get('x-vercel-ip-country');
+        const cfCountry = request.headers.get('cf-ipcountry');
+        const detectedCountry = vercelCountry || cfCountry;
+
+        // If we can detect the country and it's not US, block the request
+        // (skip check if no country header is available — e.g., localhost)
+        if (detectedCountry && detectedCountry !== 'US') {
+            return NextResponse.json(
+                { error: 'This service is currently available only in the United States. Coming to your country soon!' },
+                { status: 403 }
+            );
+        }
+
         const formData = await request.formData();
         const file = formData.get('file') as File | null;
         const email = formData.get('email') as string | null;

@@ -44,6 +44,7 @@ import {
     AppleIcon
 } from '@/components/tools/ToolIcons';
 import { Logo } from '@/components/Logo';
+import { GeoGate } from '@/components/tools/GeoGate';
 
 const TOOLS_CONFIG: any = {
     'ats-checker': {
@@ -235,282 +236,284 @@ export default function ToolPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white">
-            {/* Unified Navigation Bar */}
-            <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-xl border-b border-neutral-100 shadow-sm">
-                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <Logo />
-                    <div className="hidden md:flex gap-4 items-center">
-                        <button
-                            onClick={() => router.push('/tools')}
-                            className="text-sm font-medium text-neutral-600 hover:text-blue-600 transition-colors flex items-center gap-2"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Back to Tools
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
-            <div className="pt-24">
-            </div>
-
-            <main className="max-w-7xl mx-auto px-8 py-16">
-                {step === 'upload' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Hero section for the tool */}
-                        <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${config.bgGradient || 'from-slate-50 to-gray-50'} border border-slate-100 p-8 md:p-12 mb-10`}>
-                            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/40 rounded-full blur-3xl" />
-                                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/30 rounded-full blur-2xl" />
-                            </div>
-                            <div className="relative z-10 text-center space-y-5">
-                                <div className="inline-flex items-center justify-center">
-                                    <div className={`h-16 w-16 flex items-center justify-center p-3 rounded-2xl bg-white shadow-lg border border-slate-100`}>
-                                        {React.cloneElement(config.icon as React.ReactElement, { className: 'h-10 w-10' })}
-                                    </div>
-                                </div>
-                                <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-                                    {config.title}
-                                </h2>
-                                <p className="text-base text-slate-600 font-medium max-w-lg mx-auto leading-relaxed">
-                                    {config.description} Upload your resume below to get started.
-                                </p>
-                                <div className="flex items-center justify-center gap-3 pt-2">
-                                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-600 text-xs font-bold rounded-full border border-blue-100 shadow-sm">
-                                        <Sparkles className="h-3.5 w-3.5" />
-                                        AI-Powered
-                                    </span>
-                                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 text-xs font-bold rounded-full border border-emerald-100 shadow-sm">
-                                        <Lock className="h-3.5 w-3.5" />
-                                        100% Private
-                                    </span>
-                                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-amber-600 text-xs font-bold rounded-full border border-amber-100 shadow-sm">
-                                        <Zap className="h-3.5 w-3.5" />
-                                        Instant Results
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleUpload} className="max-w-2xl mx-auto space-y-6">
-                            {/* Input fields with better styling */}
-                            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                                <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                    <User className="h-4 w-4 text-slate-400" />
-                                    Your Information
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-500">Full Name</label>
-                                        <input
-                                            type="text"
-                                            placeholder="John Doe"
-                                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-500">Email Address <span className="text-rose-500">*</span></label>
-                                        <input
-                                            type="email"
-                                            required
-                                            placeholder="john@example.com"
-                                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                                <p className="text-xs text-slate-400 mt-3">We'll send you a copy of your report to this email.</p>
-                            </div>
-
-                            {/* Upload area with better design */}
-                            <div
-                                className={`relative rounded-2xl p-8 text-center transition-all border-2 border-dashed ${file ? 'border-emerald-400 bg-emerald-50/50' : 'border-slate-200 hover:border-blue-400 bg-white'}`}
-                                onDragOver={(e) => { e.preventDefault(); }}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    const droppedFile = e.dataTransfer.files[0];
-                                    if (droppedFile?.type === 'application/pdf') setFile(droppedFile);
-                                }}
-                            >
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    className="hidden"
-                                    id="resume-upload"
-                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                />
-                                <label htmlFor="resume-upload" className="cursor-pointer block space-y-4">
-                                    <div className={`mx-auto w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${file ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-500'}`}>
-                                        {file ? <CheckCircle2 className="h-8 w-8" /> : <Upload className="h-8 w-8" />}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-base font-bold text-slate-900">
-                                            {file ? file.name : 'Drop your resume here or click to browse'}
-                                        </p>
-                                        <p className="text-xs text-slate-400 font-medium">
-                                            {file ? 'Click to change file' : 'PDF format only • Max 10MB'}
-                                        </p>
-                                    </div>
-                                    {file && (
-                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
-                                            <FileText className="h-3.5 w-3.5" />
-                                            Resume uploaded successfully
-                                        </div>
-                                    )}
-                                </label>
-                            </div>
-
-                            {/* Submit button */}
+        <GeoGate>
+            <div className="min-h-screen bg-white">
+                {/* Unified Navigation Bar */}
+                <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-xl border-b border-neutral-100 shadow-sm">
+                    <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                        <Logo />
+                        <div className="hidden md:flex gap-4 items-center">
                             <button
-                                type="submit"
-                                className={`w-full py-5 rounded-xl font-bold text-base shadow-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${file && email
-                                    ? `bg-gradient-to-r ${config.gradient} text-white hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]`
-                                    : 'bg-slate-200 text-slate-400'
-                                    }`}
-                                disabled={!file || !email}
+                                onClick={() => router.push('/tools')}
+                                className="text-sm font-medium text-neutral-600 hover:text-blue-600 transition-colors flex items-center gap-2"
                             >
-                                <Sparkles className="h-5 w-5" />
-                                Generate My Report
-                                <ArrowRight className="h-5 w-5" />
+                                <ArrowLeft className="h-4 w-4" />
+                                Back to Tools
                             </button>
-
-                            <p className="text-center text-xs text-slate-400">
-                                Your data is processed securely and never shared with third parties.
-                            </p>
-                        </form>
+                        </div>
                     </div>
-                )}
+                </nav>
 
-                {step === 'processing' && (
-                    <div className="flex flex-col items-center justify-center py-20 space-y-10 animate-in fade-in duration-500">
-                        {/* Animated loader */}
-                        <div className="relative">
-                            <div className={`h-32 w-32 rounded-full bg-gradient-to-br ${config.bgGradient || 'from-blue-50 to-indigo-50'} flex items-center justify-center`}>
-                                <div className="absolute inset-0 rounded-full border-4 border-slate-100" />
-                                <div className={`absolute inset-0 rounded-full border-4 border-t-transparent border-r-transparent bg-gradient-to-r ${config.gradient} animate-spin`} style={{ borderTopColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: 'transparent' }} />
-                                <div className="relative z-10 h-20 w-20 bg-white rounded-full shadow-lg flex items-center justify-center">
-                                    {React.cloneElement(config.icon as React.ReactElement, { className: 'h-10 w-10 animate-pulse' })}
+                <div className="pt-24">
+                </div>
+
+                <main className="max-w-7xl mx-auto px-8 py-16">
+                    {step === 'upload' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Hero section for the tool */}
+                            <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${config.bgGradient || 'from-slate-50 to-gray-50'} border border-slate-100 p-8 md:p-12 mb-10`}>
+                                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                                    <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/40 rounded-full blur-3xl" />
+                                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/30 rounded-full blur-2xl" />
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Status text */}
-                        <div className="text-center space-y-4 max-w-md">
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Analyzing Your Resume</h3>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-center gap-3">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                </div>
-                                <p className="text-sm text-slate-500 font-medium">
-                                    Our AI is extracting insights from your resume. This usually takes 10-20 seconds.
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Progress steps */}
-                        <div className="flex items-center gap-3">
-                            {['Parsing', 'Analyzing', 'Generating'].map((step, i) => (
-                                <div key={step} className="flex items-center gap-2">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-emerald-500 text-white' : i === 1 ? 'bg-blue-500 text-white animate-pulse' : 'bg-slate-200 text-slate-400'}`}>
-                                        {i === 0 ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
+                                <div className="relative z-10 text-center space-y-5">
+                                    <div className="inline-flex items-center justify-center">
+                                        <div className={`h-16 w-16 flex items-center justify-center p-3 rounded-2xl bg-white shadow-lg border border-slate-100`}>
+                                            {React.cloneElement(config.icon as React.ReactElement, { className: 'h-10 w-10' })}
+                                        </div>
                                     </div>
-                                    <span className={`text-xs font-semibold ${i <= 1 ? 'text-slate-700' : 'text-slate-400'}`}>{step}</span>
-                                    {i < 2 && <ArrowRight className="w-4 h-4 text-slate-300" />}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {step === 'result' && resultData && (
-                    <div ref={reportRef} data-report-container className="space-y-8 animate-in fade-in duration-500 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100" style={{ backgroundColor: '#ffffff' }}>
-                        {/* Compact Header */}
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-md`}>
-                                    {React.cloneElement(config.icon as React.ReactElement, { className: 'h-6 w-6 text-white' })}
-                                </div>
-                                <div>
-                                    <h1 className="text-xl font-bold text-slate-900">{config.title}</h1>
-                                    <p className="text-sm text-slate-500">{extractedStats?.user_fullname || 'Your Report'} • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2" data-html2canvas-ignore>
-                                <button
-                                    onClick={handleShare}
-                                    className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-                                    title="Share"
-                                >
-                                    <Share2 className="h-4 w-4 text-slate-600" />
-                                </button>
-                                <button
-                                    onClick={handleDownload}
-                                    className={`flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r ${config.gradient} text-white rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all`}
-                                >
-                                    <Download className="h-4 w-4" /> Download
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Tool Specific Views (Enhanced) */}
-                        {toolId === 'ats-checker' && <ATSResult data={resultData} />}
-                        {toolId === 'netflix-career' && <NetflixResult data={resultData} />}
-                        {toolId === 'wikipedia-page' && <WikipediaResult data={resultData} />}
-                        {toolId === 'resume-roast' && <RoastResult data={resultData} />}
-                        {toolId === 'job-search-strategy' && <StrategyResult data={resultData} />}
-                        {toolId === 'interview-predictor' && <PredictorResult data={resultData} />}
-                        {toolId === 'buzzword-detector' && <BuzzwordResult data={resultData} />}
-                        {toolId === 'killer-self-intro' && <IntroResult data={resultData} />}
-
-                        {!['ats-checker', 'netflix-career', 'wikipedia-page', 'resume-roast', 'job-search-strategy', 'interview-predictor', 'buzzword-detector', 'killer-self-intro'].includes(toolId) && (
-                            <FallbackResult data={resultData} />
-                        )}
-
-                        {/* Premium CTA Section */}
-                        <div className="mt-8 bg-slate-900 rounded-xl p-8 text-center" data-html2canvas-ignore>
-                            <div className="max-w-2xl mx-auto space-y-4">
-                                <h2 className="text-xl md:text-2xl font-bold text-white">
-                                    Ready to land interviews faster?
-                                </h2>
-                                <p className="text-sm text-slate-400">
-                                    Our premium service tailors your resume for each job, writes custom cover letters, and helps you apply at scale.
-                                </p>
-                                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                                    {['AI-Tailored Resumes', 'Custom Cover Letters', 'ATS Optimization'].map((feature, i) => (
-                                        <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-full text-xs text-white/80">
-                                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                                            {feature}
+                                    <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+                                        {config.title}
+                                    </h2>
+                                    <p className="text-base text-slate-600 font-medium max-w-lg mx-auto leading-relaxed">
+                                        {config.description} Upload your resume below to get started.
+                                    </p>
+                                    <div className="flex items-center justify-center gap-3 pt-2">
+                                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-blue-600 text-xs font-bold rounded-full border border-blue-100 shadow-sm">
+                                            <Sparkles className="h-3.5 w-3.5" />
+                                            AI-Powered
                                         </span>
-                                    ))}
+                                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 text-xs font-bold rounded-full border border-emerald-100 shadow-sm">
+                                            <Lock className="h-3.5 w-3.5" />
+                                            100% Private
+                                        </span>
+                                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-amber-600 text-xs font-bold rounded-full border border-amber-100 shadow-sm">
+                                            <Zap className="h-3.5 w-3.5" />
+                                            Instant Results
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center justify-center gap-3 pt-4">
+                            </div>
+
+                            <form onSubmit={handleUpload} className="max-w-2xl mx-auto space-y-6">
+                                {/* Input fields with better styling */}
+                                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                                    <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <User className="h-4 w-4 text-slate-400" />
+                                        Your Information
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-semibold text-slate-500">Full Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="John Doe"
+                                                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-semibold text-slate-500">Email Address <span className="text-rose-500">*</span></label>
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder="john@example.com"
+                                                className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-3">We'll send you a copy of your report to this email.</p>
+                                </div>
+
+                                {/* Upload area with better design */}
+                                <div
+                                    className={`relative rounded-2xl p-8 text-center transition-all border-2 border-dashed ${file ? 'border-emerald-400 bg-emerald-50/50' : 'border-slate-200 hover:border-blue-400 bg-white'}`}
+                                    onDragOver={(e) => { e.preventDefault(); }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        const droppedFile = e.dataTransfer.files[0];
+                                        if (droppedFile?.type === 'application/pdf') setFile(droppedFile);
+                                    }}
+                                >
+                                    <input
+                                        type="file"
+                                        accept=".pdf"
+                                        className="hidden"
+                                        id="resume-upload"
+                                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                    />
+                                    <label htmlFor="resume-upload" className="cursor-pointer block space-y-4">
+                                        <div className={`mx-auto w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${file ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-500'}`}>
+                                            {file ? <CheckCircle2 className="h-8 w-8" /> : <Upload className="h-8 w-8" />}
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-base font-bold text-slate-900">
+                                                {file ? file.name : 'Drop your resume here or click to browse'}
+                                            </p>
+                                            <p className="text-xs text-slate-400 font-medium">
+                                                {file ? 'Click to change file' : 'PDF format only • Max 10MB'}
+                                            </p>
+                                        </div>
+                                        {file && (
+                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                                                <FileText className="h-3.5 w-3.5" />
+                                                Resume uploaded successfully
+                                            </div>
+                                        )}
+                                    </label>
+                                </div>
+
+                                {/* Submit button */}
+                                <button
+                                    type="submit"
+                                    className={`w-full py-5 rounded-xl font-bold text-base shadow-lg transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed ${file && email
+                                        ? `bg-gradient-to-r ${config.gradient} text-white hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]`
+                                        : 'bg-slate-200 text-slate-400'
+                                        }`}
+                                    disabled={!file || !email}
+                                >
+                                    <Sparkles className="h-5 w-5" />
+                                    Generate My Report
+                                    <ArrowRight className="h-5 w-5" />
+                                </button>
+
+                                <p className="text-center text-xs text-slate-400">
+                                    Your data is processed securely and never shared with third parties.
+                                </p>
+                            </form>
+                        </div>
+                    )}
+
+                    {step === 'processing' && (
+                        <div className="flex flex-col items-center justify-center py-20 space-y-10 animate-in fade-in duration-500">
+                            {/* Animated loader */}
+                            <div className="relative">
+                                <div className={`h-32 w-32 rounded-full bg-gradient-to-br ${config.bgGradient || 'from-blue-50 to-indigo-50'} flex items-center justify-center`}>
+                                    <div className="absolute inset-0 rounded-full border-4 border-slate-100" />
+                                    <div className={`absolute inset-0 rounded-full border-4 border-t-transparent border-r-transparent bg-gradient-to-r ${config.gradient} animate-spin`} style={{ borderTopColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: 'transparent' }} />
+                                    <div className="relative z-10 h-20 w-20 bg-white rounded-full shadow-lg flex items-center justify-center">
+                                        {React.cloneElement(config.icon as React.ReactElement, { className: 'h-10 w-10 animate-pulse' })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Status text */}
+                            <div className="text-center space-y-4 max-w-md">
+                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Analyzing Your Resume</h3>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    </div>
+                                    <p className="text-sm text-slate-500 font-medium">
+                                        Our AI is extracting insights from your resume. This usually takes 10-20 seconds.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Progress steps */}
+                            <div className="flex items-center gap-3">
+                                {['Parsing', 'Analyzing', 'Generating'].map((step, i) => (
+                                    <div key={step} className="flex items-center gap-2">
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-emerald-500 text-white' : i === 1 ? 'bg-blue-500 text-white animate-pulse' : 'bg-slate-200 text-slate-400'}`}>
+                                            {i === 0 ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
+                                        </div>
+                                        <span className={`text-xs font-semibold ${i <= 1 ? 'text-slate-700' : 'text-slate-400'}`}>{step}</span>
+                                        {i < 2 && <ArrowRight className="w-4 h-4 text-slate-300" />}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'result' && resultData && (
+                        <div ref={reportRef} data-report-container className="space-y-8 animate-in fade-in duration-500 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100" style={{ backgroundColor: '#ffffff' }}>
+                            {/* Compact Header */}
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-md`}>
+                                        {React.cloneElement(config.icon as React.ReactElement, { className: 'h-6 w-6 text-white' })}
+                                    </div>
+                                    <div>
+                                        <h1 className="text-xl font-bold text-slate-900">{config.title}</h1>
+                                        <p className="text-sm text-slate-500">{extractedStats?.user_fullname || 'Your Report'} • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2" data-html2canvas-ignore>
                                     <button
-                                        onClick={() => router.push('/#pricing')}
-                                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors"
+                                        onClick={handleShare}
+                                        className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                                        title="Share"
                                     >
-                                        View Plans <ArrowRight className="w-4 h-4" />
+                                        <Share2 className="h-4 w-4 text-slate-600" />
                                     </button>
-                                    <a
-                                        href="https://cal.id/krishna-chaitanya/connect-with-founder"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-6 py-3 text-slate-400 hover:text-white text-sm font-medium transition-colors"
+                                    <button
+                                        onClick={handleDownload}
+                                        className={`flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r ${config.gradient} text-white rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all`}
                                     >
-                                        Book a call
-                                    </a>
+                                        <Download className="h-4 w-4" /> Download
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Tool Specific Views (Enhanced) */}
+                            {toolId === 'ats-checker' && <ATSResult data={resultData} />}
+                            {toolId === 'netflix-career' && <NetflixResult data={resultData} />}
+                            {toolId === 'wikipedia-page' && <WikipediaResult data={resultData} />}
+                            {toolId === 'resume-roast' && <RoastResult data={resultData} />}
+                            {toolId === 'job-search-strategy' && <StrategyResult data={resultData} />}
+                            {toolId === 'interview-predictor' && <PredictorResult data={resultData} />}
+                            {toolId === 'buzzword-detector' && <BuzzwordResult data={resultData} />}
+                            {toolId === 'killer-self-intro' && <IntroResult data={resultData} />}
+
+                            {!['ats-checker', 'netflix-career', 'wikipedia-page', 'resume-roast', 'job-search-strategy', 'interview-predictor', 'buzzword-detector', 'killer-self-intro'].includes(toolId) && (
+                                <FallbackResult data={resultData} />
+                            )}
+
+                            {/* Premium CTA Section */}
+                            <div className="mt-8 bg-slate-900 rounded-xl p-8 text-center" data-html2canvas-ignore>
+                                <div className="max-w-2xl mx-auto space-y-4">
+                                    <h2 className="text-xl md:text-2xl font-bold text-white">
+                                        Ready to land interviews faster?
+                                    </h2>
+                                    <p className="text-sm text-slate-400">
+                                        Our premium service tailors your resume for each job, writes custom cover letters, and helps you apply at scale.
+                                    </p>
+                                    <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                                        {['AI-Tailored Resumes', 'Custom Cover Letters', 'ATS Optimization'].map((feature, i) => (
+                                            <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-full text-xs text-white/80">
+                                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                                {feature}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center justify-center gap-3 pt-4">
+                                        <button
+                                            onClick={() => router.push('/#pricing')}
+                                            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors"
+                                        >
+                                            View Plans <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                        <a
+                                            href="https://cal.id/krishna-chaitanya/connect-with-founder"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-6 py-3 text-slate-400 hover:text-white text-sm font-medium transition-colors"
+                                        >
+                                            Book a call
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </main>
-        </div>
+                    )}
+                </main>
+            </div>
+        </GeoGate>
     );
 }
 
